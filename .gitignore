@@ -1,0 +1,9 @@
+# Never commit real secrets.
+server/.env
+
+# OS/editor cruft.
+.DS_Store
+*.log
+
+# If you ever add a Node toolchain at the root.
+node_modules/

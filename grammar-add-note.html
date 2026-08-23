@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>New grammar note</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fahkwang:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="app-topbar" class="app-topbar">
+    <button type="button" id="topbar-hamburger" class="topbar-hamburger" aria-label="Menu" aria-haspopup="true">
+      <span></span><span></span><span></span>
+    </button>
+    <span id="topbar-lang-label" class="topbar-lang-label"></span>
+    <div id="topbar-menu" class="topbar-menu" hidden>
+      <div class="topbar-menu-heading">Change language</div>
+      <button type="button" class="topbar-lang-option" data-lang="es">Spanish</button>
+      <button type="button" class="topbar-lang-option" data-lang="ja">Japanese</button>
+    </div>
+    <button type="button" id="topbar-notifications" class="topbar-notifications" aria-label="Notifications" aria-haspopup="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2"></rect><path d="M3 6.5l9 6.5 9-6.5"></path></svg>
+    </button>
+    <!-- A quick-glance to-do list — just a small icon here next to
+         Notifications, opening the same panel that used to float over
+         the page as a big red button. -->
+    <button type="button" id="hub-todo-toggle" class="topbar-todo" aria-label="To-do list" aria-haspopup="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"></rect><path d="M8 12l3 3 5-6"></path></svg>
+      <span id="hub-todo-toggle-count" class="hub-todo-toggle-count" hidden></span>
+    </button>
+    <a href="welcome.html" id="topbar-home" class="topbar-home" aria-label="Language home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"></path><path d="M5 10v10h14V10"></path></svg>
+    </a>
+    <div id="topbar-notifications-menu" class="topbar-menu topbar-notifications-menu" hidden>
+      <div class="topbar-menu-heading">Notifications</div>
+      <p class="topbar-notifications-empty">Coming soon — once a teacher connection exists, updates will show up here.</p>
+    </div>
+    <div id="hub-todo-panel" class="hub-todo-panel" hidden>
+      <div id="hub-todo-header" class="hub-todo-header">
+        <span class="hub-todo-title">To-do list</span>
+        <button type="button" id="hub-todo-close" class="hub-todo-close" aria-label="Close">×</button>
+      </div>
+      <form id="hub-todo-add-form" class="hub-todo-add-form">
+        <input type="text" id="hub-todo-add-input" placeholder="Add a task…" autocomplete="off" />
+        <select id="hub-todo-folder-select" class="hub-todo-folder-select" aria-label="Folder">
+          <option value="">No folder</option>
+        </select>
+        <button type="submit">Add</button>
+      </form>
+      <div id="hub-todo-groups" class="hub-todo-groups"></div>
+      <label class="hub-todo-show-completed">
+        <input type="checkbox" id="hub-todo-show-completed" />
+        Show completed
+      </label>
+    </div>
+  </div>
+  <div id="app-tab-strip" class="app-tab-strip">
+    <div id="app-tab-strip-tabs" class="app-tab-strip-tabs"></div>
+    <div class="app-tab-strip-add">
+      <button type="button" id="app-tab-plus" class="tab-bar-plus-btn" title="Open another section in a new tab">+</button>
+      <div id="app-tab-picker-panel" class="app-tab-picker-panel" hidden>
+        <select id="app-tab-section-select">
+          <option value="" disabled selected>Which section?</option>
+          <option value="vocab">Vocab Bank</option>
+          <option value="grammar">Grammar</option>
+          <option value="writing">Writing</option>
+          <option value="speaking">Speaking</option>
+          <option value="reading">Reading</option>
+          <option value="personal-hub">Personal Hub</option>
+          <option value="listening">Listening</option>
+        </select>
+        <select id="app-tab-unit-select" hidden>
+          <option value="" disabled selected>Which one?</option>
+        </select>
+        <button type="button" id="app-tab-open-btn" class="secondary" hidden>Open</button>
+        <button type="button" id="app-tab-picker-cancel" class="secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+  <header class="app-header" id="grammar-note-header">
+    <a href="grammar.html" class="back-link" id="grammar-note-back-link">&larr; Back to Grammar</a>
+    <h1 id="grammar-note-heading">New grammar note</h1>
+  </header>
+  <main>
+    <section class="panel">
+      <form id="grammar-note-form" class="stacked-form">
+        <p id="note-mode-toggle" class="note-mode-toggle"></p>
+
+        <!-- Legacy quick-capture: one sentence you noticed, mainly used
+             by the Reading/Writing "save to Grammar" handoffs and for
+             editing notes created that way. -->
+        <div id="legacy-note-fields" hidden>
+          <label>
+            <span id="note-sentence-label">Spanish sentence or phrase</span>
+            <textarea id="note-sentence" rows="2" placeholder="Paste or type a sentence or phrase..."></textarea>
+          </label>
+          <button type="button" id="fetch-translation-btn" class="secondary">Look up translation</button>
+          <p id="note-translation-display" class="hint" hidden></p>
+
+          <details id="note-hint-details" hidden>
+            <summary>Get an AI hint</summary>
+            <p id="note-structure-text" class="grammar-structure"></p>
+            <p id="note-hint-text" class="hint"></p>
+          </details>
+
+          <!-- Read-only — only shown when editing a note that a Grammar
+               check originally created (its "why this was wrong"). Not
+               an editable field, since it wasn't written by hand. -->
+          <p id="note-explanation-display" class="hint grammar-note-explanation" hidden></p>
+
+          <label>
+            Sentence structure / notes
+            <textarea id="note-notes" rows="4"></textarea>
+          </label>
+        </div>
+
+        <!-- Structure card: a named grammar pattern, explained in your
+             own words, with your own example sentences (auto-checked)
+             and optional related variants nested underneath. -->
+        <div id="structure-card-fields" hidden>
+          <label>
+            Name this pattern
+            <input type="text" id="card-header" placeholder="e.g. Intention" />
+          </label>
+          <label>
+            Explain it in your own words
+            <textarea id="card-explanation" rows="3" placeholder="What is this pattern, and when do you use it?"></textarea>
+          </label>
+
+          <button type="button" id="card-classify-btn" class="secondary">Identify this pattern</button>
+          <div id="card-classify-status" class="card-classify-status" hidden></div>
+
+          <div class="card-block">
+            <h3 class="card-block-heading">Examples</h3>
+            <div id="card-examples-list" class="card-examples-list"></div>
+            <button type="button" id="card-add-example-btn" class="secondary">+ Add example</button>
+          </div>
+
+          <div class="card-block">
+            <h3 class="card-block-heading">Related variants</h3>
+            <p class="hint">A related form of the same pattern (e.g. the same structure said about someone else) — nested here instead of its own folder entry.</p>
+            <div id="card-variants-list" class="card-variants-list"></div>
+            <button type="button" id="card-add-variant-btn" class="secondary">+ Add related variant</button>
+          </div>
+        </div>
+
+        <label>
+          Tags
+          <input type="text" id="note-tags" placeholder="e.g. reflexive idiom, pluperfect (comma-separated)" />
+        </label>
+        <label>
+          Folder
+          <div class="select-with-button">
+            <select id="note-theme-select"></select>
+            <button type="button" id="note-new-folder-btn" class="secondary">+ New</button>
+          </div>
+        </label>
+        <button type="submit" id="note-submit-btn">Save note</button>
+      </form>
+    </section>
+  </main>
+  <script src="js/topbar.js"></script>
+  <script src="js/app-tabs.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/hub-tasks.js"></script>
+  <script src="js/translate.js"></script>
+  <script src="js/grammar-concepts.js"></script>
+  <script src="js/grammar-app.js"></script>
+</body>
+</html>

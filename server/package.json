@@ -1,0 +1,9 @@
+{
+  "name": "vocab-bank-dictionary-server",
+  "version": "1.0.0",
+  "description": "Local backend for Vocab Bank's dictionary lookup. Calls the Claude API so the API key never reaches the browser. No dependencies — Node built-ins only.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

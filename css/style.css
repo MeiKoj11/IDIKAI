@@ -1,0 +1,2810 @@
+/*
+  style.css
+  ---------
+  Plain, functional styling only — a real visual pass comes later once
+  more bubbles exist.
+*/
+
+@import url("https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,400&display=swap");
+
+* {
+  box-sizing: border-box;
+}
+
+/* Guarantees the HTML `hidden` attribute always actually hides an
+   element. Without this, any class that also sets `display` on that
+   same element (e.g. .topbar-menu, .quiz-buttons, .stacked-form,
+   .lookup-panel, .grammar-panel, .deck-notice — all set
+   display:flex/block for when they're meant to be SHOWN) silently wins
+   over the browser's own `[hidden] { display: none }` default, since
+   author CSS always beats the browser's built-in stylesheet regardless
+   of selector specificity — leaving the element stuck visible even
+   while .hidden is true in JS. Found this while chasing down the
+   topbar's "Change language" menu staying open permanently; the same
+   bug pattern existed on several older panels too, fixed here in one
+   place instead of patching each class individually. */
+[hidden] {
+  display: none !important;
+}
+
+body {
+  margin: 0;
+  font-family: "Nunito", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  background: #ECE6D3;
+  color: #221712;
+}
+
+/* Global topbar — sits above every page's own header. Hamburger (left)
+   opens a "Change language" menu; the current language is centered. */
+
+.app-topbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  padding: 0.9rem 1.25rem;
+  background: #221712;
+  border-bottom: 1px solid rgba(111, 99, 91, 0.35);
+}
+
+.topbar-hamburger {
+  position: absolute;
+  left: 1.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.topbar-hamburger span {
+  display: block;
+  width: 22px;
+  height: 2.5px;
+  background: #771011;
+  border-radius: 2px;
+}
+
+.topbar-hamburger:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.topbar-lang-label {
+  font-family: "Fahkwang", "Nunito", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  font-weight: 700;
+  font-size: 1.3rem;
+  letter-spacing: 0.02em;
+  color: #ECE6D3;
+}
+
+.topbar-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 1.25rem;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 170px;
+  padding: 0.4rem;
+  border-radius: 8px;
+  background: #771011;
+  border: 1px solid #221712;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+
+.topbar-menu-heading {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #C0BFB2;
+  padding: 0.3rem 0.5rem;
+}
+
+.topbar-lang-option,
+.topbar-lang-option-link {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #ECE6D3;
+  font-size: 0.9rem;
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
+.topbar-lang-option:hover,
+.topbar-lang-option-link:hover {
+  background: #8B3435;
+}
+
+.topbar-lang-option-link {
+  margin-top: 0.3rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid #221712;
+  color: #C0BFB2;
+  font-size: 0.82rem;
+}
+
+.topbar-notifications {
+  position: absolute;
+  right: 7.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #771011;
+  cursor: pointer;
+}
+
+.topbar-notifications svg {
+  width: 24px;
+  height: 24px;
+}
+
+.topbar-notifications:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Rightmost icon — always takes you to the current language's hub page
+   (or the language picker, on a page with no resolved language yet). */
+.topbar-home {
+  position: absolute;
+  right: 1.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  color: #771011;
+  text-decoration: none;
+}
+
+.topbar-home svg {
+  width: 24px;
+  height: 24px;
+}
+
+.topbar-home:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.topbar-notifications-menu {
+  left: auto;
+  right: 7.25rem;
+  min-width: 240px;
+}
+
+.topbar-notifications-empty {
+  margin: 0;
+  padding: 0.3rem 0.5rem 0.5rem;
+  font-size: 0.85rem;
+  color: #C0BFB2;
+  line-height: 1.4;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: #221712;
+  color: #6F635B;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.theme-rename-btn {
+  margin-left: auto;
+}
+
+.back-link {
+  color: #6F635B;
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+/* Global app tab strip — sits just under the topbar on every page.
+   Site-wide, not page-specific: replaces add-vocab.html's own tab strip
+   below (.tab-strip / .vocab-tab), which now only handles Speaking's and
+   Writing's separate "reference passage while you work" tab rows. */
+
+.app-tab-strip {
+  display: flex;
+  align-items: flex-end;
+  gap: 0;
+  padding: 0.4rem 0.75rem 0;
+  background: #1A110D;
+  border-bottom: 1px solid rgba(111, 99, 91, 0.35);
+  /* overflow-x lives on .app-tab-strip-tabs below, NOT here — a
+     non-visible overflow-x here would force overflow-y to auto too
+     (per the CSS overflow spec), clipping the "+" picker panel, which
+     is an absolutely-positioned dropdown that pops out BELOW this bar. */
+}
+
+.app-tab-strip-tabs {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.app-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.55rem 0.5rem 0.85rem;
+  border-radius: 8px 8px 0 0;
+  background: #1A110D;
+  color: #C0BFB2;
+  font-size: 0.82rem;
+  text-decoration: none;
+  cursor: grab;
+  white-space: nowrap;
+  border-top: 3px solid transparent;
+  flex: 0 1 180px;
+  min-width: 80px;
+  box-sizing: border-box;
+}
+
+/* Reordering feedback (app-tabs.js drag-and-drop) — the tab being
+   dragged fades so it's obvious which one is moving. */
+.app-tab-dragging {
+  opacity: 0.4;
+}
+
+.app-tab-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-tab.lang-es {
+  border-top-color: #4A7A6B;
+}
+
+.app-tab.lang-ja {
+  border-top-color: #8B3435;
+}
+
+.app-tab:hover {
+  background: #433A36;
+}
+
+.app-tab.active {
+  background: #ECE6D3;
+  color: #221712;
+}
+
+.app-tab-close {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+  padding: 0;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 0.85rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-tab-close:hover {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.app-tab-strip-add {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 0 0.25rem 0.35rem 0.5rem;
+}
+
+.app-tab-picker-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 220px;
+  padding: 0.6rem;
+  border-radius: 8px;
+  background: #771011;
+  border: 1px solid #221712;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+
+.app-tab-picker-panel select {
+  font-size: 0.85rem;
+  padding: 0.35rem 0.4rem;
+}
+
+.tab-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 1.5rem;
+  background: #221712;
+  border-bottom: 1px solid rgba(111, 99, 91, 0.35);
+}
+
+.tab-bar-current {
+  color: #C0BFB2;
+  font-size: 0.85rem;
+  padding: 0.2rem 0.6rem;
+  background: #221712;
+  border-radius: 6px 6px 0 0;
+}
+
+.tab-bar-plus-btn {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 1rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid #6F635B;
+  color: #C0BFB2;
+}
+
+.tab-bar-plus-btn:hover {
+  background: #221712;
+}
+
+.tab-bar-picker {
+  font-size: 0.85rem;
+  padding: 0.25rem 0.5rem;
+}
+
+/* add-vocab.html's in-page tab strip — several themes open at once as
+   tabs across the top of the page, browser-style. There's one shared
+   form below; switching tabs swaps which theme it shows. */
+
+.tab-strip {
+  display: flex;
+  align-items: flex-end;
+  gap: 0;
+  padding: 0.5rem 0.75rem 0;
+  background: #221712;
+  overflow-x: auto;
+}
+
+.tab-strip-tabs {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.vocab-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.6rem 0.55rem 0.9rem;
+  border-radius: 8px 8px 0 0;
+  background: #221712;
+  color: #C0BFB2;
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+  border-top: 3px solid transparent;
+  flex: 0 1 190px;
+  min-width: 90px;
+}
+
+.vocab-tab-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vocab-tab.lang-es {
+  border-top-color: #221712;
+}
+
+.vocab-tab.lang-ja {
+  border-top-color: #221712;
+}
+
+.vocab-tab:hover {
+  background: #433A36;
+}
+
+.vocab-tab.active {
+  background: #ECE6D3;
+  color: #221712;
+}
+
+.vocab-tab-close {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  padding: 0;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 0.9rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vocab-tab-close:hover {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.tab-strip-add {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0 0.25rem 0.4rem 0.5rem;
+}
+
+main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+/* Per-language home page — full-width topbar (same as every other page,
+   no card wrapper), then the 6 sections plus a center "Personal Hub"
+   bubble arranged in a flower: a top pair, a middle trio, a bottom pair,
+   each row nudged closer to the next so they interlock a bit. */
+
+.lang-home-main {
+  max-width: 900px;
+  padding-top: 5.5rem;
+  padding-bottom: 3.5rem;
+}
+
+.lang-home-flower {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.lang-home-row {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+}
+
+.lang-home-row-2 {
+  margin: -2rem 0;
+  z-index: 1;
+}
+
+.lang-home-flower .bubble {
+  position: relative;
+  width: 190px;
+  height: 190px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 0.5rem;
+  padding: 1.5rem;
+  border-left-width: 1px;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.lang-home-flower .bubble:not(.bubble-disabled):hover {
+  transform: scale(1.08);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+  z-index: 5;
+}
+
+.lang-home-flower .bubble-title {
+  font-size: 1.15rem;
+}
+
+.lang-home-flower .bubble-sub {
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+
+.lang-home-flower .bubble-personal-hub {
+  background: #8B3435;
+}
+
+@media (max-width: 720px) {
+  .lang-home-flower .bubble {
+    width: 130px;
+    height: 130px;
+    padding: 0.85rem;
+  }
+  .lang-home-row {
+    gap: 1rem;
+  }
+  .lang-home-row-2 {
+    margin: -1.1rem 0;
+  }
+  .lang-home-flower .bubble-title {
+    font-size: 0.88rem;
+  }
+  .lang-home-flower .bubble-sub {
+    font-size: 0.66rem;
+  }
+}
+
+/* Homepage bubbles */
+
+.bubble-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.bubble {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1.25rem;
+  border-radius: 10px;
+  background: #771011;
+  border: 1px solid #221712;
+  text-decoration: none;
+  color: #ECE6D3;
+}
+
+.bubble:hover {
+  border-color: #221712;
+}
+
+.bubble-disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.bubble-title {
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+
+.bubble-sub {
+  font-size: 0.85rem;
+  color: #C0BFB2;
+}
+
+/* Panels */
+
+.panel {
+  background: #771011;
+  color: #ECE6D3;
+  border: 1px solid #221712;
+  border-radius: 10px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.panel h2 {
+  margin-top: 0;
+}
+
+.hint {
+  font-size: 0.85rem;
+  color: #C0BFB2;
+}
+
+/* Forms */
+
+.inline-form {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.inline-form input,
+.inline-form select {
+  padding: 0.5rem;
+}
+
+.stacked-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.stacked-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.stacked-form input,
+.stacked-form textarea {
+  padding: 0.5rem;
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.stacked-form textarea {
+  resize: vertical;
+}
+
+.writing-textarea {
+  min-height: 260px;
+  line-height: 1.5;
+}
+
+button {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  border: 1px solid #221712;
+  background: #221712;
+  color: #ECE6D3;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+button:hover {
+  background: #1D140F;
+}
+
+button.secondary {
+  background: #771011;
+  color: #ECE6D3;
+}
+
+button.secondary:hover {
+  background: #8B3435;
+}
+
+/* Lists */
+
+.word-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.theme-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.6rem;
+}
+
+/* Grammar's folder grid: a fixed 3-up row (matching the sketch) that
+   wraps to a new row once a 4th+ folder is added, rather than Vocab
+   Bank's flexible auto-fill columns. */
+#grammar-theme-list {
+  margin: 1.25rem 0;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.theme-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid #221712;
+  border-left: 4px solid #221712;
+  border-radius: 8px;
+  cursor: pointer;
+  background: #771011;
+  transition: border-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+}
+
+.theme-item:hover {
+  border-color: #221712;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+}
+
+.theme-item.lang-es {
+  border-left-color: #221712;
+}
+
+.theme-item.lang-ja {
+  border-left-color: #221712;
+}
+
+.theme-item.active {
+  border-color: #221712;
+  background: #8B3435;
+}
+
+.theme-item-add {
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  font-weight: 300;
+  min-height: 3.2rem;
+}
+
+/* Grammar's boxes: bigger, bolder tiles that fill the row, and a
+   delete "x" on each folder tile (not the add tile). */
+#grammar-theme-list .theme-item {
+  position: relative;
+  padding: 3rem 1.5rem;
+  height: 18rem;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+#grammar-theme-list .theme-name {
+  font-family: "Fahkwang", "Nunito", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  font-size: 1.6rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.25;
+  overflow-wrap: break-word;
+}
+
+#grammar-theme-list .theme-meta {
+  justify-content: center;
+}
+
+#grammar-theme-list .word-count-badge {
+  font-size: 1rem;
+  padding: 0.3rem 0.9rem;
+}
+
+#grammar-theme-list .theme-item-add {
+  font-size: 5rem;
+  font-weight: 300;
+}
+
+#grammar-theme-list .theme-delete-btn {
+  width: 2.2rem;
+  height: 2.2rem;
+  font-size: 1.4rem;
+  top: 0.75rem;
+  right: 0.9rem;
+}
+
+#grammar-theme-list .theme-delete-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.6rem;
+  width: 1.6rem;
+  height: 1.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.25);
+  color: #ECE6D3;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+#grammar-theme-list .theme-delete-btn:hover {
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.theme-name {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.theme-meta {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.lang-badge,
+.word-count-badge {
+  font-size: 0.72rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.lang-badge-es {
+  background: #EBDBDB;
+  color: #771011;
+}
+
+.lang-badge-ja {
+  background: #EBDBDB;
+  color: #771011;
+}
+
+.word-count-badge {
+  background: #ECE6D3;
+  color: #221712;
+}
+
+.folder-badge {
+  font-size: 0.72rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: #ECE6D3;
+  color: #221712;
+  font-weight: 600;
+}
+
+#passage-folder-filter-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+  max-width: 280px;
+  margin-bottom: 0.75rem;
+}
+
+.word-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #221712;
+  border-radius: 6px;
+}
+
+.word-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.word-example {
+  font-size: 0.8rem;
+  font-style: italic;
+  color: #C0BFB2;
+}
+
+.word-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.word-edit-form {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  align-items: center;
+  width: 100%;
+}
+
+.word-edit-form input {
+  padding: 0.35rem 0.5rem;
+  font-size: 0.9rem;
+  flex: 1;
+  min-width: 100px;
+}
+
+.word-move-panel {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.word-move-select {
+  padding: 0.35rem 0.5rem;
+  font-size: 0.9rem;
+}
+
+/* Personal Hub */
+
+.personal-note-list {
+  margin-top: 1.25rem;
+}
+
+.personal-note-item {
+  align-items: flex-start;
+}
+
+.personal-note-preview {
+  font-style: normal;
+  white-space: pre-line;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.personal-note-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.personal-note-edit-form input,
+.personal-note-edit-form textarea {
+  padding: 0.5rem;
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+
+.personal-note-edit-form textarea {
+  resize: vertical;
+}
+
+.empty-hint {
+  color: #C0BFB2;
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+/* Verb detection panel */
+
+.detection-panel {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px dashed #221712;
+  border-radius: 8px;
+  background: #5F0D0E;
+}
+
+.detection-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+}
+
+.entry-autosave-status {
+  font-size: 0.78rem;
+  color: #6f635b;
+  font-style: italic;
+}
+
+.checkbox-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin: 0.75rem 0;
+}
+
+.checkbox-grid-single {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-bottom: 0.75rem;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+}
+
+.table-preview {
+  margin-top: 0.75rem;
+}
+
+/* Conjugation tables */
+
+.conjugation-table-wrapper {
+  margin-bottom: 1.5rem;
+}
+
+.conjugation-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.85rem;
+}
+
+.conjugation-table th,
+.conjugation-table td {
+  border: 1px solid #221712;
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+}
+
+.conjugation-table th {
+  background: #5F0D0E;
+}
+
+/* Quiz */
+
+.quiz-size-input {
+  width: 3.5rem;
+  padding: 0.2rem 0.4rem;
+  margin: 0 0.3rem;
+}
+
+.quiz-mode-select {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.quiz-direction {
+  display: flex;
+  gap: 1rem;
+  margin: 0.75rem 0;
+  font-size: 0.9rem;
+}
+
+#conjugation-answer-input {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto 1rem;
+  padding: 0.6rem 0.75rem;
+  font-size: 1.1rem;
+  text-align: center;
+}
+
+.quiz-card {
+  text-align: center;
+  padding: 1.5rem 0;
+}
+
+.quiz-prompt {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.quiz-answer {
+  font-size: 1.2rem;
+  color: #ECE6D3;
+  margin: 1rem 0;
+}
+
+.quiz-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.quiz-done {
+  text-align: center;
+  padding: 1.5rem 0;
+}
+
+/* Reading */
+
+.passage-text {
+  line-height: 2;
+  font-size: 1.15rem;
+}
+
+.passage-text p {
+  margin: 0 0 1rem;
+}
+
+.passage-text p:last-child {
+  margin-bottom: 0;
+}
+
+.clickable-word {
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 0.05rem 0.15rem;
+}
+
+.clickable-word:hover {
+  background: #EBDBDB;
+  color: #771011;
+}
+
+.clickable-word.selected {
+  background: #DDC3C4;
+  color: #771011;
+  font-weight: 600;
+}
+
+.clickable-kanji {
+  border-bottom: 1px dotted #221712;
+}
+
+.clickable-kanji:hover {
+  background: #EBDBDB;
+  color: #771011;
+}
+
+.clickable-kanji.selected {
+  background: #DDC3C4;
+  color: #771011;
+  font-weight: 600;
+}
+
+.kanji-furigana {
+  font-size: 0.85rem;
+  color: #6F635B;
+}
+
+.kanji-char-meaning {
+  font-size: 0.85rem;
+  font-style: italic;
+  color: #6F635B;
+}
+
+.deck-notice {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #771011;
+  background: #EBDBDB;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+}
+
+#kanji-panel .deck-notice {
+  color: #C0BFB2;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.link-button {
+  display: inline-block;
+  text-align: center;
+  text-decoration: none;
+}
+
+.select-with-button {
+  display: flex;
+  gap: 0.4rem;
+  align-items: stretch;
+}
+
+.select-with-button select {
+  flex: 1;
+  min-width: 0;
+}
+
+.select-with-button button {
+  white-space: nowrap;
+}
+
+.lookup-panel {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.85rem 1.25rem;
+  background: #221712;
+  color: #ECE6D3;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.lookup-panel select {
+  padding: 0.35rem 0.5rem;
+}
+
+#lookup-word {
+  font-size: 1.05rem;
+}
+
+.lookup-grammar {
+  font-size: 0.8rem;
+  color: #C0BFB2;
+  font-style: italic;
+}
+
+#image-extract-status {
+  margin: -0.25rem 0 0;
+}
+
+.image-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.25rem;
+  border: 2px dashed #221712;
+  border-radius: 8px;
+  background: #5F0D0E;
+  text-align: center;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.image-dropzone .hint {
+  margin: 0;
+}
+
+.image-dropzone.dragover {
+  border-color: #221712;
+  background: #8B3435;
+}
+
+/* Grammar */
+
+.grammar-note-item {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.4rem;
+}
+
+.grammar-note-sentence {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.tag-row {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.tag-pill {
+  font-size: 0.72rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: #ECE6D3;
+  color: #221712;
+}
+
+.grammar-note-detail {
+  border-top: 1px solid #221712;
+  padding-top: 0.6rem;
+  margin-top: 0.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.grammar-pattern {
+  font-family: monospace;
+  font-size: 0.9rem;
+  background: #5F0D0E;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+}
+
+.delete-note-btn {
+  align-self: flex-start;
+}
+
+.delete-theme-btn {
+  align-self: flex-start;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.6rem;
+}
+
+details.hint summary,
+#note-hint-details summary {
+  cursor: pointer;
+  color: #C0BFB2;
+  font-size: 0.9rem;
+}
+
+#note-hint-text {
+  margin-top: 0.4rem;
+}
+
+.grammar-panel {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.85rem 1.25rem;
+  background: #221712;
+  color: #ECE6D3;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.grammar-panel summary {
+  color: #C0BFB2;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.grammar-panel details {
+  font-size: 0.85rem;
+}
+
+.grammar-panel-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.grammar-structure {
+  font-weight: 600;
+  font-family: monospace;
+  font-size: 0.9rem;
+  margin: 0.3rem 0;
+}
+
+/* Structure-card note form (grammar-add-note.html) */
+
+.note-mode-toggle {
+  margin: 0 0 1rem;
+  font-size: 0.85rem;
+}
+
+.note-mode-toggle a {
+  color: #ECE6D3;
+  text-decoration: underline;
+}
+
+.card-block {
+  margin: 1rem 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid #221712;
+}
+
+.card-block-heading {
+  margin: 0 0 0.3rem;
+  font-size: 1rem;
+}
+
+.card-examples-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+
+.card-example-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: flex-start;
+  padding: 0.6rem;
+  border: 1px solid #221712;
+  border-radius: 6px;
+}
+
+.card-example-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.85rem;
+  flex: 1;
+  min-width: 160px;
+}
+
+.card-example-field textarea {
+  resize: vertical;
+  min-height: 2.2rem;
+}
+
+.card-example-status {
+  flex-basis: 100%;
+  font-size: 0.82rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.card-example-status-ok {
+  color: #8FBF9F;
+}
+
+.card-example-status-issue {
+  color: #E0A96D;
+}
+
+.card-example-remove {
+  align-self: flex-start;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.6rem;
+}
+
+.card-variant-block {
+  margin: 0.6rem 0 0.6rem 1rem;
+  padding: 0.6rem;
+  border-left: 3px solid #221712;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.card-variant-label-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.card-variant-label-row input {
+  flex: 1;
+}
+
+.card-classify-status {
+  margin: -0.4rem 0 1rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.card-classify-status p {
+  margin: 0 0 0.2rem;
+}
+
+.card-classify-status a {
+  color: #ECE6D3;
+  font-size: 0.8rem;
+  display: inline-block;
+  margin-top: 0.3rem;
+}
+
+.card-classify-status button {
+  font-size: 0.8rem;
+  padding: 0.25rem 0.7rem;
+  margin: 0.3rem 0.4rem 0 0;
+}
+
+.card-classify-status.card-classify-ok {
+  border-left: 3px solid #7B4D35;
+}
+
+.card-classify-status.card-classify-issue {
+  border-left: 3px solid #E0A96D;
+}
+
+/* Structure-card note display (grammar-theme.html folder view) —
+   --card-color is set inline per note (grammarCardColorFor), a
+   deterministic hash so the same pattern always gets the same color. */
+
+.grammar-structure-card {
+  border-left: 4px solid var(--card-color, #221712);
+}
+
+.grammar-card-header {
+  font-family: "Fahkwang", "Nunito", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--card-color, #ECE6D3);
+}
+
+.grammar-card-explanation {
+  font-size: 0.92rem;
+  color: #ECE6D3;
+}
+
+.grammar-card-examples {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.grammar-card-example {
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--card-color, #5F0D0E) 22%, #221712);
+}
+
+.grammar-card-example-target {
+  font-family: monospace;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.grammar-card-example-translation {
+  font-size: 0.82rem;
+  color: #C0BFB2;
+  margin: 0.25rem 0 0;
+}
+
+.grammar-card-variant {
+  margin-left: 1rem;
+  padding: 0.5rem 0.75rem;
+  border-left: 3px solid color-mix(in srgb, var(--card-color, #221712) 60%, transparent);
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 4px;
+}
+
+.grammar-card-variant-label {
+  font-size: 0.85rem;
+  font-style: italic;
+  color: #C0BFB2;
+  margin: 0 0 0.4rem;
+}
+
+.grammar-card-label-badge {
+  display: inline-block;
+  font-size: 0.78rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--card-color, #7B4D35) 35%, #221712);
+  color: #ECE6D3;
+  margin: 0 0 0.5rem;
+}
+
+.grammar-card-label-badge.grammar-card-label-none {
+  background: rgba(0, 0, 0, 0.2);
+  color: #C0BFB2;
+}
+
+.card-practice-panel {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.card-practice-score {
+  font-size: 0.8rem;
+  color: #C0BFB2;
+}
+
+.card-practice-prompt {
+  font-weight: 600;
+  margin: 0;
+}
+
+.card-practice-input {
+  width: 100%;
+  resize: vertical;
+}
+
+.card-practice-answer {
+  font-family: monospace;
+  background: color-mix(in srgb, var(--card-color, #5F0D0E) 22%, #221712);
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  margin: 0;
+}
+
+.card-practice-judge-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.card-practice-close {
+  align-self: flex-start;
+}
+
+.header-right-btn {
+  margin-left: auto;
+}
+
+/* Reading split view */
+
+.split-container {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+
+.grammar-side-panel {
+  flex: 0 0 360px;
+  max-width: 70%;
+  min-width: 220px;
+  padding-right: 1.25rem;
+  overflow-y: auto;
+}
+
+.grammar-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.grammar-panel-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.side-notes-heading {
+  font-size: 0.9rem;
+  color: #6F635B;
+  margin: 1.25rem 0 0.5rem;
+}
+
+.split-divider {
+  flex: 0 0 6px;
+  cursor: col-resize;
+  background: transparent;
+  border-radius: 3px;
+}
+
+.split-divider:hover,
+.split-divider.dragging {
+  background: #6F635B;
+}
+
+#reading-main.main-wide {
+  max-width: 1100px;
+}
+
+/* Language hubs */
+
+.bubble.lang-es {
+  border-left: 4px solid #221712;
+}
+
+.bubble.lang-ja {
+  border-left: 4px solid #221712;
+}
+
+.bubble.lang-es:hover {
+  border-color: #221712;
+}
+
+.bubble.lang-ja:hover {
+  border-color: #221712;
+}
+
+/* Speaking */
+
+a.link-button {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  background: #221712;
+  color: #ECE6D3;
+  text-decoration: none;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+a.link-button:hover {
+  background: #1D140F;
+}
+
+.recorder-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+#record-btn {
+  min-width: 100px;
+}
+
+#record-btn.recording {
+  background: #771011;
+  border-color: #771011;
+}
+
+.record-timer {
+  font-variant-numeric: tabular-nums;
+  font-size: 1.1rem;
+  color: #C0BFB2;
+}
+
+#playback-audio {
+  display: block;
+  width: 100%;
+  margin: 0.5rem 0;
+}
+
+#entry-tab-strip {
+  border-radius: 8px 8px 0 0;
+}
+
+.entry-tab-content {
+  border: 1px solid #221712;
+  border-radius: 0 0 8px 8px;
+  padding: 1rem;
+  min-height: 120px;
+  background: #5F0D0E;
+}
+
+.entry-tab-content h3 {
+  margin-top: 0;
+}
+
+.entry-tab-passage-text {
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+
+.entry-tab-empty {
+  margin: 0;
+}
+
+.delete-entry-btn {
+  margin-top: 0.5rem;
+}
+
+/* Bulk vocab import */
+
+.bulk-import-review-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.bulk-import-review-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.bulk-import-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.bulk-import-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #221712;
+  border-radius: 6px;
+  flex-wrap: wrap;
+}
+
+.bulk-import-row input[type="text"] {
+  flex: 1;
+  min-width: 90px;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.9rem;
+}
+
+.bulk-import-dupe-badge {
+  font-size: 0.72rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: #8B3435;
+  color: #ECE6D3;
+}
+
+.bulk-import-save-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+/* Writing entry page — two-column layout: the entry itself (view/edit)
+   on the left, the Helper Notebook backlog on the right. */
+
+main.writing-entry-layout {
+  max-width: 1250px;
+  display: flex;
+  align-items: flex-start;
+  gap: 1.25rem;
+}
+
+.writing-entry-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.writing-helper-panel {
+  width: 400px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 1rem;
+}
+
+.writing-helper-panel h2 {
+  margin-top: 0;
+}
+
+/* The Helper Notebook is one long column split into three distinct
+   sections — bracketed vocab (as before), then two freeform note
+   fields (personal / for-the-teacher) — rather than three separate
+   panels, so it stays visually one coherent "notebook". */
+.helper-section {
+  padding-top: 1rem;
+  margin-top: 1rem;
+  border-top: 1px solid rgba(111, 99, 91, 0.35);
+}
+
+.helper-section:first-of-type {
+  padding-top: 0;
+  margin-top: 0;
+  border-top: none;
+}
+
+.helper-section-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+}
+
+.helper-notes-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  font-family: inherit;
+  padding: 0.5rem 0.6rem;
+}
+
+@media (max-width: 800px) {
+  main.writing-entry-layout {
+    flex-direction: column;
+  }
+
+  .writing-helper-panel {
+    width: 100%;
+    position: static;
+  }
+}
+
+.view-entry-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+/* A light, paper-like inset for the entry's actual text — deliberately
+   NOT the surrounding panel's dark red, so a saturated red highlight
+   on corrected words stays legible (red-on-red would not). */
+.writing-view-text-box {
+  background: #ECE6D3;
+  color: #221712;
+  padding: 1rem;
+  border-radius: 8px;
+  white-space: pre-wrap;
+  line-height: 1.6;
+  margin: 0.75rem 0;
+}
+
+.corrected-word {
+  color: #B3261E;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
+
+.corrected-word:hover {
+  color: #8A1D17;
+}
+
+/* Momentary highlight when a red word's click scrolls the Helper
+   Notebook down to its matching entry — makes it obvious which row it
+   landed on, then fades. */
+.helper-word-flash {
+  animation: helper-word-flash-fade 1.5s ease-out;
+}
+
+@keyframes helper-word-flash-fade {
+  0% {
+    background: #F5D9B0;
+    border-radius: 6px;
+  }
+  100% {
+    background: transparent;
+  }
+}
+
+/* Grammar check's corrections render in this blue instead of Vocab
+   check's red — same "permanently marked" idea, but a distinct color so
+   it's always clear which check actually touched a given word (matches
+   the familiar red-vs-blue spelling/grammar convention). */
+
+.grammar-corrected-word {
+  color: #48252F;
+  font-weight: 600;
+}
+
+/* Redesigned as a stacked card (word info / actions / note) instead of
+   one flat wrapping row — clearer at a glance, and stops action buttons
+   from squeezing into a narrow strip and wrapping their own text. */
+.helper-word-item {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+
+.helper-word-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.3rem 0.6rem;
+}
+
+.helper-word-item .word-label {
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.helper-word-target::before {
+  content: "→ ";
+}
+
+.helper-word-target {
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.helper-word-furigana {
+  color: #C0BFB2;
+  font-size: 0.76rem;
+}
+
+.helper-word-pending {
+  color: #C0BFB2;
+  font-size: 0.76rem;
+  font-style: italic;
+}
+
+.helper-add-vocab-input {
+  padding: 0.35rem 0.5rem;
+  font-size: 0.9rem;
+  min-width: 110px;
+  flex: 1;
+}
+
+/* Its own row now (parent is a column flex), with a top divider to
+   separate it from the word-info row above. flex-wrap + nowrap button
+   text means a button either fits fully on the line or moves whole to
+   the next one — never splits its own label across two lines. */
+.helper-word-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid rgba(192, 191, 178, 0.15);
+}
+
+.helper-word-actions button {
+  white-space: nowrap;
+}
+
+.helper-word-added {
+  color: #C0BFB2;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  align-self: center;
+}
+
+/* A Helper Notebook word's personal note/question — its own row below
+   the actions row (parent is a column flex, so no special width rule
+   needed here anymore). */
+
+.helper-word-note {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.helper-word-note-text {
+  color: #C0BFB2;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+.helper-word-note-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.helper-word-note-input {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: 0.85rem;
+  padding: 0.4rem 0.5rem;
+  resize: vertical;
+}
+
+.helper-word-note-edit-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.edit-reference-block {
+  margin-bottom: 0.75rem;
+}
+
+.edit-reference-block summary {
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #C0BFB2;
+  margin-bottom: 0.4rem;
+}
+
+/* Grammar check's "What grammar check changed" list — one line per
+   correction, the corrected word/phrase (matching its red highlight in
+   the entry text above) plus a short plain-language explanation. */
+
+.grammar-notes-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Writing's own "What grammar check changed" list — named distinctly
+   from the Grammar Bank's own unrelated .grammar-note-item (grammar-
+   theme.html) to avoid a class-name collision between the two pages. */
+
+.writing-grammar-note-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+/* Deliberately no color here — red/blue coding already lives in the
+   Before/After boxes above; this list just needs to read like normal
+   panel text (plain, not re-colored) so it isn't visually redundant. */
+.grammar-note-corrected {
+  font-weight: 600;
+}
+
+.grammar-note-explanation {
+  color: #C0BFB2;
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
+.grammar-note-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+/* Grammar check's "Before / after" comparison — stacked one on top of
+   the other (not side by side) so the two can be read straight down,
+   matching how the entry itself already reads. */
+
+.grammar-compare-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.grammar-compare-label {
+  margin: 0 0 0.3rem;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #C0BFB2;
+}
+
+/* A Grammar folder's "Practice this grammar point" CTA + inline
+   session — only ever shown for folders tagged with a recognized,
+   practice-able concept (grammar-concepts.js). Styled like the
+   surrounding red panel rather than a nested card, since it's meant to
+   read as part of the folder page, not a separate feature bolted on. */
+
+.grammar-practice-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  margin: 1rem 0;
+  border: 1px solid rgba(236, 230, 211, 0.3);
+  border-radius: 8px;
+}
+
+.grammar-practice-cta-title {
+  margin: 0 0 0.15rem;
+  font-weight: 600;
+}
+
+.grammar-practice-panel {
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid rgba(236, 230, 211, 0.3);
+  border-radius: 8px;
+}
+
+.grammar-practice-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.grammar-practice-card {
+  background: #ECE6D3;
+  color: #221712;
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.grammar-practice-prompt-label {
+  margin: 0 0 0.3rem;
+  font-size: 0.8rem;
+  color: #6b6459;
+}
+
+.grammar-practice-given {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.grammar-practice-given-furigana {
+  margin: 0.15rem 0 0.4rem;
+  color: #6b6459;
+}
+
+.grammar-practice-answer-label {
+  display: block;
+  margin: 0.75rem 0 0;
+  font-size: 0.85rem;
+}
+
+.grammar-practice-answer-label input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 0.3rem;
+  padding: 0.5rem 0.6rem;
+  font-family: inherit;
+  font-size: 1rem;
+}
+
+.grammar-practice-feedback {
+  margin: 0.75rem 0 0;
+  padding: 0.5rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.grammar-practice-correct {
+  background: #DCEBD8;
+  color: #2E5A32;
+}
+
+.grammar-practice-incorrect {
+  background: #F1D9D8;
+  color: #8B3435;
+}
+
+/* ===================================================================
+   welcome.html — the very first thing you see, a title/cover page
+   before the language picker. Deliberately darker and quieter than the
+   rest of the app (which is all cream-background panels) so it reads
+   as a cover, not another content page.
+   =================================================================== */
+
+.welcome-body {
+  margin: 0;
+  min-height: 100vh;
+  background: #221712;
+  color: #ECE6D3;
+  font-family: "Nunito", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+}
+
+.welcome-main {
+  position: relative;
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.welcome-spine {
+  position: absolute;
+  left: 2.5rem;
+  top: 3rem;
+  bottom: 3rem;
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 0.5rem;
+  border-left: 1px solid rgba(236, 230, 211, 0.35);
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  padding-left: 0.85rem;
+  color: rgba(236, 230, 211, 0.55);
+}
+
+.welcome-content {
+  max-width: 560px;
+  text-align: center;
+}
+
+.welcome-title {
+  font-family: "Fahkwang", "Nunito", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  font-size: 3.25rem;
+  margin: 0 0 1.75rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.welcome-quote {
+  margin: 0;
+  font-size: 1.1rem;
+  font-style: italic;
+  line-height: 1.55;
+  color: rgba(236, 230, 211, 0.85);
+}
+
+.welcome-quote-author {
+  display: block;
+  margin-top: 0.6rem;
+  font-style: normal;
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  color: rgba(236, 230, 211, 0.55);
+}
+
+.welcome-start-link {
+  position: absolute;
+  right: 1.25rem;
+  bottom: 3rem;
+  display: inline-block;
+  padding: 0.7rem 1.6rem;
+  border: 1px solid rgba(236, 230, 211, 0.6);
+  border-radius: 999px;
+  color: #ECE6D3;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.welcome-start-link:hover {
+  background: #ECE6D3;
+  color: #221712;
+  border-color: #ECE6D3;
+}
+
+/* A small dictionary-style credit at the bottom — the two words the
+   app's name is drawn from, given the same treatment a real dictionary
+   entry gets: the word, its part of speech, a short definition. */
+.welcome-definitions {
+  position: absolute;
+  left: 50%;
+  bottom: 2rem;
+  transform: translateX(-50%);
+  text-align: center;
+}
+
+.welcome-definitions p {
+  margin: 0.2rem 0;
+  font-size: 0.78rem;
+  color: rgba(236, 230, 211, 0.55);
+}
+
+.welcome-def-word {
+  font-style: italic;
+  color: rgba(236, 230, 211, 0.85);
+}
+
+.welcome-def-pos {
+  font-size: 0.7rem;
+}
+
+.welcome-def-lang {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.68rem;
+}
+
+@media (max-width: 640px) {
+  .welcome-spine {
+    display: none;
+  }
+  .welcome-title {
+    font-size: 2.4rem;
+  }
+  .welcome-start-link {
+    right: 1.5rem;
+    bottom: 1.5rem;
+  }
+}
+
+/* ===================================================================
+   index.html — the language picker, reached from welcome.html's
+   "Click here to start". Deliberately just two big clear choices, no
+   grid of tiles — picking a language is the one decision this page
+   exists for.
+   =================================================================== */
+
+.picker-body {
+  margin: 0;
+  min-height: 100vh;
+  background: #ECE6D3;
+  color: #221712;
+  font-family: "Nunito", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+}
+
+.picker-main {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 3rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.picker-greeting {
+  margin: 0 0 0.4rem;
+  color: #6f635b;
+  font-size: 0.95rem;
+}
+
+.picker-heading {
+  margin: 0 0 2.5rem;
+  font-size: 1.9rem;
+}
+
+.picker-options {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+  max-width: 340px;
+}
+
+.picker-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+  border: 2px solid #221712;
+  border-radius: 16px;
+  background: #ECE6D3;
+  color: #221712;
+  text-decoration: none;
+  transition: transform 0.12s, box-shadow 0.12s, background 0.12s;
+}
+
+.picker-option:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(34, 23, 18, 0.18);
+}
+
+.picker-option.lang-ja:hover {
+  background: #E4E7D6;
+}
+
+.picker-option.lang-es:hover {
+  background: #F1DEDE;
+}
+
+.picker-option-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+/* ===================================================================
+   Hub to-do list (language-home.html) — now just a small topbar icon
+   next to Notifications, matching the other topbar buttons, rather
+   than a floating button over the page. The panel it opens keeps the
+   app's usual light/beige surface (like a writing text box) instead of
+   the dark dropdown-menu treatment the other two topbar icons use.
+   =================================================================== */
+
+.topbar-todo {
+  position: absolute;
+  right: 4.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #771011;
+  cursor: pointer;
+}
+
+.topbar-todo svg {
+  width: 24px;
+  height: 24px;
+}
+
+.topbar-todo:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.hub-todo-toggle-count {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: #771011;
+  color: #ECE6D3;
+  font-size: 0.66rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hub-todo-panel {
+  /* Always viewport-pinned (not anchored under the topbar icon via
+     document flow) so it stays put — and stays in front of everything
+     — even while the page scrolls. hub-tasks.js sets the actual
+     left/top: either restored from a previous drag, or computed under
+     the toggle button the first time it's ever opened. */
+  position: fixed;
+  z-index: 9999;
+  width: 360px;
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 1rem;
+  border-radius: 10px;
+  background: #ECE6D3;
+  color: #221712;
+  border: 1px solid #221712;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+.hub-todo-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+/* The header doubles as a drag handle (hub-tasks.js) so the panel can
+   be moved anywhere on screen instead of staying pinned under the
+   topbar icon — cursor + touch-action signal that it's grabbable. */
+.hub-todo-header-draggable {
+  cursor: move;
+  touch-action: none;
+  user-select: none;
+}
+
+.hub-todo-title {
+  font-weight: 600;
+}
+
+.hub-todo-close {
+  background: transparent;
+  border: none;
+  color: #221712;
+  font-size: 1.2rem;
+  line-height: 1;
+  padding: 0.1rem 0.4rem;
+  cursor: pointer;
+}
+
+.hub-todo-add-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.hub-todo-add-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.4rem 0.55rem;
+  font-family: inherit;
+}
+
+.hub-todo-folder-select {
+  flex: 1;
+  min-width: 0;
+  padding: 0.35rem 0.4rem;
+  font-family: inherit;
+  font-size: 0.82rem;
+  border-radius: 6px;
+  border: 1px solid rgba(34, 23, 18, 0.3);
+  background: #fff;
+  color: #221712;
+}
+
+.hub-todo-groups {
+  margin-bottom: 0.5rem;
+}
+
+.hub-todo-group {
+  margin-bottom: 0.5rem;
+}
+
+.hub-todo-group-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  list-style: none;
+  padding: 0.3rem 0.15rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #452F29;
+}
+
+.hub-todo-group-summary::-webkit-details-marker {
+  display: none;
+}
+
+.hub-todo-group-summary::before {
+  content: "▸";
+  margin-right: 0.4rem;
+  font-size: 0.7rem;
+  color: #6f635b;
+}
+
+details[open] > .hub-todo-group-summary::before {
+  content: "▾";
+}
+
+.hub-todo-group-name {
+  flex: 1;
+}
+
+.hub-todo-folder-delete-btn {
+  background: transparent;
+  border: none;
+  color: #6f635b;
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.1rem 0.3rem;
+}
+
+.hub-todo-folder-delete-btn:hover {
+  color: #221712;
+}
+
+.hub-todo-columns-label {
+  display: grid;
+  grid-template-columns: 1fr 56px 56px 60px 20px;
+  align-items: center;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  color: #6f635b;
+  padding: 0 0.15rem 0.35rem;
+}
+
+.hub-todo-columns-label span {
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.hub-todo-columns-label span:not(:first-child) {
+  text-align: center;
+}
+
+.hub-todo-list {
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.hub-todo-row {
+  display: grid;
+  grid-template-columns: 1fr 56px 56px 60px 20px;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0.15rem;
+  border-bottom: 1px solid rgba(34, 23, 18, 0.15);
+}
+
+.hub-todo-row-folder-select {
+  font-size: 0.64rem;
+  padding: 0.15rem 0.15rem;
+  border-radius: 5px;
+  border: 1px solid rgba(34, 23, 18, 0.25);
+  background: #fff;
+  color: #221712;
+  max-width: 60px;
+}
+
+.hub-todo-row-title {
+  font-size: 0.82rem;
+  line-height: 1.25;
+  /* Wrap at word boundaries only — never split a word mid-way. If a
+     single long word genuinely doesn't fit, shrink to it rather than
+     breaking it apart. */
+  overflow-wrap: normal;
+  word-break: normal;
+  min-width: 0;
+  hyphens: none;
+}
+
+.hub-todo-row-completed .hub-todo-row-title {
+  text-decoration: line-through;
+  color: #6f635b;
+}
+
+.hub-todo-checkbox-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hub-todo-checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.hub-todo-delete-btn {
+  background: transparent;
+  border: none;
+  color: #6f635b;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.1rem 0.2rem;
+  justify-self: center;
+}
+
+.hub-todo-delete-btn:hover {
+  color: #221712;
+}
+
+.hub-todo-show-completed {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  color: #6f635b;
+}
+
+@media (max-width: 640px) {
+  .hub-todo-panel {
+    width: calc(100vw - 2.5rem);
+    max-width: 320px;
+  }
+}
+
+/* ===================================================================
+   Helper Notebook hub panel (personal-hub.html) — quick Late/Homework
+   reminder lists plus standing Notes-to-self / Notes-to-teacher boxes.
+   =================================================================== */
+
+.helper-hub-reminder-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(236, 230, 211, 0.2);
+}
+
+.helper-hub-reminder-label {
+  font-weight: 600;
+}
+
+.helper-hub-reminder-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.helper-hub-reminder-actions button {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.helper-hub-reminder-add-form {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0.5rem 0;
+}
+
+.helper-hub-reminder-add-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.4rem 0.55rem;
+  font-family: inherit;
+}
+
+.helper-hub-reminder-list {
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.helper-hub-reminder-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.35rem 0.6rem;
+  border-radius: 6px;
+  background: rgba(236, 230, 211, 0.08);
+  font-size: 0.9rem;
+}
+
+.helper-hub-reminder-delete-btn {
+  background: transparent;
+  border: none;
+  color: rgba(236, 230, 211, 0.65);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 0.3rem;
+}
+
+.helper-hub-reminder-delete-btn:hover {
+  color: #ECE6D3;
+}
+
+.helper-hub-notes-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-top: 1rem;
+}
+
+.helper-hub-note-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: rgba(236, 230, 211, 0.85);
+}
+
+.helper-hub-note-label textarea {
+  font-family: inherit;
+  padding: 0.5rem 0.6rem;
+  resize: vertical;
+}
