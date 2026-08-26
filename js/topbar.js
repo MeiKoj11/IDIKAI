@@ -72,6 +72,8 @@ function initTopbar(lang) {
   });
 
   addTopbarLogoutOption(document.getElementById("topbar-menu"));
+
+  if (typeof initImmersion === "function") initImmersion(lang);
 }
 
 // Appended at runtime rather than baked into every page's own HTML —
