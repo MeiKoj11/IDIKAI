@@ -152,6 +152,18 @@ function applyImmersion(lang) {
     if (enabled) setImmersionText(showCompletedSpan, "todoShowCompleted", lang);
     else revertImmersionText(showCompletedSpan);
   }
+
+  // The language name in the header ("Japanese", "Spanish", "French")
+  // is the one thing always on screen with nothing to open first — the
+  // clearest possible proof the switch actually did something. Reuses
+  // the same native-name entries the "Change language" dropdown uses
+  // (langNameEs/Ja/Fr), just picked by whichever language is CURRENT.
+  const labelEl = document.getElementById("topbar-lang-label");
+  const nativeNameKey = { es: "langNameEs", ja: "langNameJa", fr: "langNameFr" }[lang];
+  if (labelEl && nativeNameKey) {
+    if (enabled) setImmersionText(labelEl, nativeNameKey, lang);
+    else revertImmersionText(labelEl);
+  }
 }
 
 // ---- Highlight-to-translate popup ----
@@ -220,31 +232,38 @@ if (typeof document !== "undefined") {
   document.addEventListener("touchend", handleImmersionSelection);
 }
 
-// ---- Topbar toggle button ----
-// Injected next to the notifications icon, same "add it from JS so
-// every page gets it for free" trick used for the Log out option.
+// ---- Topbar toggle switch ----
+// A real on/off switch (not just an icon button), sitting right next
+// to the language name — the one thing on every page that's always
+// visible with no menu to open first, so flipping the switch has an
+// immediate, obvious effect instead of only changing things tucked
+// inside hidden dropdowns/panels.
 
 function addImmersionToggle(bar) {
   if (!bar || bar.querySelector(".topbar-immersion-toggle")) return;
-  const notifBtn = document.getElementById("topbar-notifications");
-  if (!notifBtn) return;
+  const label = document.getElementById("topbar-lang-label");
+  if (!label) return;
 
-  const btn = document.createElement("button");
-  btn.type = "button";
-  btn.className = "topbar-immersion-toggle";
-  btn.setAttribute("aria-label", "Toggle immersion mode");
-  btn.title = "Immersion mode — show menus in the language you're learning";
-  btn.textContent = "🌐";
-  btn.classList.toggle("active", isImmersionEnabled());
+  const wrapper = document.createElement("label");
+  wrapper.className = "topbar-immersion-toggle";
+  wrapper.title = "Immersion mode — show menus and the language name in the language you're learning";
 
-  btn.addEventListener("click", () => {
-    const nowEnabled = !isImmersionEnabled();
-    setImmersionEnabled(nowEnabled);
-    btn.classList.toggle("active", nowEnabled);
-    applyImmersion(document.body.dataset.currentLang || currentImmersionLangHint);
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.setAttribute("aria-label", "Toggle immersion mode");
+  checkbox.checked = isImmersionEnabled();
+
+  const track = document.createElement("span");
+  track.className = "topbar-immersion-track";
+
+  checkbox.addEventListener("change", () => {
+    setImmersionEnabled(checkbox.checked);
+    applyImmersion(currentImmersionLangHint);
   });
 
-  notifBtn.insertAdjacentElement("afterend", btn);
+  wrapper.appendChild(checkbox);
+  wrapper.appendChild(track);
+  label.insertAdjacentElement("afterend", wrapper);
 }
 
 // initTopbar(lang) (topbar.js) calls this — keeping a module-level

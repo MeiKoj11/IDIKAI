@@ -3220,23 +3220,55 @@ details[open] > .hub-todo-group-summary::before {
    any text it's currently translating (so it's discoverable that
    there's something to highlight), and the floating popup that shows
    the English original of whatever got highlighted. */
+/* A real on/off switch, not just an icon — sits right next to the
+   language name in the header. Built the classic way: a visually
+   hidden checkbox driving a styled track + sliding knob via CSS
+   sibling selectors, so no JS is needed to animate the slide. */
 .topbar-immersion-toggle {
-  background: none;
-  border: none;
-  font-size: 1.1rem;
-  line-height: 1;
-  padding: 0.25rem;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.6rem;
   cursor: pointer;
-  opacity: 0.6;
+  vertical-align: middle;
 }
 
-.topbar-immersion-toggle:hover {
-  opacity: 0.85;
+.topbar-immersion-toggle input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
 }
 
-.topbar-immersion-toggle.active {
-  opacity: 1;
-  filter: drop-shadow(0 0 3px rgba(236, 230, 211, 0.8));
+.topbar-immersion-track {
+  position: relative;
+  display: inline-block;
+  width: 34px;
+  height: 18px;
+  background: rgba(236, 230, 211, 0.25);
+  border: 1px solid rgba(236, 230, 211, 0.6);
+  border-radius: 999px;
+  transition: background 0.15s ease;
+}
+
+.topbar-immersion-track::before {
+  content: "";
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 14px;
+  height: 14px;
+  background: #ECE6D3;
+  border-radius: 50%;
+  transition: transform 0.15s ease;
+}
+
+.topbar-immersion-toggle input:checked + .topbar-immersion-track {
+  background: #4CAF7D;
+  border-color: #4CAF7D;
+}
+
+.topbar-immersion-toggle input:checked + .topbar-immersion-track::before {
+  transform: translateX(16px);
 }
 
 .immersion-text {
