@@ -27,6 +27,16 @@ document.addEventListener("DOMContentLoaded", () => {
   const passwordInput = document.getElementById("login-password");
   const errorEl = document.getElementById("login-error");
   const submitBtn = document.getElementById("login-submit");
+  const showPasswordCheckbox = document.getElementById("login-show-password");
+
+  // Mainly for phones — easy to mistype in a small password field with
+  // no way to check, especially with autocorrect/predictive text
+  // sometimes sneaking in a change.
+  if (showPasswordCheckbox) {
+    showPasswordCheckbox.addEventListener("change", () => {
+      passwordInput.type = showPasswordCheckbox.checked ? "text" : "password";
+    });
+  }
 
   form.addEventListener("submit", (e) => {
     e.preventDefault();

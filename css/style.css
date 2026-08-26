@@ -3161,6 +3161,19 @@ details[open] > .hub-todo-group-summary::before {
   border: 1px solid #221712;
 }
 
+.auth-show-password {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.4rem !important;
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+  color: #C0BFB2;
+}
+
+.auth-show-password input {
+  padding: 0;
+}
+
 .auth-error {
   color: #FFD8D8;
   font-size: 0.85rem;
