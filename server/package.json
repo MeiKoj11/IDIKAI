@@ -1,8 +1,11 @@
 {
-  "name": "vocab-bank-dictionary-server",
+  "name": "idikai-server",
   "version": "1.0.0",
-  "description": "Local backend for Vocab Bank's dictionary lookup. Calls the Claude API so the API key never reaches the browser. No dependencies — Node built-ins only.",
+  "description": "Backend for Idikai: Claude API calls (dictionary lookup, grammar checks, etc.) plus accounts and per-user data sync via Node's built-in SQLite module. No npm dependencies — Node built-ins only.",
   "main": "server.js",
+  "engines": {
+    "node": ">=22.12.0 <23.0.0"
+  },
   "scripts": {
     "start": "node server.js"
   }

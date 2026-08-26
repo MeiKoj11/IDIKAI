@@ -22,6 +22,7 @@ const http = require("http");
 const https = require("https");
 const fs = require("fs");
 const path = require("path");
+const db = require("./db.js");
 
 // Hosting platforms (Render, Railway, etc.) assign their own port via
 // this env var and expect the app to listen on it — 3001 stays as the
@@ -56,7 +57,7 @@ loadEnvFile();
 
 const API_KEY = process.env.ANTHROPIC_API_KEY;
 
-const LANGUAGE_NAMES = { en: "English", es: "Spanish", ja: "Japanese" };
+const LANGUAGE_NAMES = { en: "English", es: "Spanish", ja: "Japanese", fr: "French" };
 
 const SYSTEM_PROMPT = `You are a bilingual dictionary AND verb-conjugation lookup for a personal
 vocabulary-learning app. Given a single word or short phrase and a translation direction, respond
@@ -74,7 +75,8 @@ with ONLY a JSON object (no markdown, no code fences, no explanation) with exact
     "infinitiveEnglish": string,
     "tense": string,
     "person": string
-  } or null
+  } or null,
+  "verbClass": "godan" | "ichidan" | "irregular-suru" | "irregular-kuru" | null
 }
 
 Rules:
@@ -119,6 +121,21 @@ Rules:
   English input is singular (e.g. "grape"), return the singular noun, "plural": false, and the
   singular article ("la"/"el").
 - If you are not confident of a correct translation, set "translation" to null rather than guessing.
+- "verbClass" is ONLY ever filled in when "partOfSpeech" is "verb" AND the verb is JAPANESE (the
+  dictionary/infinitive form, on whichever side is Japanese) — set it to null for every other case
+  (Spanish verbs, non-verbs, no Japanese involved). This is a personal app feature that lets locally
+  written code conjugate the verb correctly without another API call later, so get it right:
+    - "irregular-suru": the verb is literally する ("to do"), or a suru-verb compound ending in する
+      (e.g. 勉強する "to study", 運転する "to drive") — the する part conjugates irregularly.
+    - "irregular-kuru": the verb is literally 来る ("to come") — also irregular.
+    - "ichidan" (a "ru-verb"): dictionary form ends in る, and the vowel immediately before that る
+      is い or え (e.g. 食べる taberu, 見る miru, 起きる okiru, 忘れる wasureru). Conjugates by simply
+      dropping る and adding a suffix.
+    - "godan" (a "u-verb"): every other verb, INCLUDING る-ending verbs whose preceding vowel is あ/う/お
+      (e.g. 帰る kaeru, 入る hairu, 走る hashiru, 知る shiru — these look like ichidan but conjugate as
+      godan, a well-known trap; get this distinction right rather than guessing from the spelling
+      pattern alone) and every verb ending in う/く/ぐ/す/つ/ぬ/ぶ/む. Conjugates by shifting the final
+      kana across its row (e.g. 飲む -> 飲ま/飲み/飲む/飲め/飲も).
 - Output nothing except the JSON object described above.`;
 
 // Claude sometimes wraps JSON in a ```json ... ``` code fence even when
@@ -784,6 +801,206 @@ const MIME_TYPES = {
   ".ico": "image/x-icon",
 };
 
+/*
+  ---- Accounts / cross-device sync helpers ----
+
+  Everything below this comment and above serveStaticFile is the
+  accounts + per-user data sync layer: cookie-based sessions backed by
+  db.js's SQLite tables, replacing what used to be plain browser
+  localStorage. Auth is invite-only — there's no public signup route;
+  Mei's own account is bootstrapped from ADMIN_EMAIL/ADMIN_PASSWORD env
+  vars on first boot (see bottom of file), and she creates any other
+  account (e.g. a tester's) herself via the admin-only /api/admin/
+  create-user route, from admin.html.
+*/
+
+const SESSION_COOKIE_NAME = "idikai_session";
+
+function readJSONBody(req, maxBytes) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let bytes = 0;
+    req.on("data", (chunk) => {
+      chunks.push(chunk);
+      bytes += chunk.length;
+      if (bytes > maxBytes) {
+        req.destroy();
+        reject(new Error("Request body too large."));
+      }
+    });
+    req.on("end", () => {
+      const raw = Buffer.concat(chunks).toString("utf8");
+      if (!raw) return resolve({});
+      try {
+        resolve(JSON.parse(raw));
+      } catch (e) {
+        reject(new Error("Invalid JSON body."));
+      }
+    });
+    req.on("error", reject);
+  });
+}
+
+function parseCookies(req) {
+  const header = req.headers.cookie;
+  const cookies = {};
+  if (!header) return cookies;
+  header.split(";").forEach((part) => {
+    const eq = part.indexOf("=");
+    if (eq === -1) return;
+    const key = part.slice(0, eq).trim();
+    const value = part.slice(eq + 1).trim();
+    if (key) cookies[key] = decodeURIComponent(value);
+  });
+  return cookies;
+}
+
+function getSessionUser(req) {
+  const cookies = parseCookies(req);
+  const token = cookies[SESSION_COOKIE_NAME];
+  if (!token) return null;
+  return db.findUserBySessionToken(token);
+}
+
+// Render terminates TLS in front of the app, so req.socket.encrypted
+// isn't a reliable signal — x-forwarded-proto is what Render actually
+// sets. Locally (plain http://localhost) neither is set, so the
+// cookie correctly comes back non-Secure for local dev.
+function isHttpsRequest(req) {
+  return req.headers["x-forwarded-proto"] === "https";
+}
+
+function setSessionCookie(res, req, token, expiresAt) {
+  const parts = [
+    `${SESSION_COOKIE_NAME}=${encodeURIComponent(token)}`,
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Lax",
+    `Expires=${expiresAt.toUTCString()}`,
+  ];
+  if (isHttpsRequest(req)) parts.push("Secure");
+  res.setHeader("Set-Cookie", parts.join("; "));
+}
+
+function clearSessionCookie(res, req) {
+  const parts = [`${SESSION_COOKIE_NAME}=`, "Path=/", "HttpOnly", "SameSite=Lax", "Expires=Thu, 01 Jan 1970 00:00:00 GMT"];
+  if (isHttpsRequest(req)) parts.push("Secure");
+  res.setHeader("Set-Cookie", parts.join("; "));
+}
+
+function sendJSON(res, statusCode, body) {
+  res.writeHead(statusCode, { "content-type": "application/json" });
+  res.end(JSON.stringify(body));
+}
+
+// Handles every /api/* route. Returns true if it handled the request
+// (caller should stop), false if the path didn't match anything here.
+function handleApiRoute(req, res, url) {
+  // ---- POST /api/login { email, password } ----
+  if (url.pathname === "/api/login" && req.method === "POST") {
+    readJSONBody(req, 10 * 1024)
+      .then(({ email, password }) => {
+        if (!email || !password) return sendJSON(res, 400, { error: "Missing email or password." });
+        const user = db.findUserByEmail(email);
+        if (!user || !db.verifyPassword(password, user.password_salt, user.password_hash)) {
+          return sendJSON(res, 401, { error: "Incorrect email or password." });
+        }
+        const session = db.createSession(user.id);
+        setSessionCookie(res, req, session.token, session.expiresAt);
+        sendJSON(res, 200, { ok: true, user: { email: user.email, isAdmin: !!user.is_admin } });
+      })
+      .catch((err) => sendJSON(res, 400, { error: err.message }));
+    return true;
+  }
+
+  // ---- POST /api/logout ----
+  if (url.pathname === "/api/logout" && req.method === "POST") {
+    const cookies = parseCookies(req);
+    const token = cookies[SESSION_COOKIE_NAME];
+    if (token) db.deleteSession(token);
+    clearSessionCookie(res, req);
+    sendJSON(res, 200, { ok: true });
+    return true;
+  }
+
+  // ---- GET /api/me ----
+  if (url.pathname === "/api/me" && req.method === "GET") {
+    const user = getSessionUser(req);
+    if (!user) return sendJSON(res, 401, { error: "Not logged in." }) || true;
+    sendJSON(res, 200, { user: { email: user.email, isAdmin: !!user.is_admin } });
+    return true;
+  }
+
+  // ---- GET /api/data (this account's full synced data blob) ----
+  if (url.pathname === "/api/data" && req.method === "GET") {
+    const user = getSessionUser(req);
+    if (!user) return sendJSON(res, 401, { error: "Not logged in." }) || true;
+    sendJSON(res, 200, db.getAllUserData(user.id));
+    return true;
+  }
+
+  // ---- POST /api/data { key, value } (upsert one storage key) ----
+  if (url.pathname === "/api/data" && req.method === "POST") {
+    const user = getSessionUser(req);
+    if (!user) return sendJSON(res, 401, { error: "Not logged in." }) || true;
+    readJSONBody(req, 5 * 1024 * 1024)
+      .then(({ key, value }) => {
+        if (!key) return sendJSON(res, 400, { error: "Missing key." });
+        db.setUserData(user.id, key, value);
+        sendJSON(res, 200, { ok: true });
+      })
+      .catch((err) => sendJSON(res, 400, { error: err.message }));
+    return true;
+  }
+
+  // ---- POST /api/import { data: {...} } ----
+  // One-time (or safely re-runnable) bulk import for the "bring my old
+  // browser's localStorage into my new account" migration page. Never
+  // overwrites a key the account already has a value for.
+  if (url.pathname === "/api/import" && req.method === "POST") {
+    const user = getSessionUser(req);
+    if (!user) return sendJSON(res, 401, { error: "Not logged in." }) || true;
+    readJSONBody(req, 20 * 1024 * 1024)
+      .then(({ data }) => {
+        if (!data || typeof data !== "object") return sendJSON(res, 400, { error: "Missing data object." });
+        const result = db.importUserData(user.id, data, false);
+        sendJSON(res, 200, { ok: true, ...result });
+      })
+      .catch((err) => sendJSON(res, 400, { error: err.message }));
+    return true;
+  }
+
+  // ---- GET /api/admin/users (admin only) ----
+  if (url.pathname === "/api/admin/users" && req.method === "GET") {
+    const user = getSessionUser(req);
+    if (!user) return sendJSON(res, 401, { error: "Not logged in." }) || true;
+    if (!user.is_admin) return sendJSON(res, 403, { error: "Admin only." }) || true;
+    sendJSON(res, 200, { users: db.listUsers() });
+    return true;
+  }
+
+  // ---- POST /api/admin/create-user { email, password } (admin only) ----
+  // The whole "invite-only" story: there is no public signup route at
+  // all, only this one, gated on an existing admin's session.
+  if (url.pathname === "/api/admin/create-user" && req.method === "POST") {
+    const user = getSessionUser(req);
+    if (!user) return sendJSON(res, 401, { error: "Not logged in." }) || true;
+    if (!user.is_admin) return sendJSON(res, 403, { error: "Admin only." }) || true;
+    readJSONBody(req, 10 * 1024)
+      .then(({ email, password }) => {
+        if (!email || !password) return sendJSON(res, 400, { error: "Missing email or password." });
+        if (password.length < 8) return sendJSON(res, 400, { error: "Password must be at least 8 characters." });
+        if (db.findUserByEmail(email)) return sendJSON(res, 409, { error: "That email already has an account." });
+        const created = db.createUser(email, password, false);
+        sendJSON(res, 200, { ok: true, user: { email: created.email } });
+      })
+      .catch((err) => sendJSON(res, 400, { error: err.message }));
+    return true;
+  }
+
+  return false;
+}
+
 function serveStaticFile(res, pathname) {
   const decoded = decodeURIComponent(pathname);
   const requestedPath = decoded === "/" ? "/welcome.html" : decoded;
@@ -826,6 +1043,10 @@ const server = http.createServer((req, res) => {
   }
 
   const url = new URL(req.url, `http://localhost:${PORT}`);
+
+  if (url.pathname.startsWith("/api/") && handleApiRoute(req, res, url)) {
+    return;
+  }
 
   if (url.pathname === "/lookup" && req.method === "GET") {
     const word = url.searchParams.get("word");
@@ -1267,9 +1488,29 @@ const server = http.createServer((req, res) => {
   res.end(JSON.stringify({ error: "Not found" }));
 });
 
+// First-boot bootstrap: creates Mei's own account automatically so
+// there's a way in at all before any admin UI exists to use. Only
+// fires when the users table is completely empty, so it's a one-time
+// thing per database — safe to leave the env vars set permanently.
+function bootstrapAdminAccount() {
+  if (db.anyUsersExist()) return;
+  const email = process.env.ADMIN_EMAIL;
+  const password = process.env.ADMIN_PASSWORD;
+  if (!email || !password) {
+    console.warn(
+      "⚠️  No accounts exist yet, and ADMIN_EMAIL/ADMIN_PASSWORD aren't set — nobody can log in. " +
+        "Set both env vars and restart the server to create the first (admin) account."
+    );
+    return;
+  }
+  db.createUser(email, password, true);
+  console.log(`Created admin account for ${email}.`);
+}
+
 server.listen(PORT, () => {
   if (!API_KEY) {
     console.warn("⚠️  ANTHROPIC_API_KEY is not set. Copy .env.example to .env and add your key.");
   }
+  bootstrapAdminAccount();
   console.log(`Dictionary lookup server running at http://localhost:${PORT}`);
 });
