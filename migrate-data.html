@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Import your data — Idikai</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fahkwang:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="auth-body">
+  <main class="auth-main">
+    <div class="panel auth-card auth-card-wide">
+      <h1 class="auth-title">Import your data</h1>
+      <p class="hint auth-subtitle">
+        One-time step: this copies everything saved in <em>this browser</em> (themes, words, journal entries,
+        conjugation tables, everything) into your logged-in account, so it follows you to any device from now on.
+      </p>
+      <p class="hint">
+        Safe to run more than once — it only fills in things your account doesn't already have, never overwrites
+        anything you've already saved since switching to accounts.
+      </p>
+
+      <div id="migrate-status" class="hint"></div>
+      <button type="button" id="migrate-btn">Import data from this browser</button>
+      <p><a href="index.html">Back to the app</a></p>
+    </div>
+  </main>
+
+  <script src="js/migrate-data-app.js"></script>
+</body>
+</html>

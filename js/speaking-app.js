@@ -16,7 +16,7 @@
   always false for now.
 */
 
-const SPEAKING_LANGUAGE_NAMES = { es: "Spanish", ja: "Japanese" };
+const SPEAKING_LANGUAGE_NAMES = { es: "Spanish", ja: "Japanese", fr: "French" };
 
 function getQueryParam(name) {
   return new URLSearchParams(window.location.search).get(name);
@@ -43,7 +43,7 @@ function initSpeakingListPage() {
   if (!list) return; // not this page
 
   const langParam = getQueryParam("lang");
-  const lang = langParam === "es" || langParam === "ja" ? langParam : null;
+  const lang = SUPPORTED_LANGUAGES.includes(langParam) ? langParam : null;
 
   if (lang) {
     const heading = document.getElementById("speaking-heading");
@@ -160,7 +160,7 @@ function initSpeakingEntryPage() {
     titleInput.value = existingEntry.title || "";
     dateInput.value = existingEntry.date || todayStr();
   } else {
-    activeEntryLang = langParam === "es" || langParam === "ja" ? langParam : "es";
+    activeEntryLang = SUPPORTED_LANGUAGES.includes(langParam) ? langParam : "es";
     activeEntryId = Storage.uid();
     entryPersisted = false;
     dateInput.value = todayStr();

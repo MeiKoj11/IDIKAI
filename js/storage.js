@@ -1,11 +1,66 @@
 /*
   storage.js
   ----------
-  Everything the Vocab Bank needs to remember lives in the browser's
-  localStorage: themes (folders), words, and saved verb conjugation
-  tables. No backend, no accounts — it all stays on this device, and
-  works fully offline.
+  Everything the app remembers — themes (folders), words, conjugation
+  tables, journal entries, and so on — is synced through the server to
+  a real per-user account, so the same data shows up on any device you
+  log into. Every function below (getThemes, addWord, etc.) keeps the
+  exact same signature it always had; only the two low-level
+  readJSON/writeJSON primitives changed, from talking to localStorage
+  to talking to an in-memory cache backed by the server.
+
+  How the sync actually works:
+    - On page load, a (deliberately synchronous) request to GET
+      /api/data fetches this account's entire data blob before any
+      other script on the page runs, so every Storage.* call made
+      during page setup sees real data immediately — no flash of
+      empty state, no need to make every page wait on a promise.
+      A synchronous XMLHttpRequest is what makes that possible; it's
+      old and technically deprecated, but still works fine for a
+      same-origin call like this one, and keeps every other file in
+      the app completely unchanged.
+    - If that request comes back 401 (not logged in / session
+      expired), the browser is redirected straight to login.html
+      instead of showing a broken, empty app.
+    - Every write (writeJSON) updates the in-memory cache immediately
+      (so the rest of the page keeps behaving synchronously, exactly
+      like localStorage did) and separately fires off a POST to
+      /api/data in the background to persist it — with one silent
+      retry if the first attempt fails (e.g. a dropped connection).
 */
+
+let _dataCache = {};
+
+(function loadAccountData() {
+  try {
+    const xhr = new XMLHttpRequest();
+    xhr.open("GET", "/api/data", false); // synchronous, on purpose — see file header
+    xhr.send(null);
+
+    if (xhr.status === 401) {
+      const returnTo = encodeURIComponent(window.location.pathname + window.location.search);
+      window.location.replace(`login.html?return=${returnTo}`);
+      return;
+    }
+
+    if (xhr.status >= 200 && xhr.status < 300) {
+      _dataCache = JSON.parse(xhr.responseText || "{}");
+    } else {
+      console.error(`Could not load your synced data (server returned ${xhr.status}). Starting empty for this session.`);
+    }
+  } catch (e) {
+    console.error("Could not reach the server to load your data. Starting empty for this session.", e);
+  }
+})();
+
+// Single source of truth for "which languages does this app support" —
+// every page's own ?lang= validity check (`langParam === "es" ||
+// langParam === "ja"`, scattered across vocab-app.js, writing-app.js,
+// grammar-app.js, reading-app.js, speaking-app.js, personal-hub.js)
+// should use this instead of its own hardcoded list, so adding a new
+// language later is a one-line change here rather than a hunt across
+// the whole codebase.
+const SUPPORTED_LANGUAGES = ["es", "ja", "fr"];
 
 const STORAGE_KEYS = {
   themes: "vocabBank.themes",
@@ -17,6 +72,7 @@ const STORAGE_KEYS = {
   grammarThemes: "grammar.themes",
   grammarNotes: "grammar.notes",
   grammarStarterSeeded: "grammar.starterSeeded",
+  conjugationCardsSeeded: "grammar.conjugationCardsSeeded",
   speakingEntries: "speaking.entries",
   writingEntries: "writing.entries",
   writingHelperWords: "writing.helperWords",
@@ -28,17 +84,29 @@ const STORAGE_KEYS = {
 };
 
 function readJSON(key, fallback) {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : fallback;
-  } catch (e) {
-    console.warn(`Could not read "${key}" from storage, using default.`, e);
-    return fallback;
-  }
+  return Object.prototype.hasOwnProperty.call(_dataCache, key) ? _dataCache[key] : fallback;
 }
 
-function writeJSON(key, value) {
-  localStorage.setItem(key, JSON.stringify(value));
+function writeJSON(key, value, isRetry) {
+  _dataCache[key] = value;
+  fetch("/api/data", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ key, value }),
+  }).catch((e) => {
+    if (!isRetry) {
+      setTimeout(() => writeJSON(key, value, true), 2000);
+    } else {
+      console.error(`Could not save "${key}" to the server after retrying — this change may not have synced.`, e);
+    }
+  });
+}
+
+// Called from the topbar's "Log out" button (see topbar.js).
+function logout() {
+  fetch("/api/logout", { method: "POST" }).finally(() => {
+    window.location.href = "login.html";
+  });
 }
 
 function uid() {
@@ -109,6 +177,17 @@ function updateWord(wordId, updates) {
 function deleteWord(wordId) {
   const words = readJSON(STORAGE_KEYS.words, []).filter((w) => w.id !== wordId);
   writeJSON(STORAGE_KEYS.words, words);
+}
+
+// Every saved word tagged as a Japanese verb with a known conjugation
+// class — the pool the Grammar conjugation-practice quizzes draw from,
+// alongside the built-in common-verb list in ja-conjugator.js. Only
+// words saved (or re-saved) after the verb-tagging feature shipped will
+// have partOfSpeech/verbClass set — see vocab-app.js's pendingVerbInfo.
+function getVerbWords(language) {
+  const words = readJSON(STORAGE_KEYS.words, []);
+  const themeIds = new Set(getThemes().filter((t) => t.language === language).map((t) => t.id));
+  return words.filter((w) => themeIds.has(w.themeId) && w.partOfSpeech === "verb" && w.verbClass);
 }
 
 // A flashcard counts as an exact duplicate if both sides match an
@@ -322,6 +401,130 @@ function ensureDefaultGrammarThemes(language) {
 
   seeded.push(language);
   writeJSON(STORAGE_KEYS.grammarStarterSeeded, seeded);
+}
+
+// ---- Default conjugation-pattern cards (Japanese only) ----
+// Four always-present structure cards seeded into "Tenses and verb
+// conjugations" the first time a Japanese Grammar folder list loads —
+// the four forms building on 言う/思う (and, for potential, a mix of
+// irregular/ichidan/godan verbs) so the progression reads as one
+// coherent worked example: 言う "to say" -> 言われる "is said" ->
+// 言わせる "make someone say" -> 言わせられる "made to say". Unlike a
+// normal structure card, these carry practiceType/conjugationForm
+// instead of an AI-classified grammarLabel — grammar-app.js uses that
+// pair to render the dedicated local conjugation-practice panel
+// (ja-conjugator.js) instead of the generic AI "Test me" panel.
+function verbExample(target, translation) {
+  return { id: uid(), target, translation, checked: true, corrected: target, note: "" };
+}
+
+const CONJUGATION_STARTER_CARDS = [
+  {
+    header: "Potential (可能形)",
+    explanation:
+      "The \"can do X\" form — says you're able to do something, not that you're doing it. " +
+      "Godan verbs shift their final kana to the e-row and add る (飲む -> 飲める); ichidan verbs " +
+      "drop る and add られる (食べる -> 食べられる); する becomes できる and 来る becomes 来られる.",
+    examples: [
+      verbExample("できる", "can do (potential of する)"),
+      verbExample("食べられる", "can eat (potential of 食べる)"),
+      verbExample("飲める", "can drink (potential of 飲む)"),
+    ],
+    conjugationForm: "potential",
+  },
+  {
+    header: "Passive (受身形)",
+    explanation:
+      "Something happens to the subject rather than the subject doing it — e.g. この本は昔書かれた " +
+      "(\"this book was written long ago\", no one implied). It can ALSO imply the action affected " +
+      "the speaker, often negatively (\"suffering passive\", 迷惑の受身) — e.g. 友達に日記を読まれた " +
+      "(\"my friend read my diary [and I'm annoyed]\"). Godan verbs shift to the a-row and add れる " +
+      "(言う -> 言われる); ichidan verbs drop る and add られる (the same ending as potential — " +
+      "context tells them apart).",
+    examples: [verbExample("言われる", "is said (passive of 言う)"), verbExample("思われる", "is thought / it seems (passive of 思う)")],
+    conjugationForm: "passive",
+  },
+  {
+    header: "Causative (使役形)",
+    explanation:
+      "\"Make/let someone do X\" — the subject causes or permits someone else to act. Godan verbs " +
+      "shift to the a-row and add せる (言う -> 言わせる); ichidan verbs drop る and add させる; する " +
+      "becomes させる and 来る becomes 来させる.",
+    examples: [verbExample("言わせる", "make/let (someone) say (causative of 言う)"), verbExample("思わせる", "make (someone) think (causative of 思う)")],
+    conjugationForm: "causative",
+  },
+  {
+    header: "Causative-passive (使役受身形)",
+    explanation:
+      "\"Made to do X\" — combines causative + passive: someone was forced/made to do something, " +
+      "usually against their will. Add られる to the causative stem (言わせる -> 言わせられる); godan " +
+      "verbs not ending in す commonly contract this to される (言わせられる -> 言わされる, both correct).",
+    examples: [
+      verbExample("言わせられる（言わされる）", "was made to say (causative-passive of 言う)"),
+      verbExample("思わせられる", "was made to think (causative-passive of 思う)"),
+    ],
+    conjugationForm: "causativePassive",
+  },
+];
+
+// One-time content fix: the Passive card originally described passive
+// as "is done (to me)" — misleading, since that's only the "suffering/
+// indirect passive" reading, not plain passive (e.g. "this book was
+// written long ago" has no implied "me"). Patches any already-seeded
+// note still carrying that exact old text, regardless of the
+// conjugationCardsSeeded gate below (which would otherwise skip it
+// entirely once seeding has already happened once).
+const STALE_PASSIVE_EXPLANATION_PREFIX = '"Is/was done (to me)"';
+function fixStalePassiveExplanation() {
+  const notes = readJSON(STORAGE_KEYS.grammarNotes, []);
+  let changed = false;
+  notes.forEach((n) => {
+    if (n.conjugationForm === "passive" && (n.explanation || "").startsWith(STALE_PASSIVE_EXPLANATION_PREFIX)) {
+      const fresh = CONJUGATION_STARTER_CARDS.find((c) => c.conjugationForm === "passive");
+      if (fresh) {
+        n.explanation = fresh.explanation;
+        changed = true;
+      }
+    }
+  });
+  if (changed) writeJSON(STORAGE_KEYS.grammarNotes, notes);
+}
+
+function ensureDefaultConjugationCards(language) {
+  if (language !== "ja") return; // this feature is Japanese-specific
+  fixStalePassiveExplanation();
+
+  const seeded = readJSON(STORAGE_KEYS.conjugationCardsSeeded, []);
+  if (seeded.includes(language)) return;
+
+  ensureDefaultGrammarThemes(language); // guarantees the target folder exists
+  const themes = getGrammarThemes(language);
+  const folder = themes.find((t) => (t.name || "").toLowerCase() === "tenses and verb conjugations");
+  if (!folder) return; // shouldn't happen, but don't crash if it somehow does
+
+  const existingForms = new Set(
+    getGrammarNotes(folder.id)
+      .map((n) => n.conjugationForm)
+      .filter(Boolean)
+  );
+  CONJUGATION_STARTER_CARDS.forEach((card) => {
+    if (existingForms.has(card.conjugationForm)) return;
+    addGrammarNote({
+      themeId: folder.id,
+      header: card.header,
+      explanation: card.explanation,
+      examples: card.examples,
+      variants: [],
+      tags: ["conjugation"],
+      practiceType: "conjugation",
+      conjugationForm: card.conjugationForm,
+      grammarLabel: null,
+      grammarLabelNote: "",
+    });
+  });
+
+  seeded.push(language);
+  writeJSON(STORAGE_KEYS.conjugationCardsSeeded, seeded);
 }
 
 // A grammar note is free-form (no fixed schema — see addGrammarNote/
@@ -728,6 +931,7 @@ const Storage = {
   addWord,
   updateWord,
   deleteWord,
+  getVerbWords,
   isDuplicateWord,
   addWordIfNotDuplicate,
   moveWordToTheme,
@@ -750,6 +954,7 @@ const Storage = {
   updateGrammarTheme,
   deleteGrammarTheme,
   ensureDefaultGrammarThemes,
+  ensureDefaultConjugationCards,
   getGrammarNotes,
   getGrammarNote,
   addGrammarNote,
@@ -791,6 +996,7 @@ const Storage = {
   getHubNotesText,
   updateHubNotesText,
   uid,
+  logout,
 };
 
 if (typeof module !== "undefined" && module.exports) {

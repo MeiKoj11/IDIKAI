@@ -39,7 +39,7 @@
   always false for now.
 */
 
-const WRITING_LANGUAGE_NAMES = { es: "Spanish", ja: "Japanese" };
+const WRITING_LANGUAGE_NAMES = { es: "Spanish", ja: "Japanese", fr: "French" };
 const HELPER_NEW_THEME_VALUE = "__new_helper_theme__";
 const WRITING_GRAMMAR_NEW_FOLDER_VALUE = "__new_writing_grammar_folder__";
 let addingToVocabWordId = null;
@@ -108,7 +108,7 @@ function initWritingListPage() {
   if (!list) return; // not this page
 
   const langParam = getQueryParam("lang");
-  const lang = langParam === "es" || langParam === "ja" ? langParam : null;
+  const lang = SUPPORTED_LANGUAGES.includes(langParam) ? langParam : null;
 
   if (lang) {
     const heading = document.getElementById("writing-heading");
@@ -235,7 +235,7 @@ function initWritingEntryPage() {
     activeEntryLang = existingEntry.language;
     entryPersisted = true;
   } else {
-    activeEntryLang = langParam === "es" || langParam === "ja" ? langParam : "es";
+    activeEntryLang = SUPPORTED_LANGUAGES.includes(langParam) ? langParam : "es";
     activeEntryId = Storage.uid();
     entryPersisted = false;
   }

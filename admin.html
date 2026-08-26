@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin — Idikai</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fahkwang:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="auth-body">
+  <main class="auth-main">
+    <div class="panel auth-card auth-card-wide" id="admin-not-authorized" hidden>
+      <h1 class="auth-title">Not authorized</h1>
+      <p class="hint">This page is only for admin accounts. <a href="index.html">Go back</a></p>
+    </div>
+
+    <div class="panel auth-card auth-card-wide" id="admin-panel" hidden>
+      <h1 class="auth-title">Manage accounts</h1>
+      <p class="hint auth-subtitle">Invite-only — create an account here for anyone you want to give access to.</p>
+
+      <form id="admin-create-form" class="auth-form">
+        <label class="auth-field">
+          <span>Email</span>
+          <input type="email" id="admin-new-email" required />
+        </label>
+        <label class="auth-field">
+          <span>Password</span>
+          <input type="text" id="admin-new-password" required minlength="8" />
+        </label>
+        <p class="hint">At least 8 characters. Share it with them directly — there's no email invite step yet.</p>
+        <p id="admin-create-error" class="auth-error" hidden></p>
+        <p id="admin-create-success" class="auth-success" hidden></p>
+        <button type="submit" id="admin-create-submit">Create account</button>
+      </form>
+
+      <h2 class="auth-section-heading">Existing accounts</h2>
+      <ul id="admin-user-list" class="auth-user-list"></ul>
+    </div>
+  </main>
+
+  <script src="js/admin-app.js"></script>
+</body>
+</html>

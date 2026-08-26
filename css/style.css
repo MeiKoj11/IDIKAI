@@ -300,6 +300,10 @@ body {
   border-top-color: #8B3435;
 }
 
+.app-tab.lang-fr {
+  border-top-color: #3B5B7A;
+}
+
 .app-tab:hover {
   background: #433A36;
 }
@@ -446,6 +450,10 @@ body {
 }
 
 .vocab-tab.lang-ja {
+  border-top-color: #221712;
+}
+
+.vocab-tab.lang-fr {
   border-top-color: #221712;
 }
 
@@ -754,6 +762,10 @@ button.secondary:hover {
   border-left-color: #221712;
 }
 
+.theme-item.lang-fr {
+  border-left-color: #221712;
+}
+
 .theme-item.active {
   border-color: #221712;
   background: #8B3435;
@@ -892,6 +904,28 @@ button.secondary:hover {
   padding: 0.5rem 0.75rem;
   border: 1px solid #221712;
   border-radius: 6px;
+}
+
+/* Grammar's folder view (grammar-theme.html): the wrapping .panel is
+   neutralized here so each note reads as its own standalone box sitting
+   directly on the page background — same idea as the folder-tile grid
+   in grammar.html — rather than several rows packed inside one shared
+   red panel. The practice CTA/panel below get their own background
+   since they used to rely on that shared panel's red showing through. */
+.grammar-notes-section {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin-bottom: 0;
+}
+
+#grammar-note-list {
+  gap: 0.6rem;
+}
+
+.grammar-note-item {
+  background: #771011;
+  border-radius: 8px;
 }
 
 .word-main {
@@ -1503,7 +1537,7 @@ details.hint summary,
   font-family: "Fahkwang", "Nunito", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
   font-size: 1.15rem;
   font-weight: 600;
-  color: var(--card-color, #ECE6D3);
+  color: #000;
 }
 
 .grammar-card-explanation {
@@ -1607,6 +1641,53 @@ details.hint summary,
   align-self: flex-start;
 }
 
+/* Conjugation practice (Potential/Passive/Causative/Causative-passive)
+   — reuses .card-practice-panel's layout, just adds the direction
+   picker and a "wrong answer" variant of .card-practice-answer. */
+.card-practice-direction-row {
+  font-size: 0.8rem;
+  color: #C0BFB2;
+}
+
+.card-practice-direction-row select {
+  margin-left: 0.35rem;
+}
+
+.card-practice-answer.card-practice-wrong {
+  background: color-mix(in srgb, #8a2e2e 30%, #221712);
+}
+
+/* grammar-conjugation-note.html — Explanation/Examples/Test me as three
+   independent native <details>, inside the page's single red .panel. */
+.conj-note-section {
+  border: 1px solid #221712;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.conj-note-section:last-of-type {
+  margin-bottom: 0;
+}
+
+.conj-note-section > summary {
+  cursor: pointer;
+  font-family: "Fahkwang", "Nunito", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: #ECE6D3;
+}
+
+.conj-note-section[open] > summary {
+  margin-bottom: 0.6rem;
+}
+
+.conj-note-explanation {
+  margin: 0;
+  color: #ECE6D3;
+}
+
 .header-right-btn {
   margin-left: auto;
 }
@@ -1671,11 +1752,19 @@ details.hint summary,
   border-left: 4px solid #221712;
 }
 
+.bubble.lang-fr {
+  border-left: 4px solid #221712;
+}
+
 .bubble.lang-es:hover {
   border-color: #221712;
 }
 
 .bubble.lang-ja:hover {
+  border-color: #221712;
+}
+
+.bubble.lang-fr:hover {
   border-color: #221712;
 }
 
@@ -2131,8 +2220,9 @@ main.writing-entry-layout {
   gap: 1rem;
   padding: 0.85rem 1rem;
   margin: 1rem 0;
-  border: 1px solid rgba(236, 230, 211, 0.3);
+  border: 1px solid #221712;
   border-radius: 8px;
+  background: #771011;
 }
 
 .grammar-practice-cta-title {
@@ -2143,8 +2233,9 @@ main.writing-entry-layout {
 .grammar-practice-panel {
   margin: 1rem 0;
   padding: 1rem;
-  border: 1px solid rgba(236, 230, 211, 0.3);
+  border: 1px solid #221712;
   border-radius: 8px;
+  background: #771011;
 }
 
 .grammar-practice-header {
@@ -2350,9 +2441,9 @@ main.writing-entry-layout {
 
 /* ===================================================================
    index.html — the language picker, reached from welcome.html's
-   "Click here to start". Deliberately just two big clear choices, no
-   grid of tiles — picking a language is the one decision this page
-   exists for.
+   "Click here to start". A short stack of big clear choices, no grid
+   of tiles — picking a language is the one decision this page exists
+   for.
    =================================================================== */
 
 .picker-body {
@@ -2416,6 +2507,10 @@ main.writing-entry-layout {
 
 .picker-option.lang-es:hover {
   background: #F1DEDE;
+}
+
+.picker-option.lang-fr:hover {
+  background: #DCE4EC;
 }
 
 .picker-option-title {
@@ -2807,4 +2902,302 @@ details[open] > .hub-todo-group-summary::before {
   font-family: inherit;
   padding: 0.5rem 0.6rem;
   resize: vertical;
+}
+
+/* spanish-tenses.html — all-tenses overview grid + expand-in-place
+   overlay + Test me. Keeps the app's usual dark-red panel look rather
+   than the reference chart's yellow/orange. */
+
+.spanish-tenses-main {
+  max-width: 980px;
+}
+
+.spanish-tenses-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.spanish-tenses-verb-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.spanish-tenses-verb-picker select {
+  padding: 0.45rem;
+  min-width: 220px;
+}
+
+.tenses-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.tenses-mood-section {
+  background: #771011;
+  border: 1px solid #221712;
+  border-radius: 10px;
+  padding: 1rem 1.1rem;
+}
+
+.tenses-mood-heading {
+  margin: 0 0 0.7rem;
+  font-family: "Fahkwang", "Nunito", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  color: #ECE6D3;
+}
+
+.tenses-mood-imperative .tenses-mood-heading {
+  margin-bottom: 0.7rem;
+}
+
+.tenses-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.6rem;
+}
+
+.tenses-row:last-child {
+  margin-bottom: 0;
+}
+
+.tenses-row-label {
+  width: 84px;
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  color: #C0BFB2;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tenses-row-tiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.tenses-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  min-width: 96px;
+  padding: 0.45rem 0.65rem;
+  border-radius: 7px;
+  border: 1px solid #221712;
+  background: rgba(0, 0, 0, 0.2);
+  color: #ECE6D3;
+  cursor: pointer;
+  font-size: 0.78rem;
+  text-align: left;
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+
+.tenses-tile:hover {
+  background: rgba(0, 0, 0, 0.32);
+  transform: translateY(-2px);
+}
+
+.tenses-tile-title {
+  font-weight: 700;
+}
+
+.tenses-tile-preview {
+  font-family: monospace;
+  color: #C0BFB2;
+}
+
+/* Enlarged single-tense table, brought to front over everything else. */
+.tenses-overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 200;
+}
+
+.tenses-overlay-card {
+  max-width: 440px;
+  width: 100%;
+  max-height: 82vh;
+  overflow-y: auto;
+}
+
+.tenses-overlay-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.tenses-overlay-head h2 {
+  margin: 0;
+  font-family: "Fahkwang", "Nunito", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+}
+
+.tenses-overlay-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tenses-overlay-table th,
+.tenses-overlay-table td {
+  text-align: left;
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 0.95rem;
+}
+
+.tenses-overlay-table th {
+  color: #C0BFB2;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Test mode */
+
+.tenses-test-card {
+  max-width: 460px;
+}
+
+.tenses-test-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-height: 42vh;
+  overflow-y: auto;
+  margin: 0.75rem 0;
+  padding-right: 0.25rem;
+}
+
+.tenses-test-group-heading {
+  margin: 0 0 0.3rem;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #ECE6D3;
+}
+
+.tenses-test-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.88rem;
+  margin-bottom: 0.2rem;
+}
+
+.tenses-test-setup-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+
+/* Accounts: login / admin / migrate-data pages — small standalone
+   pages with no topbar, just a centered card, same overall palette as
+   everywhere else. */
+
+.auth-body {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-main {
+  width: 100%;
+  max-width: 420px;
+  padding: 1.5rem;
+}
+
+.auth-card-wide {
+  max-width: 560px;
+}
+
+.auth-card {
+  margin-bottom: 0;
+}
+
+.auth-title {
+  font-family: "Fahkwang", sans-serif;
+  margin: 0 0 0.25rem;
+}
+
+.auth-subtitle {
+  margin-top: 0;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  margin: 1.25rem 0;
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+}
+
+.auth-field input {
+  padding: 0.55rem 0.6rem;
+  font-size: 1rem;
+  font-family: inherit;
+  border-radius: 6px;
+  border: 1px solid #221712;
+}
+
+.auth-error {
+  color: #FFD8D8;
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.auth-success {
+  color: #D8F5D8;
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.auth-footnote {
+  margin-bottom: 0;
+}
+
+.auth-section-heading {
+  font-size: 1rem;
+  margin: 1.5rem 0 0.5rem;
+}
+
+.auth-user-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+
+/* Topbar's dynamically-injected "Log out" entry (see topbar.js) —
+   reuses the menu's existing look, just visually separated from the
+   language options above it. */
+.topbar-menu-divider {
+  height: 1px;
+  background: rgba(236, 230, 211, 0.25);
+  margin: 0.4rem 0;
+  border: none;
 }

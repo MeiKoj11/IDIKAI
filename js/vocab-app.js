@@ -8,7 +8,7 @@
   being loaded first.
 */
 
-const LANGUAGE_NAMES = { es: "Spanish", ja: "Japanese" };
+const LANGUAGE_NAMES = { es: "Spanish", ja: "Japanese", fr: "French" };
 
 let activeTheme = null;
 // Set when vocab.html is reached as vocab.html?lang=es|ja (from a
@@ -23,6 +23,14 @@ let pendingDetection = null;
 let editingWordId = null;
 // id of the word currently showing its inline move/copy panel, or null.
 let movingWordId = null;
+// { query, partOfSpeech, verbClass } set right after a Japanese
+// dictionary lookup that identified a verb and its conjugation class —
+// consumed (and cleared) the moment the word actually gets saved, so a
+// verb looked up once but never saved doesn't leak its tag onto some
+// unrelated later word. `query` is whichever side was typed in to
+// trigger the lookup (lowercased/trimmed), used to sanity-check that
+// what's about to be saved is still the same word that was looked up.
+let pendingVerbInfo = null;
 
 // Quiz state
 let quizQueue = [];
@@ -120,7 +128,7 @@ document.addEventListener("DOMContentLoaded", () => {
   applyActiveThemeToUI();
 
   const langParam = getQueryParam("lang");
-  if (langParam === "es" || langParam === "ja") {
+  if (SUPPORTED_LANGUAGES.includes(langParam)) {
     activeLangFilter = langParam;
     const vocabBackLink = document.getElementById("vocab-back-link");
     if (vocabBackLink) vocabBackLink.href = `language-home.html?lang=${activeLangFilter}`;
@@ -328,9 +336,19 @@ async function handleAddWordSubmit(e) {
     return;
   }
 
-  // Both sides filled — save directly.
+  // Both sides filled — save directly. If the Japanese side still
+  // matches what a lookup just identified as a verb (and classified for
+  // conjugation), carry that tag onto the saved word; otherwise (typed
+  // both sides by hand, or edited the field after the lookup) it's
+  // saved untagged, same as any word saved before this feature existed.
   if (english && tl) {
-    saveWordAndReset({ english, targetLang: tl, furigana: furiganaInput.value.trim(), exampleSentence });
+    const word = { english, targetLang: tl, furigana: furiganaInput.value.trim(), exampleSentence };
+    if (activeTheme.language === "ja" && pendingVerbInfo && pendingVerbInfo.query === tl.toLowerCase()) {
+      word.partOfSpeech = pendingVerbInfo.partOfSpeech;
+      word.verbClass = pendingVerbInfo.verbClass;
+    }
+    pendingVerbInfo = null;
+    saveWordAndReset(word);
     return;
   }
 
@@ -391,6 +409,23 @@ async function handleAddWordSubmit(e) {
   ) {
     furiganaInput.value = result.furigana;
     furiganaInput.dataset.autoFilled = "true";
+  }
+
+  // Remembers what this lookup identified as a verb (and its
+  // conjugation class) so it can be carried onto the word once you hit
+  // Save — see the "both sides filled" branch above and the comment on
+  // pendingVerbInfo's declaration. `query` is whichever value will be
+  // sitting in the Japanese-side field the moment you save: the newly
+  // filled-in translation if you looked up FROM English, or the value
+  // you originally typed if you looked up FROM Japanese (unchanged).
+  if (activeTheme.language === "ja" && result.partOfSpeech === "verb" && result.verbClass) {
+    pendingVerbInfo = {
+      query: (english ? filledValue : tl).toLowerCase(),
+      partOfSpeech: result.partOfSpeech,
+      verbClass: result.verbClass,
+    };
+  } else {
+    pendingVerbInfo = null;
   }
 
   if (result.source === "mymemory") {

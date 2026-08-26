@@ -19,7 +19,7 @@
 
 const GRAMMAR_NEW_THEME_VALUE = "__new_grammar_theme__";
 const PENDING_GRAMMAR_NOTE_KEY = "pendingGrammarNote";
-const GRAMMAR_LANGUAGE_NAMES = { es: "Spanish", ja: "Japanese" };
+const GRAMMAR_LANGUAGE_NAMES = { es: "Spanish", ja: "Japanese", fr: "French" };
 
 // Which grammar note (by id) is currently showing its inline personal-
 // note editor on grammar-theme.html — mirrors the Helper Notebook's own
@@ -39,7 +39,7 @@ function getQueryParam(name) {
 document.addEventListener("DOMContentLoaded", () => {
   // grammar.html
   const langParam = getQueryParam("lang");
-  if (langParam === "es" || langParam === "ja") {
+  if (SUPPORTED_LANGUAGES.includes(langParam)) {
     activeGrammarLang = langParam;
     const heading = document.getElementById("grammar-heading");
     if (heading) heading.textContent = `${GRAMMAR_LANGUAGE_NAMES[langParam]} Grammar`;
@@ -56,7 +56,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  if (activeGrammarLang) Storage.ensureDefaultGrammarThemes(activeGrammarLang);
+  if (activeGrammarLang) {
+    Storage.ensureDefaultGrammarThemes(activeGrammarLang);
+    Storage.ensureDefaultConjugationCards(activeGrammarLang);
+  }
   renderGrammarThemeList();
 
   // grammar-theme.html
@@ -64,6 +67,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // grammar-add-note.html
   initGrammarAddNotePage();
+
+  // grammar-conjugation-note.html
+  initGrammarConjugationNotePage();
 
   // grammar.html itself — the other two pages call initTopbar()
   // internally once they've resolved their own language, above.
@@ -172,6 +178,11 @@ function initGrammarThemePage() {
   heading.textContent = theme.name;
 
   const themeLang = theme.language || "es";
+  // Content migrations (e.g. correcting the seeded conjugation cards'
+  // wording) shouldn't depend on having visited grammar.html first —
+  // apply them here too, since a folder can be opened directly from a
+  // reopened tab or bookmark.
+  Storage.ensureDefaultConjugationCards(themeLang);
   const header = document.getElementById("grammar-theme-header");
   if (header) header.classList.add(`lang-${themeLang}`);
   const backLink = document.getElementById("grammar-theme-back-link");
@@ -188,8 +199,85 @@ function initGrammarThemePage() {
   const addNoteLink = document.getElementById("add-note-link");
   if (addNoteLink) addNoteLink.href = `grammar-add-note.html?themeId=${encodeURIComponent(theme.id)}`;
 
+  const spanishTensesLink = document.getElementById("spanish-tenses-link");
+  if (spanishTensesLink) {
+    spanishTensesLink.hidden = !(themeLang === "es" && (theme.name || "").toLowerCase() === "tenses and verb conjugations");
+  }
+
+  const frenchTensesLink = document.getElementById("french-tenses-link");
+  if (frenchTensesLink) {
+    frenchTensesLink.hidden = !(themeLang === "fr" && (theme.name || "").toLowerCase() === "tenses and verb conjugations");
+  }
+
   renderGrammarNoteList(theme.id);
   initGrammarPracticeCTA(theme);
+}
+
+// ---------------------------------------------------------------------
+// grammar-conjugation-note.html — one conjugation card's own page
+// ---------------------------------------------------------------------
+// Reached by clicking one of the four Potential/Passive/Causative/
+// Causative-passive tiles in a Grammar folder (buildConjugationNoteTile
+// above) instead of expanding inline. Explanation/Examples/Test me are
+// three independent <details> — Explanation starts open, the other two
+// collapsed — using the browser's native disclosure widget rather than
+// hand-rolled JS toggles, since each section here is fully independent
+// (no shared state between them the way the folder-view card had).
+function initGrammarConjugationNotePage() {
+  const panel = document.getElementById("conj-note-panel");
+  if (!panel) return; // not this page
+
+  const noteId = getQueryParam("noteId");
+  const note = noteId ? Storage.getGrammarNote(noteId) : null;
+
+  if (!note || note.practiceType !== "conjugation") {
+    document.getElementById("conj-note-not-found").hidden = false;
+    return;
+  }
+
+  const theme = Storage.getGrammarTheme(note.themeId);
+  const language = (theme && theme.language) || "ja";
+
+  // Same reasoning as initGrammarThemePage — apply content migrations
+  // here too, then re-read the note so a stale explanation caught by
+  // the migration doesn't render before it's fixed.
+  Storage.ensureDefaultConjugationCards(language);
+  const freshNote = Storage.getGrammarNote(noteId) || note;
+
+  document.getElementById("conj-note-heading").textContent = freshNote.header;
+  const header = document.getElementById("conj-note-header");
+  if (header) header.classList.add(`lang-${language}`);
+  const backLink = document.getElementById("conj-note-back-link");
+  if (backLink && theme) backLink.href = `grammar-theme.html?id=${encodeURIComponent(theme.id)}`;
+
+  initTopbar(language);
+  if (typeof initHubTasks === "function") initHubTasks(language);
+  initAppTabs({
+    section: "grammar",
+    language,
+    label: freshNote.header,
+    href: `grammar-conjugation-note.html?noteId=${encodeURIComponent(freshNote.id)}`,
+  });
+
+  document.getElementById("conj-note-explanation").textContent = freshNote.explanation || "";
+
+  const examplesRoot = document.getElementById("conj-note-examples");
+  if (freshNote.examples && freshNote.examples.length) {
+    examplesRoot.appendChild(buildExamplesDisplayBlock(freshNote.examples));
+  } else {
+    examplesRoot.textContent = "No examples yet.";
+  }
+
+  const practiceRoot = document.getElementById("conj-practice-root");
+  const practiceDetails = document.getElementById("conj-practice-details");
+  practiceDetails.addEventListener("toggle", () => {
+    if (!practiceDetails.open) return;
+    if (!conjugationPracticeSessions[freshNote.id]) {
+      startConjugationPractice(freshNote, practiceRoot);
+    }
+  });
+
+  panel.hidden = false;
 }
 
 // ---------------------------------------------------------------------
@@ -448,6 +536,13 @@ function grammarCardColorFor() {
 }
 
 function buildGrammarNoteCard(note) {
+  // The four conjugation cards (Potential/Passive/Causative/Causative-
+  // passive) navigate to their own page instead of expanding in place —
+  // see buildConjugationNoteTile and grammar-conjugation-note.html.
+  // Everything else (both the structure-card flow and the original
+  // single-sentence notes) still expands inline, below.
+  if (note.practiceType === "conjugation") return buildConjugationNoteTile(note);
+
   // A note built with the structure-card flow (has a header) renders
   // completely differently from the original single-sentence notes —
   // see buildStructureCard. Anything without a header is either a
@@ -592,6 +687,48 @@ function buildGrammarNoteCard(note) {
 // variants nested underneath. Shares the personal-note editor and the
 // Edit/Delete actions row with the legacy card above so both behave
 // identically, but everything above that is different.
+// A conjugation card's box on grammar-theme.html — just a clickable
+// tile with the pattern name, matching the folder-tile look. No inline
+// expand/collapse and no inline actions: clicking navigates straight to
+// grammar-conjugation-note.html, where the explanation/examples/practice
+// live as their own collapsible sections instead.
+function buildConjugationNoteTile(note) {
+  const li = document.createElement("li");
+  li.className = "word-item grammar-note-item grammar-structure-card";
+  li.style.setProperty("--card-color", grammarCardColorFor(note.id));
+  li.style.cursor = "pointer";
+
+  const headerEl = document.createElement("div");
+  headerEl.className = "grammar-card-header";
+  headerEl.textContent = note.header;
+  li.appendChild(headerEl);
+
+  if (note.tags && note.tags.length) {
+    const tagsRow = document.createElement("div");
+    tagsRow.className = "tag-row";
+    note.tags.forEach((tag) => {
+      const pill = document.createElement("span");
+      pill.className = "tag-pill";
+      pill.textContent = tag;
+      tagsRow.appendChild(pill);
+    });
+    li.appendChild(tagsRow);
+  }
+
+  li.addEventListener("click", () => {
+    window.location.href = `grammar-conjugation-note.html?noteId=${encodeURIComponent(note.id)}`;
+  });
+  li.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      window.location.href = `grammar-conjugation-note.html?noteId=${encodeURIComponent(note.id)}`;
+    }
+  });
+  li.tabIndex = 0;
+
+  return li;
+}
+
 function buildStructureCard(note) {
   const li = document.createElement("li");
   li.className = "word-item grammar-note-item grammar-structure-card";
@@ -657,6 +794,11 @@ function buildStructureCard(note) {
   if (note.grammarLabel) {
     detail.appendChild(practicePanelWrap);
   }
+  // Note: conjugation cards (practiceType === "conjugation") never
+  // reach this function at all — buildGrammarNoteCard routes them to
+  // buildConjugationNoteTile / grammar-conjugation-note.html instead,
+  // where the same quiz (startConjugationPractice etc., further below)
+  // gets its own page instead of an inline panel here.
 
   if (note.id === editingGrammarPersonalNoteId) {
     detail.appendChild(buildGrammarPersonalNoteEditor(note));
@@ -948,6 +1090,298 @@ function renderCardPracticePanel(note, panelEl) {
     judgeRow.appendChild(missedBtn);
 
     panelEl.appendChild(judgeRow);
+  }
+
+  const closeBtn = document.createElement("button");
+  closeBtn.type = "button";
+  closeBtn.className = "secondary card-practice-close";
+  closeBtn.textContent = "Close practice";
+  closeBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    panelEl.hidden = true;
+  });
+  panelEl.appendChild(closeBtn);
+}
+
+// ---------------------------------------------------------------------
+// Conjugation practice (Potential/Passive/Causative/Causative-passive)
+// ---------------------------------------------------------------------
+// Fully local — no AI call, no network — unlike the generic AI practice
+// panel above. Verbs are conjugated with ja-conjugator.js, drawing from
+// its built-in common-verb list plus any verb saved in Vocab Bank that
+// got tagged with a conjugation class (see storage.js's getVerbWords
+// and vocab-app.js's pendingVerbInfo). English -> Japanese is checked
+// automatically (it's an exact-match problem — see
+// JaConjugator.checkJapaneseAnswer); Japanese -> English is self-graded
+// like the AI panel, since grading free-form English reliably without
+// AI isn't realistic.
+
+const conjugationPracticeSessions = {};
+
+function toggleConjugationPractice(note, panelEl) {
+  const isOpen = !panelEl.hidden;
+  if (isOpen) {
+    panelEl.hidden = true;
+    return;
+  }
+  panelEl.hidden = false;
+  if (!conjugationPracticeSessions[note.id]) {
+    startConjugationPractice(note, panelEl);
+  } else {
+    renderConjugationPracticePanel(note, panelEl);
+  }
+}
+
+// Combines the built-in common-verb list with any tagged verb from
+// Vocab Bank for this language, normalized to the shape ja-conjugator
+// expects ({ kanji, reading, meaning, class }). Vocab Bank verbs come
+// first so your own saved words show up in the rotation right away
+// rather than being drowned out by the ~70 built-in ones.
+function buildConjugationVerbPool(language) {
+  const fromVocab = (Storage.getVerbWords ? Storage.getVerbWords(language) : []).map((w) => ({
+    kanji: w.targetLang,
+    reading: w.furigana,
+    meaning: w.english,
+    class: w.verbClass,
+  }));
+  const seen = new Set(fromVocab.map((v) => v.kanji));
+  const fromBuiltIn = (window.JaConjugator ? JaConjugator.COMMON_VERBS : []).filter((v) => !seen.has(v.kanji));
+  return [...fromVocab, ...fromBuiltIn];
+}
+
+// Weighted by verb CLASS, not by individual verb — every irregular-suru
+// verb (勉強する, 電話する, 掃除する...) conjugates by the exact same
+// rule regardless of which one it is, so picking uniformly at random
+// across the whole pool let them crowd out godan verbs (which actually
+// vary a lot depending on the final kana) purely because there happen
+// to be several suru-compounds sitting in the list. Weighting by class
+// first means suru shows up roughly this often regardless of how many
+// suru verbs you've got saved or built-in — godan still gets the most
+// reps since it's genuinely the form with the most to practice.
+const CONJUGATION_CLASS_WEIGHTS = { godan: 0.45, ichidan: 0.35, "irregular-suru": 0.15, "irregular-kuru": 0.05 };
+
+function pickRandomVerb(pool, avoidKanji) {
+  if (!pool.length) return null;
+  if (pool.length === 1) return pool[0];
+
+  const byClass = {};
+  pool.forEach((v) => {
+    (byClass[v.class] = byClass[v.class] || []).push(v);
+  });
+  const classes = Object.keys(byClass);
+  const weighted = classes.map((cls) => ({ cls, weight: CONJUGATION_CLASS_WEIGHTS[cls] ?? 1 / classes.length }));
+  const totalWeight = weighted.reduce((sum, c) => sum + c.weight, 0) || 1;
+
+  function pickClass() {
+    let r = Math.random() * totalWeight;
+    for (const c of weighted) {
+      if (r < c.weight) return c.cls;
+      r -= c.weight;
+    }
+    return weighted[weighted.length - 1].cls;
+  }
+
+  let choice;
+  let guard = 0;
+  do {
+    const verbsInClass = byClass[pickClass()];
+    choice = verbsInClass[Math.floor(Math.random() * verbsInClass.length)];
+    guard += 1;
+  } while (choice.kanji === avoidKanji && guard < 20);
+
+  return choice;
+}
+
+async function startConjugationPractice(note, panelEl) {
+  const language = (Storage.getGrammarTheme && Storage.getGrammarTheme(note.themeId) || {}).language || "ja";
+  const session = {
+    direction: "mixed", // "enToJa" | "jaToEn" | "mixed"
+    pool: buildConjugationVerbPool(language),
+    verb: null,
+    currentDirection: null,
+    typedAnswer: "",
+    checked: false,
+    lastCorrect: null,
+    revealed: false,
+    correct: 0,
+    total: 0,
+  };
+  conjugationPracticeSessions[note.id] = session;
+  nextConjugationQuestion(session);
+  renderConjugationPracticePanel(note, panelEl);
+}
+
+function nextConjugationQuestion(session) {
+  session.verb = pickRandomVerb(session.pool, session.verb && session.verb.kanji);
+  session.currentDirection = session.direction === "mixed" ? (Math.random() < 0.5 ? "enToJa" : "jaToEn") : session.direction;
+  session.typedAnswer = "";
+  session.checked = false;
+  session.lastCorrect = null;
+  session.revealed = false;
+}
+
+function renderConjugationPracticePanel(note, panelEl) {
+  const session = conjugationPracticeSessions[note.id];
+  panelEl.innerHTML = "";
+  if (!session) return;
+
+  const directionRow = document.createElement("div");
+  directionRow.className = "card-practice-direction-row";
+  const directionLabel = document.createElement("label");
+  directionLabel.textContent = "Direction: ";
+  const directionSelect = document.createElement("select");
+  [
+    ["mixed", "Mixed"],
+    ["enToJa", "English → Japanese"],
+    ["jaToEn", "Japanese → English"],
+  ].forEach(([value, label]) => {
+    const opt = document.createElement("option");
+    opt.value = value;
+    opt.textContent = label;
+    if (value === session.direction) opt.selected = true;
+    directionSelect.appendChild(opt);
+  });
+  directionSelect.addEventListener("click", (e) => e.stopPropagation());
+  directionSelect.addEventListener("change", (e) => {
+    e.stopPropagation();
+    session.direction = directionSelect.value;
+    nextConjugationQuestion(session);
+    renderConjugationPracticePanel(note, panelEl);
+  });
+  directionLabel.appendChild(directionSelect);
+  directionRow.appendChild(directionLabel);
+  panelEl.appendChild(directionRow);
+
+  const scoreEl = document.createElement("div");
+  scoreEl.className = "card-practice-score";
+  scoreEl.textContent = session.total > 0 ? `${session.correct} / ${session.total} correct` : "";
+  panelEl.appendChild(scoreEl);
+
+  if (!session.pool.length || !session.verb) {
+    const emptyEl = document.createElement("p");
+    emptyEl.className = "hint";
+    emptyEl.textContent = "No verbs available to practice with right now.";
+    panelEl.appendChild(emptyEl);
+    return;
+  }
+
+  const verb = session.verb;
+  const form = note.conjugationForm;
+  const conjugated = JaConjugator.conjugate(verb, form);
+
+  if (session.currentDirection === "enToJa") {
+    const promptEl = document.createElement("p");
+    promptEl.className = "card-practice-prompt";
+    promptEl.textContent = `${verb.kanji} (${verb.reading}) — ${verb.meaning}. Type the ${JaConjugator.FORM_LABELS[form].split(" —")[0]} form:`;
+    panelEl.appendChild(promptEl);
+
+    const answerInput = document.createElement("input");
+    answerInput.type = "text";
+    answerInput.className = "card-practice-input";
+    answerInput.value = session.typedAnswer;
+    answerInput.placeholder = "答えを入力…";
+    answerInput.addEventListener("click", (e) => e.stopPropagation());
+    answerInput.addEventListener("input", (e) => {
+      session.typedAnswer = e.target.value;
+    });
+    panelEl.appendChild(answerInput);
+
+    if (!session.checked) {
+      const checkBtn = document.createElement("button");
+      checkBtn.type = "button";
+      checkBtn.textContent = "Check";
+      checkBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const result = JaConjugator.checkJapaneseAnswer(verb, form, session.typedAnswer);
+        session.checked = true;
+        session.lastCorrect = result.correct;
+        session.total += 1;
+        if (result.correct) session.correct += 1;
+        renderConjugationPracticePanel(note, panelEl);
+      });
+      panelEl.appendChild(checkBtn);
+    } else {
+      const resultEl = document.createElement("p");
+      resultEl.className = session.lastCorrect ? "card-practice-answer" : "card-practice-answer card-practice-wrong";
+      resultEl.textContent = session.lastCorrect
+        ? "Correct!"
+        : `Not quite — accepted: ${JaConjugator.acceptableAnswers(verb, form).join(" / ")}`;
+      panelEl.appendChild(resultEl);
+
+      const nextBtn = document.createElement("button");
+      nextBtn.type = "button";
+      nextBtn.textContent = "Next";
+      nextBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        nextConjugationQuestion(session);
+        renderConjugationPracticePanel(note, panelEl);
+      });
+      panelEl.appendChild(nextBtn);
+    }
+  } else {
+    // jaToEn — free-form English, so self-graded rather than
+    // auto-checked (see the file-header comment on this section).
+    const promptEl = document.createElement("p");
+    promptEl.className = "card-practice-prompt";
+    promptEl.textContent = `${conjugated.kanji} (${conjugated.reading}) — what does this mean? (${JaConjugator.FORM_LABELS[form]})`;
+    panelEl.appendChild(promptEl);
+
+    const answerInput = document.createElement("input");
+    answerInput.type = "text";
+    answerInput.className = "card-practice-input";
+    answerInput.placeholder = "Your answer in English…";
+    answerInput.value = session.typedAnswer;
+    answerInput.addEventListener("click", (e) => e.stopPropagation());
+    answerInput.addEventListener("input", (e) => {
+      session.typedAnswer = e.target.value;
+    });
+    panelEl.appendChild(answerInput);
+
+    if (!session.revealed) {
+      const revealBtn = document.createElement("button");
+      revealBtn.type = "button";
+      revealBtn.textContent = "Show answer";
+      revealBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        session.revealed = true;
+        renderConjugationPracticePanel(note, panelEl);
+      });
+      panelEl.appendChild(revealBtn);
+    } else {
+      const answerEl = document.createElement("p");
+      answerEl.className = "card-practice-answer";
+      answerEl.textContent = `Model answer: ${JaConjugator.englishGloss(verb.meaning, form)}`;
+      panelEl.appendChild(answerEl);
+
+      const judgeRow = document.createElement("div");
+      judgeRow.className = "card-practice-judge-row";
+
+      const gotItBtn = document.createElement("button");
+      gotItBtn.type = "button";
+      gotItBtn.textContent = "Got it";
+      gotItBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        session.total += 1;
+        session.correct += 1;
+        nextConjugationQuestion(session);
+        renderConjugationPracticePanel(note, panelEl);
+      });
+      judgeRow.appendChild(gotItBtn);
+
+      const missedBtn = document.createElement("button");
+      missedBtn.type = "button";
+      missedBtn.className = "secondary";
+      missedBtn.textContent = "Missed it";
+      missedBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        session.total += 1;
+        nextConjugationQuestion(session);
+        renderConjugationPracticePanel(note, panelEl);
+      });
+      judgeRow.appendChild(missedBtn);
+
+      panelEl.appendChild(judgeRow);
+    }
   }
 
   const closeBtn = document.createElement("button");

@@ -12,7 +12,7 @@
   always centered), row 3 is the bottom pair.
 */
 
-const LANGUAGE_LABELS = { es: "Spanish", ja: "Japanese" };
+const LANGUAGE_LABELS = { es: "Spanish", ja: "Japanese", fr: "French" };
 
 // href: null means "not built yet" -> renders as a disabled bubble.
 const HUB_BUBBLES = [
@@ -76,7 +76,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const lang = getQueryParam("lang");
   const flower = document.getElementById("lang-home-flower");
 
-  if (lang !== "es" && lang !== "ja") {
+  if (!SUPPORTED_LANGUAGES.includes(lang)) {
     initTopbar(null);
     initAppTabs(null);
     if (flower) {

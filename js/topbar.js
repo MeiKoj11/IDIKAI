@@ -23,7 +23,7 @@
   include the #app-topbar markup at all.
 */
 
-const TOPBAR_LANGUAGE_NAMES = { es: "Spanish", ja: "Japanese" };
+const TOPBAR_LANGUAGE_NAMES = { es: "Spanish", ja: "Japanese", fr: "French" };
 
 // Wires a trigger button + its dropdown menu: click toggles it, click
 // anywhere outside closes it, and opening one closes any other menu
@@ -70,6 +70,27 @@ function initTopbar(lang) {
       window.location.href = `language-home.html?lang=${btn.dataset.lang}`;
     });
   });
+
+  addTopbarLogoutOption(document.getElementById("topbar-menu"));
+}
+
+// Appended at runtime rather than baked into every page's own HTML —
+// accounts came along well after the topbar markup was copy-pasted
+// across 17+ pages, so adding it here means every one of those pages
+// gets it for free instead of needing another find-and-replace sweep.
+function addTopbarLogoutOption(menu) {
+  if (!menu || menu.querySelector(".topbar-logout-option") || typeof Storage === "undefined" || !Storage.logout) return;
+
+  const divider = document.createElement("hr");
+  divider.className = "topbar-menu-divider";
+  menu.appendChild(divider);
+
+  const logoutBtn = document.createElement("button");
+  logoutBtn.type = "button";
+  logoutBtn.className = "topbar-lang-option topbar-logout-option";
+  logoutBtn.textContent = "Log out";
+  logoutBtn.addEventListener("click", () => Storage.logout());
+  menu.appendChild(logoutBtn);
 }
 
 if (typeof module !== "undefined" && module.exports) {

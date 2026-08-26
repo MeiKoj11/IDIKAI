@@ -7,7 +7,7 @@
   filtering — just add, edit, delete.
 */
 
-const PERSONAL_HUB_LANGUAGE_NAMES = { es: "Spanish", ja: "Japanese" };
+const PERSONAL_HUB_LANGUAGE_NAMES = { es: "Spanish", ja: "Japanese", fr: "French" };
 
 let activePersonalLang = "es";
 let editingPersonalNoteId = null;
@@ -21,7 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!list) return; // not this page
 
   const langParam = getQueryParam("lang");
-  activePersonalLang = langParam === "es" || langParam === "ja" ? langParam : "es";
+  activePersonalLang = SUPPORTED_LANGUAGES.includes(langParam) ? langParam : "es";
 
   const heading = document.getElementById("personal-hub-heading");
   if (heading) heading.textContent = `${PERSONAL_HUB_LANGUAGE_NAMES[activePersonalLang]} Personal Hub`;

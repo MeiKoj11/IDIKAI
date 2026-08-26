@@ -36,7 +36,7 @@
 
 const APP_TABS_SESSION_KEY = "appTabs.open";
 const APP_TABS_ACTIVE_SESSION_KEY = "appTabs.activeHref";
-const APP_TAB_LANGUAGE_NAMES = { es: "Spanish", ja: "Japanese" };
+const APP_TAB_LANGUAGE_NAMES = { es: "Spanish", ja: "Japanese", fr: "French" };
 
 const APP_TAB_SECTION_LABELS = {
   vocab: "Vocab Bank",
@@ -81,6 +81,17 @@ function setActiveAppTabHref(href) {
   } catch (e) {}
 }
 
+// A page that isn't an addressable "unit" (current === null, e.g. a
+// hub/list/picker page) still has its own real URL — used below so
+// navigating there re-points whichever tab you were in, rather than
+// leaving that tab stuck on the page you clicked away from. Only ever
+// the bare filename + query string (no directory), matching how every
+// other tab's href is already built by hand elsewhere in the app.
+function currentPageHref() {
+  const file = window.location.pathname.split("/").pop() || "index.html";
+  return file + window.location.search;
+}
+
 // The single entry point every page calls once. See file header for
 // what `current` should be.
 function initAppTabs(current) {
@@ -111,6 +122,25 @@ function initAppTabs(current) {
     saveOpenAppTabs(tabs);
     activeHref = current.href;
     setActiveAppTabHref(activeHref);
+  } else if (activeHref) {
+    // Landed on a non-addressable page (hub/list/picker) — e.g. via a
+    // Grammar/Vocab folder's "Back" link — while some tab was active.
+    // Re-point THAT tab at here instead of leaving it referencing the
+    // page you just navigated away from, so switching tabs away and
+    // back returns you to where you actually are now, not somewhere
+    // stale. Only touches the tab you were already in; every other
+    // open tab is untouched.
+    const existingIdx = tabs.findIndex((t) => t.href === activeHref);
+    if (existingIdx !== -1) {
+      const here = currentPageHref();
+      if (tabs[existingIdx].href !== here) {
+        tabs = tabs.slice();
+        tabs[existingIdx] = { ...tabs[existingIdx], href: here, label: document.title || here };
+        saveOpenAppTabs(tabs);
+        activeHref = here;
+        setActiveAppTabHref(activeHref);
+      }
+    }
   }
 
   renderAppTabStrip(tabs, activeHref);

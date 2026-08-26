@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Log in — Idikai</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fahkwang:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="auth-body">
+  <main class="auth-main">
+    <div class="panel auth-card">
+      <h1 class="auth-title">Idikai</h1>
+      <p class="hint auth-subtitle">Log in to your account</p>
+
+      <form id="login-form" class="auth-form">
+        <label class="auth-field">
+          <span>Email</span>
+          <input type="email" id="login-email" autocomplete="username" required />
+        </label>
+        <label class="auth-field">
+          <span>Password</span>
+          <input type="password" id="login-password" autocomplete="current-password" required />
+        </label>
+        <p id="login-error" class="auth-error" hidden></p>
+        <button type="submit" id="login-submit">Log in</button>
+      </form>
+
+      <p class="hint auth-footnote">
+        Access is invite-only right now — if you don't have an account yet, ask whoever set this up for you.
+      </p>
+    </div>
+  </main>
+
+  <script src="js/login-app.js"></script>
+</body>
+</html>

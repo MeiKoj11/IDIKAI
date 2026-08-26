@@ -32,11 +32,11 @@ let activeReadingLang = null;
 // optional (a passage without a folder is just uncategorized).
 let activeFolderFilter = READING_FILTER_ALL_VALUE;
 
-const READING_LANGUAGE_NAMES = { es: "Spanish", ja: "Japanese" };
+const READING_LANGUAGE_NAMES = { es: "Spanish", ja: "Japanese", fr: "French" };
 
 document.addEventListener("DOMContentLoaded", () => {
   const langParam = new URLSearchParams(window.location.search).get("lang");
-  if (langParam === "es" || langParam === "ja") {
+  if (SUPPORTED_LANGUAGES.includes(langParam)) {
     activeReadingLang = langParam;
     const heading = document.getElementById("reading-heading");
     if (heading) heading.textContent = `${READING_LANGUAGE_NAMES[langParam]} Reading`;
@@ -51,7 +51,7 @@ document.addEventListener("DOMContentLoaded", () => {
       intro.textContent =
         langParam === "ja"
           ? "Paste in a piece of Japanese text — a song, an article, whatever you're studying — and click any kanji while reading to look it up and save it straight to a Vocab Bank theme."
-          : "Paste in a piece of Spanish text — a song, an article, whatever you're studying — and click any word while reading to look it up and save it straight to a Vocab Bank theme.";
+          : `Paste in a piece of ${READING_LANGUAGE_NAMES[langParam]} text — a song, an article, whatever you're studying — and click any word while reading to look it up and save it straight to a Vocab Bank theme.`;
     }
   }
 
@@ -422,7 +422,7 @@ let tesseractWorker = null; // lazy singleton, reused across uploads on this pag
 let tesseractWorkerLang = null; // which OCR language pack it was created with
 let lastUploadedImageFile = null; // so the "try Claude instead" button can reuse it
 
-const TESSERACT_LANG_CODES = { es: "spa", ja: "jpn" };
+const TESSERACT_LANG_CODES = { es: "spa", ja: "jpn", fr: "fra" };
 
 async function getTesseractWorker() {
   if (typeof Tesseract === "undefined") {
@@ -702,7 +702,11 @@ async function handleWordClick(span, word) {
   document.getElementById("lookup-grammar").textContent = "";
   document.getElementById("add-looked-up-word").hidden = true;
 
-  const result = await Translate.lookupTranslation(word, "es", "en");
+  // Was hardcoded to "es" — harmless while Spanish was the only non-
+  // Japanese language, but wrong for any other passage language (e.g.
+  // French), so it now reads the passage's own language.
+  const wordClickLang = (currentPassage && currentPassage.language) || "es";
+  const result = await Translate.lookupTranslation(word, wordClickLang, "en");
   if (!result || !result.translation) {
     document.getElementById("lookup-result").textContent =
       "No translation found — you can still add it manually from Vocab Bank.";
@@ -1447,13 +1451,13 @@ function handleAddLookedUpWord() {
   let themeId = select.value;
   if (!themeId || themeId === NEW_THEME_VALUE) {
     // Covers the case where "+ Create new theme…" was the ONLY option
-    // (no Spanish themes exist yet) and was already selected by
-    // default — a <select>'s change event never fires for "picking" a
-    // value that was already selected, so this is the reliable
-    // fallback rather than depending on handleThemeSelectChange.
+    // (no themes in this passage's language exist yet) and was already
+    // selected by default — a <select>'s change event never fires for
+    // "picking" a value that was already selected, so this is the
+    // reliable fallback rather than depending on handleThemeSelectChange.
     const name = prompt("Name for the new theme:");
     if (!name || !name.trim()) return;
-    const theme = Storage.addTheme(name.trim(), "es");
+    const theme = Storage.addTheme(name.trim(), currentPassage ? currentPassage.language : "es");
     renderThemeOptions(theme.id);
     themeId = theme.id;
   }

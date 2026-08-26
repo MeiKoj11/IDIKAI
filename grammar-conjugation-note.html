@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Add Vocab</title>
+  <title>Grammar pattern</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fahkwang:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -79,111 +79,36 @@
       </div>
     </div>
   </div>
-  <header class="app-header" id="page-header">
-    <a href="theme.html" id="add-vocab-back-link" class="back-link">&larr; Back</a>
-    <h1>Add New Vocab</h1>
+  <header class="app-header" id="conj-note-header">
+    <a href="grammar.html" class="back-link" id="conj-note-back-link">&larr; Back to folder</a>
+    <h1 id="conj-note-heading">Grammar pattern</h1>
   </header>
+  <main>
+    <section class="panel" id="conj-note-panel" hidden>
+      <details id="conj-explanation-details" class="conj-note-section" open>
+        <summary>Explanation</summary>
+        <p id="conj-note-explanation" class="conj-note-explanation"></p>
+      </details>
 
-  <main id="vocab-main-content">
-    <section class="panel" id="add-word-panel">
-      <h2>Add a word — <span id="active-theme-name"></span></h2>
-      <form id="add-word-form" class="stacked-form">
-        <label>
-          English
-          <input type="text" id="field-english" placeholder="e.g. to speak" />
-        </label>
-        <label>
-          <span>Target language (<span id="active-theme-lang-label"></span>)</span>
-          <input type="text" id="field-tl" placeholder="e.g. hablar, or a conjugated form like hablo" />
-        </label>
-        <div id="furigana-field" hidden>
-          <label>
-            Furigana (optional)
-            <input type="text" id="field-furigana" placeholder="reading" />
-          </label>
-        </div>
-        <label>
-          Example sentence (optional)
-          <textarea id="field-example" rows="2" placeholder="e.g. a sentence showing how this word is used"></textarea>
-        </label>
-        <p class="hint">
-          Fill in just one side and leave the other blank — the app will try to fill it in for
-          you (a quick online lookup, or verb-form detection for Spanish), and let you check it
-          before saving. Needs an internet connection to auto-fill; you can always type both
-          sides yourself instead.
-        </p>
-        <button type="submit">Add word</button>
-      </form>
-      <div id="verb-detection-panel" class="detection-panel" hidden>
-        <p id="detection-summary"></p>
-        <div class="detection-actions">
-          <button type="button" id="use-translation-only">Just use this translation</button>
-          <button type="button" id="cancel-detection" class="secondary">Cancel</button>
-        </div>
-        <details>
-          <summary>Or build a conjugation table for this verb</summary>
-          <div class="checkbox-grid">
-            <div>
-              <strong>Tenses</strong>
-              <div id="tense-checkboxes"></div>
-            </div>
-            <div>
-              <strong>Persons</strong>
-              <div id="person-checkboxes"></div>
-            </div>
-          </div>
-          <button type="button" id="generate-table">Generate table &amp; save</button>
-          <div id="verb-table-preview" class="table-preview"></div>
-        </details>
-      </div>
-    </section>
-    <section class="panel" id="bulk-import-panel">
-      <h2>Import a vocab list</h2>
-      <p class="hint">
-        Paste a list of words/phrases — yours, or copied from a textbook, worksheet, or website.
-        It doesn't need to be tidy, just recognizable as a vocab list — it'll figure out which side
-        is English and pull out clean pairs for you to review before anything is saved.
-      </p>
-      <div class="stacked-form">
-        <textarea id="bulk-import-text" rows="6" placeholder="Paste your vocab list here..."></textarea>
-        <button type="button" id="bulk-import-extract-btn">Extract flashcards</button>
-      </div>
-      <p id="bulk-import-status" class="hint" hidden></p>
+      <details id="conj-examples-details" class="conj-note-section">
+        <summary>Examples</summary>
+        <div id="conj-note-examples"></div>
+      </details>
 
-      <div id="bulk-import-review" hidden>
-        <div class="bulk-import-review-header">
-          <span id="bulk-import-review-count"></span>
-          <div class="bulk-import-review-actions">
-            <button type="button" id="bulk-import-select-all" class="secondary">Select all</button>
-            <button type="button" id="bulk-import-select-none" class="secondary">Select none</button>
-          </div>
-        </div>
-        <ul id="bulk-import-list" class="bulk-import-list"></ul>
-        <div class="bulk-import-save-row">
-          <button type="button" id="bulk-import-save-btn">Save selected</button>
-          <button type="button" id="bulk-import-discard-btn" class="secondary">Discard</button>
-        </div>
-      </div>
-      <p id="bulk-import-save-status" class="hint" hidden></p>
+      <details id="conj-practice-details" class="conj-note-section">
+        <summary>Test me / Practice</summary>
+        <div id="conj-practice-root" class="card-practice-panel conjugation-practice-panel"></div>
+      </details>
     </section>
-    <section class="panel" id="word-list-panel">
-      <h2>Words — <span id="active-theme-name-2"></span></h2>
-      <ul id="word-list" class="word-list"></ul>
-    </section>
-    <section class="panel" id="conjugation-tables-panel" hidden>
-      <h2>Conjugation Tables</h2>
-      <p class="hint">One merged table per verb — flashcards link here instead of showing the full table inline.</p>
-      <div id="conjugation-tables"></div>
-    </section>
+    <p id="conj-note-not-found" class="hint" hidden>Couldn't find that grammar pattern.</p>
   </main>
   <script src="js/topbar.js"></script>
   <script src="js/app-tabs.js"></script>
   <script src="js/storage.js"></script>
   <script src="js/hub-tasks.js"></script>
   <script src="js/translate.js"></script>
-  <script src="js/spanish-verb-data.js"></script>
-  <script src="js/spanish-conjugator.js"></script>
-  <script src="js/srs.js"></script>
-  <script src="js/vocab-app.js"></script>
+  <script src="js/grammar-concepts.js"></script>
+  <script src="js/ja-conjugator.js"></script>
+  <script src="js/grammar-app.js"></script>
 </body>
 </html>

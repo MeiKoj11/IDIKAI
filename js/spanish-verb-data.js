@@ -78,6 +78,11 @@ const REGULAR_ENDINGS = {
   // Same endings as imperfect er/ir, but applied to the infinitive (or
   // the same irregular stem future uses) rather than the bare stem.
   conditional: ["ía", "ías", "ía", "íamos", "íais", "ían"],
+  // Present subjunctive: -ar verbs take "opposite" (-er/-ir-style)
+  // endings and vice versa — unlike indicative present, -er and -ir
+  // verbs share identical subjunctive endings (no imos/ís split).
+  subjPresentAr: ["e", "es", "e", "emos", "éis", "en"],
+  subjPresentOther: ["a", "as", "a", "amos", "áis", "an"],
 };
 
 // Past participles (for the compound tenses): regular formula is
@@ -212,6 +217,10 @@ const VERBS = [
     irregular: true,
     overrides: {
       present: { yo: "he", tu: "has", el: "ha", nosotros: "hemos", vosotros: "habéis", ellos: "han" },
+      // Irregular "hub-" stem — not the regular "habí-" the formula
+      // would otherwise produce. This also feeds the new Subjunctive
+      // Imperfect/Future/Pluperfect, which derive from this form.
+      preterite: { yo: "hube", tu: "hubiste", el: "hubo", nosotros: "hubimos", vosotros: "hubisteis", ellos: "hubieron" },
     },
   },
   {
@@ -359,7 +368,11 @@ const VERBS = [
     english: "to know (facts)",
     type: "er",
     irregular: true,
-    overrides: { present: { yo: "sé" } },
+    overrides: {
+      present: { yo: "sé" },
+      // Irregular "sup-" stem in the preterite (supe, not "sabí").
+      preterite: { yo: "supe", tu: "supiste", el: "supo", nosotros: "supimos", vosotros: "supisteis", ellos: "supieron" },
+    },
   },
   {
     infinitive: "conocer",
@@ -369,6 +382,87 @@ const VERBS = [
     overrides: { present: { yo: "conozco" } },
   },
 ];
+
+// ---------------------------------------------------------------------
+// Subjunctive + Imperative — added alongside the original Indicative-
+// only tense set above. Almost none of this needs new hand-verified
+// per-verb data: present subjunctive derives from the (already-correct)
+// present-indicative yo form; imperfect/future subjunctive derive from
+// the (already-correct) preterite ellos form; imperative derives mostly
+// from present indicative / present subjunctive. See the derivation
+// functions in spanish-conjugator.js. The only genuinely irregular data
+// needed is below: 6 present-subjunctive stem exceptions and 9
+// imperative-affirmative exceptions.
+// ---------------------------------------------------------------------
+
+const MOOD_KEYS = ["indicative", "subjunctive", "imperative"];
+
+const SUBJUNCTIVE_TENSE_KEYS = ["subjPresent", "subjImperfect", "subjImperfectSe", "subjFuture", "subjPresentPerfect", "subjPluperfect"];
+const SUBJUNCTIVE_TENSE_LABELS = {
+  subjPresent: "Present",
+  subjImperfect: "Imperfect (-ra)",
+  subjImperfectSe: "Imperfect (-se)",
+  subjFuture: "Future",
+  subjPresentPerfect: "Present Perfect",
+  subjPluperfect: "Past Perfect",
+};
+
+// -ra and -se are both fully correct, interchangeable in almost every
+// context (-ra is more common in speech, -se more common in formal
+// writing) — treated as two separate tense keys so both can be shown,
+// but the quiz accepts either as correct for "Imperfect Subjunctive".
+const SUBJUNCTIVE_IMPERFECT_VARIANT_OF = { subjImperfectSe: "subjImperfect" };
+
+const IMPERATIVE_TENSE_KEYS = ["imperativeAffirmative", "imperativeNegative"];
+const IMPERATIVE_TENSE_LABELS = {
+  imperativeAffirmative: "Affirmative",
+  imperativeNegative: "Negative",
+};
+// Imperative has no "yo" form — commands aren't given to yourself.
+const IMPERATIVE_PERSON_KEYS = ["tu", "el", "nosotros", "vosotros", "ellos"];
+
+// Present subjunctive is built from the present-indicative yo form
+// (already correct, including irregular yo's like tengo/hago/salgo) —
+// strip the final "o" and add the "opposite" ending. These six verbs
+// are the only ones whose present-yo form does NOT end in "o", so the
+// strip-and-swap trick can't apply — hand-verified in full instead.
+const SUBJUNCTIVE_PRESENT_OVERRIDES = {
+  ser: ["sea", "seas", "sea", "seamos", "seáis", "sean"],
+  estar: ["esté", "estés", "esté", "estemos", "estéis", "estén"],
+  ir: ["vaya", "vayas", "vaya", "vayamos", "vayáis", "vayan"],
+  dar: ["dé", "des", "dé", "demos", "deis", "den"],
+  saber: ["sepa", "sepas", "sepa", "sepamos", "sepáis", "sepan"],
+  haber: ["haya", "hayas", "haya", "hayamos", "hayáis", "hayan"],
+};
+
+// Which simple SUBJUNCTIVE tense of "haber" forms each compound
+// subjunctive tense — same idea as COMPOUND_TENSE_AUX above, just
+// pointing at subjunctive tenses instead of indicative ones. Reuses
+// the exact same compound-tense code path in the conjugator.
+const SUBJUNCTIVE_COMPOUND_AUX = {
+  subjPresentPerfect: "subjPresent",
+  subjPluperfect: "subjImperfect",
+};
+
+// tú affirmative commands are normally just the present-indicative
+// él/ella/usted form — these 8 verbs are the well-known exceptions.
+const IMPERATIVE_TU_AFFIRMATIVE_OVERRIDES = {
+  decir: "di",
+  hacer: "haz",
+  ir: "ve",
+  poner: "pon",
+  salir: "sal",
+  ser: "sé",
+  tener: "ten",
+  venir: "ven",
+};
+
+// nosotros affirmative ("let's...") is normally the present-subjunctive
+// nosotros form — "ir" is the one common exception ("vamos", not the
+// technically-correct-but-almost-never-used "vayamos").
+const IMPERATIVE_NOSOTROS_AFFIRMATIVE_OVERRIDES = {
+  ir: "vamos",
+};
 
 const SpanishVerbData = {
   PERSON_KEYS,
@@ -383,6 +477,17 @@ const SpanishVerbData = {
   IMPERFECT_OVERRIDES,
   PAST_PARTICIPLE_OVERRIDES,
   VERBS,
+  MOOD_KEYS,
+  SUBJUNCTIVE_TENSE_KEYS,
+  SUBJUNCTIVE_TENSE_LABELS,
+  SUBJUNCTIVE_IMPERFECT_VARIANT_OF,
+  IMPERATIVE_TENSE_KEYS,
+  IMPERATIVE_TENSE_LABELS,
+  IMPERATIVE_PERSON_KEYS,
+  SUBJUNCTIVE_PRESENT_OVERRIDES,
+  SUBJUNCTIVE_COMPOUND_AUX,
+  IMPERATIVE_TU_AFFIRMATIVE_OVERRIDES,
+  IMPERATIVE_NOSOTROS_AFFIRMATIVE_OVERRIDES,
 };
 
 if (typeof module !== "undefined" && module.exports) {

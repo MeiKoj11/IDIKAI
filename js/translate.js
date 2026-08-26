@@ -45,6 +45,8 @@ async function lookupViaBackend(word, fromLang, toLang) {
       plural: !!data.plural,
       furigana: data.furigana || null,
       conjugationInfo: data.conjugationInfo || null,
+      partOfSpeech: data.partOfSpeech || null,
+      verbClass: data.verbClass || null,
       source: "claude",
     };
   } catch (e) {
@@ -64,7 +66,7 @@ async function lookupViaMyMemory(word, fromLang, toLang) {
     if (!result) return null;
     // If it just handed back the same word, treat that as "no real match".
     if (result.toLowerCase().trim() === word.toLowerCase().trim()) return null;
-    return { translation: result, gender: null, article: null, plural: false, furigana: null, conjugationInfo: null, source: "mymemory" };
+    return { translation: result, gender: null, article: null, plural: false, furigana: null, conjugationInfo: null, partOfSpeech: null, verbClass: null, source: "mymemory" };
   } catch (e) {
     console.warn("MyMemory lookup failed (probably offline):", e);
     return null;
