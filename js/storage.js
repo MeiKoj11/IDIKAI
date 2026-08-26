@@ -87,19 +87,57 @@ function readJSON(key, fallback) {
   return Object.prototype.hasOwnProperty.call(_dataCache, key) ? _dataCache[key] : fallback;
 }
 
+// Tracks writes that have been handed to fetch() but not yet confirmed
+// saved. This is what makes it safe to click straight to another page
+// right after a write (e.g. the starter-folders seeding on Grammar's
+// list page, which writes the new folders and then immediately writes
+// a separate "already set up" flag) — without this, a fast enough
+// navigation could carry the browser away before the first write's
+// network request finished, silently losing it while the second write
+// (and the page after it) sail through fine.
+let _pendingWrites = {};
+
 function writeJSON(key, value, isRetry) {
   _dataCache[key] = value;
+  _pendingWrites[key] = value;
   fetch("/api/data", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ key, value }),
-  }).catch((e) => {
-    if (!isRetry) {
-      setTimeout(() => writeJSON(key, value, true), 2000);
-    } else {
-      console.error(`Could not save "${key}" to the server after retrying — this change may not have synced.`, e);
+  })
+    .then((res) => {
+      if (res.ok && _pendingWrites[key] === value) delete _pendingWrites[key];
+    })
+    .catch((e) => {
+      if (!isRetry) {
+        setTimeout(() => writeJSON(key, value, true), 2000);
+      } else {
+        console.error(`Could not save "${key}" to the server after retrying — this change may not have synced.`, e);
+      }
+    });
+}
+
+// Last-resort safety net: if the page is being navigated away from or
+// closed while a write is still in flight, sendBeacon fires a
+// best-effort background request the browser guarantees to actually
+// attempt (unlike a normal fetch, which can get cut off mid-navigation).
+function flushPendingWrites() {
+  Object.keys(_pendingWrites).forEach((key) => {
+    const value = _pendingWrites[key];
+    try {
+      const blob = new Blob([JSON.stringify({ key, value })], { type: "application/json" });
+      navigator.sendBeacon("/api/data", blob);
+    } catch (e) {
+      // Nothing more we can do at this point — the retry-on-fetch-
+      // failure path above is the main defense; this is only for the
+      // "navigated away mid-request" edge case specifically.
     }
   });
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("pagehide", flushPendingWrites);
+  window.addEventListener("beforeunload", flushPendingWrites);
 }
 
 // Called from the topbar's "Log out" button (see topbar.js).

@@ -10,6 +10,20 @@
 
 const LANGUAGE_NAMES = { es: "Spanish", ja: "Japanese", fr: "French" };
 
+// Per-language examples for the "Add a word" form's placeholder text —
+// a Spanish "hablar" example inside a French or Japanese theme just
+// confuses things, so each language gets its own verb-example pair.
+const TARGET_LANG_PLACEHOLDER = {
+  es: "e.g. hablar, or a conjugated form like hablo",
+  fr: "e.g. parler, or a conjugated form like parle",
+  ja: "e.g. 話す, or a conjugated form like 話します",
+};
+const ENGLISH_FIELD_PLACEHOLDER = {
+  es: "e.g. to speak",
+  fr: "e.g. to speak",
+  ja: "e.g. to speak",
+};
+
 let activeTheme = null;
 // Set when vocab.html is reached as vocab.html?lang=es|ja (from a
 // language hub) — filters the theme list and defaults new themes to
@@ -79,6 +93,15 @@ function applyActiveThemeToUI() {
   if (langLabel) langLabel.textContent = LANGUAGE_NAMES[activeTheme.language];
   const furiganaField = document.getElementById("furigana-field");
   if (furiganaField) furiganaField.hidden = activeTheme.language !== "ja";
+
+  // The "Add a word" form's placeholders should always show an example
+  // in the language the learner is actually adding to — a Spanish
+  // "hablar" example makes no sense sitting inside a French or
+  // Japanese theme.
+  const tlPlaceholder = document.getElementById("field-tl");
+  if (tlPlaceholder) tlPlaceholder.placeholder = TARGET_LANG_PLACEHOLDER[activeTheme.language] || TARGET_LANG_PLACEHOLDER.es;
+  const englishPlaceholder = document.getElementById("field-english");
+  if (englishPlaceholder) englishPlaceholder.placeholder = ENGLISH_FIELD_PLACEHOLDER[activeTheme.language] || ENGLISH_FIELD_PLACEHOLDER.es;
 
   // theme.html's two bubbles.
   const hubHeading = document.getElementById("theme-hub-heading");
