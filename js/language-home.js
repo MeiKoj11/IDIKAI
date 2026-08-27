@@ -18,35 +18,45 @@ const LANGUAGE_LABELS = { es: "Spanish", ja: "Japanese", fr: "French" };
 const HUB_BUBBLES = [
   {
     title: "Vocab Bank",
+    titleKey: "sectionVocab",
     sub: "Themes, words, verb conjugation, flashcards",
+    subKey: "subVocab",
     href: (lang) => `vocab.html?lang=${lang}`,
     available: () => true,
     row: 1,
   },
   {
     title: "Grammar",
+    titleKey: "sectionGrammar",
     sub: "Your own notes on sentence structures and patterns",
+    subKey: "subGrammar",
     href: (lang) => `grammar.html?lang=${lang}`,
     available: () => true,
     row: 1,
   },
   {
     title: "Writing",
+    titleKey: "sectionWriting",
     sub: "Dated diary-style entries, linked to a passage to reference",
+    subKey: "subWriting",
     href: (lang) => `writing.html?lang=${lang}`,
     available: () => true,
     row: 2,
   },
   {
     title: "Personal Hub",
+    titleKey: "sectionPersonalHub",
     sub: "Your own space — notes, to-do lists, anything",
+    subKey: "subPersonalHub",
     href: (lang) => `personal-hub.html?lang=${lang}`,
     available: () => true,
     row: 2,
   },
   {
     title: "Listening",
+    titleKey: "sectionListening",
     sub: "Coming soon",
+    subKey: "comingSoon",
     href: () => null,
     available: () => false,
     globallyUnbuilt: true,
@@ -54,14 +64,18 @@ const HUB_BUBBLES = [
   },
   {
     title: "Reading",
+    titleKey: "sectionReading",
     sub: "Passages with click-to-look-up words",
+    subKey: "subReading",
     href: (lang) => `reading.html?lang=${lang}`,
     available: () => true,
     row: 3,
   },
   {
     title: "Speaking",
+    titleKey: "sectionSpeaking",
     sub: "Record yourself speaking, linked to a passage to read aloud",
+    subKey: "subSpeaking",
     href: (lang) => `speaking.html?lang=${lang}`,
     available: () => true,
     row: 3,
@@ -111,14 +125,20 @@ document.addEventListener("DOMContentLoaded", () => {
     const titleEl = document.createElement("span");
     titleEl.className = "bubble-title";
     titleEl.textContent = bubble.title;
+    titleEl.dataset.immersionKey = bubble.titleKey;
     el.appendChild(titleEl);
 
     const subEl = document.createElement("span");
     subEl.className = "bubble-sub";
     if (isAvailable) {
       subEl.textContent = bubble.sub;
+      subEl.dataset.immersionKey = bubble.subKey;
+    } else if (bubble.globallyUnbuilt) {
+      subEl.textContent = "Coming soon";
+      subEl.dataset.immersionKey = "comingSoon";
     } else {
-      subEl.textContent = bubble.globallyUnbuilt ? "Coming soon" : "Coming soon for this language";
+      subEl.textContent = "Coming soon for this language";
+      subEl.dataset.immersionKey = "comingSoonForLanguage";
     }
     el.appendChild(subEl);
 

@@ -15,10 +15,10 @@
     </button>
     <span id="topbar-lang-label" class="topbar-lang-label"></span>
     <div id="topbar-menu" class="topbar-menu" hidden>
-      <div class="topbar-menu-heading">Change language</div>
-      <button type="button" class="topbar-lang-option" data-lang="es">Spanish</button>
-      <button type="button" class="topbar-lang-option" data-lang="ja">Japanese</button>
-      <button type="button" class="topbar-lang-option" data-lang="fr">French</button>
+      <div class="topbar-menu-heading" data-immersion-key="changeLanguageHeading">Change language</div>
+      <button type="button" class="topbar-lang-option" data-lang="es" data-immersion-key="langNameEs">Spanish</button>
+      <button type="button" class="topbar-lang-option" data-lang="ja" data-immersion-key="langNameJa">Japanese</button>
+      <button type="button" class="topbar-lang-option" data-lang="fr" data-immersion-key="langNameFr">French</button>
     </div>
     <button type="button" id="topbar-notifications" class="topbar-notifications" aria-label="Notifications" aria-haspopup="true">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2"></rect><path d="M3 6.5l9 6.5 9-6.5"></path></svg>
@@ -34,25 +34,25 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"></path><path d="M5 10v10h14V10"></path></svg>
     </a>
     <div id="topbar-notifications-menu" class="topbar-menu topbar-notifications-menu" hidden>
-      <div class="topbar-menu-heading">Notifications</div>
-      <p class="topbar-notifications-empty">Coming soon — once a teacher connection exists, updates will show up here.</p>
+      <div class="topbar-menu-heading" data-immersion-key="notificationsHeading">Notifications</div>
+      <p class="topbar-notifications-empty" data-immersion-key="notificationsEmpty">Coming soon — once a teacher connection exists, updates will show up here.</p>
     </div>
     <div id="hub-todo-panel" class="hub-todo-panel" hidden>
       <div id="hub-todo-header" class="hub-todo-header">
-        <span class="hub-todo-title">To-do list</span>
+        <span class="hub-todo-title" data-immersion-key="todoTitle">To-do list</span>
         <button type="button" id="hub-todo-close" class="hub-todo-close" aria-label="Close">×</button>
       </div>
       <form id="hub-todo-add-form" class="hub-todo-add-form">
-        <input type="text" id="hub-todo-add-input" placeholder="Add a task…" autocomplete="off" />
+        <input type="text" id="hub-todo-add-input" placeholder="Add a task…" autocomplete="off" data-immersion-key="todoAddPlaceholder" />
         <select id="hub-todo-folder-select" class="hub-todo-folder-select" aria-label="Folder">
-          <option value="">No folder</option>
+          <option value="" data-immersion-key="todoNoFolder">No folder</option>
         </select>
-        <button type="submit">Add</button>
+        <button type="submit" data-immersion-key="todoAddButton">Add</button>
       </form>
       <div id="hub-todo-groups" class="hub-todo-groups"></div>
       <label class="hub-todo-show-completed">
         <input type="checkbox" id="hub-todo-show-completed" />
-        Show completed
+        <span data-immersion-key="todoShowCompleted">Show completed</span>
       </label>
     </div>
   </div>
@@ -62,94 +62,94 @@
       <button type="button" id="app-tab-plus" class="tab-bar-plus-btn" title="Open another section in a new tab">+</button>
       <div id="app-tab-picker-panel" class="app-tab-picker-panel" hidden>
         <select id="app-tab-section-select">
-          <option value="" disabled selected>Which section?</option>
-          <option value="vocab">Vocab Bank</option>
-          <option value="grammar">Grammar</option>
-          <option value="writing">Writing</option>
-          <option value="speaking">Speaking</option>
-          <option value="reading">Reading</option>
-          <option value="personal-hub">Personal Hub</option>
-          <option value="listening">Listening</option>
+          <option value="" disabled selected data-immersion-key="tabPickerSectionPlaceholder">Which section?</option>
+          <option value="vocab" data-immersion-key="sectionVocab">Vocab Bank</option>
+          <option value="grammar" data-immersion-key="sectionGrammar">Grammar</option>
+          <option value="writing" data-immersion-key="sectionWriting">Writing</option>
+          <option value="speaking" data-immersion-key="sectionSpeaking">Speaking</option>
+          <option value="reading" data-immersion-key="sectionReading">Reading</option>
+          <option value="personal-hub" data-immersion-key="sectionPersonalHub">Personal Hub</option>
+          <option value="listening" data-immersion-key="sectionListening">Listening</option>
         </select>
         <select id="app-tab-unit-select" hidden>
-          <option value="" disabled selected>Which one?</option>
+          <option value="" disabled selected data-immersion-key="tabPickerUnitPlaceholder">Which one?</option>
         </select>
-        <button type="button" id="app-tab-open-btn" class="secondary" hidden>Open</button>
-        <button type="button" id="app-tab-picker-cancel" class="secondary">Cancel</button>
+        <button type="button" id="app-tab-open-btn" class="secondary" hidden data-immersion-key="tabPickerOpen">Open</button>
+        <button type="button" id="app-tab-picker-cancel" class="secondary" data-immersion-key="tabPickerCancel">Cancel</button>
       </div>
     </div>
   </div>
   <header class="app-header" id="personal-hub-header">
-    <a href="index.html" class="back-link" id="personal-hub-back-link">&larr; Back</a>
-    <h1 id="personal-hub-heading">Personal Hub</h1>
+    <a href="index.html" class="back-link" id="personal-hub-back-link" data-immersion-key="backPlain">&larr; Back</a>
+    <h1 id="personal-hub-heading" data-immersion-key="sectionPersonalHub">Personal Hub</h1>
   </header>
   <main>
     <!-- Helper Notebook: two quick reminder lists (Late / Homework) plus
          a standing pair of notes fields — distinct from the freeform
          bubbles below, which you create yourself one at a time. -->
     <section class="panel" id="helper-notebook-hub-panel">
-      <h2>Helper Notebook</h2>
+      <h2 data-immersion-key="helperNotebookHeading">Helper Notebook</h2>
 
       <div class="helper-hub-reminder-row">
-        <span class="helper-hub-reminder-label">Late</span>
+        <span class="helper-hub-reminder-label" data-immersion-key="hubLateLabel">Late</span>
         <div class="helper-hub-reminder-actions">
           <button type="button" class="secondary helper-hub-reminder-add-btn" data-category="late" aria-label="Add a late item">+</button>
           <button type="button" class="secondary helper-hub-reminder-view-btn" data-category="late" aria-label="Show late items">☰</button>
         </div>
       </div>
       <form class="helper-hub-reminder-add-form" id="helper-hub-late-add-form" data-category="late" hidden>
-        <input type="text" placeholder="e.g. Chapter 4 reading" autocomplete="off" />
-        <button type="submit">Add</button>
-        <button type="button" class="secondary helper-hub-reminder-add-cancel">Cancel</button>
+        <input type="text" placeholder="e.g. Chapter 4 reading" autocomplete="off" data-immersion-key="hubLatePlaceholder" />
+        <button type="submit" data-immersion-key="btnAdd">Add</button>
+        <button type="button" class="secondary helper-hub-reminder-add-cancel" data-immersion-key="btnCancel">Cancel</button>
       </form>
       <ul class="helper-hub-reminder-list" id="helper-hub-late-list" hidden></ul>
 
       <div class="helper-hub-reminder-row">
-        <span class="helper-hub-reminder-label">Homework</span>
+        <span class="helper-hub-reminder-label" data-immersion-key="hubHomeworkLabel">Homework</span>
         <div class="helper-hub-reminder-actions">
           <button type="button" class="secondary helper-hub-reminder-add-btn" data-category="homework" aria-label="Add a homework item">+</button>
           <button type="button" class="secondary helper-hub-reminder-view-btn" data-category="homework" aria-label="Show homework items">☰</button>
         </div>
       </div>
       <form class="helper-hub-reminder-add-form" id="helper-hub-homework-add-form" data-category="homework" hidden>
-        <input type="text" placeholder="e.g. Worksheet 3" autocomplete="off" />
-        <button type="submit">Add</button>
-        <button type="button" class="secondary helper-hub-reminder-add-cancel">Cancel</button>
+        <input type="text" placeholder="e.g. Worksheet 3" autocomplete="off" data-immersion-key="hubHomeworkPlaceholder" />
+        <button type="submit" data-immersion-key="btnAdd">Add</button>
+        <button type="button" class="secondary helper-hub-reminder-add-cancel" data-immersion-key="btnCancel">Cancel</button>
       </form>
       <ul class="helper-hub-reminder-list" id="helper-hub-homework-list" hidden></ul>
 
       <div class="helper-hub-notes-group">
         <label class="helper-hub-note-label">
-          Notes to self
-          <textarea id="helper-hub-self-note" rows="4" placeholder="Anything for future you…"></textarea>
+          <span data-immersion-key="notesToSelfLabel">Notes to self</span>
+          <textarea id="helper-hub-self-note" rows="4" placeholder="Anything for future you…" data-immersion-key="notesToSelfPlaceholder"></textarea>
         </label>
         <label class="helper-hub-note-label">
-          Notes to teacher
-          <textarea id="helper-hub-teacher-note" rows="4" placeholder="Questions or notes for a teacher (once connected)…"></textarea>
+          <span data-immersion-key="notesToTeacherLabel">Notes to teacher</span>
+          <textarea id="helper-hub-teacher-note" rows="4" placeholder="Questions or notes for a teacher (once connected)…" data-immersion-key="notesToTeacherPlaceholder"></textarea>
         </label>
       </div>
     </section>
 
     <section class="panel" id="personal-hub-panel">
-      <h2>Your bubbles</h2>
-      <p class="hint" id="personal-hub-intro">
+      <h2 data-immersion-key="yourBubblesHeading">Your bubbles</h2>
+      <p class="hint" id="personal-hub-intro" data-immersion-key="personalHubIntro">
         A free space for anything that doesn't fit anywhere else — a to-do list, a random idea, whatever. Make as
         many bubbles as you want.
       </p>
-      <button type="button" id="add-personal-note-btn">+ Add bubble</button>
+      <button type="button" id="add-personal-note-btn" data-immersion-key="addBubbleButton">+ Add bubble</button>
       <div id="personal-note-form-wrap" hidden>
         <form id="personal-note-form" class="stacked-form">
           <label>
-            Title
-            <input type="text" id="personal-note-title" placeholder="e.g. To-do list" required />
+            <span data-immersion-key="titleLabel">Title</span>
+            <input type="text" id="personal-note-title" placeholder="e.g. To-do list" required data-immersion-key="personalNoteTitlePlaceholder" />
           </label>
           <label>
-            Notes
-            <textarea id="personal-note-content" rows="6" placeholder="Write anything here..."></textarea>
+            <span data-immersion-key="notesLabel">Notes</span>
+            <textarea id="personal-note-content" rows="6" placeholder="Write anything here..." data-immersion-key="writeAnythingPlaceholder"></textarea>
           </label>
           <div class="detection-actions">
-            <button type="submit">Save</button>
-            <button type="button" id="cancel-personal-note" class="secondary">Cancel</button>
+            <button type="submit" data-immersion-key="btnSave">Save</button>
+            <button type="button" id="cancel-personal-note" class="secondary" data-immersion-key="btnCancel">Cancel</button>
           </div>
         </form>
       </div>

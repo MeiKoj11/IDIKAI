@@ -15,10 +15,10 @@
     </button>
     <span id="topbar-lang-label" class="topbar-lang-label"></span>
     <div id="topbar-menu" class="topbar-menu" hidden>
-      <div class="topbar-menu-heading">Change language</div>
-      <button type="button" class="topbar-lang-option" data-lang="es">Spanish</button>
-      <button type="button" class="topbar-lang-option" data-lang="ja">Japanese</button>
-      <button type="button" class="topbar-lang-option" data-lang="fr">French</button>
+      <div class="topbar-menu-heading" data-immersion-key="changeLanguageHeading">Change language</div>
+      <button type="button" class="topbar-lang-option" data-lang="es" data-immersion-key="langNameEs">Spanish</button>
+      <button type="button" class="topbar-lang-option" data-lang="ja" data-immersion-key="langNameJa">Japanese</button>
+      <button type="button" class="topbar-lang-option" data-lang="fr" data-immersion-key="langNameFr">French</button>
     </div>
     <button type="button" id="topbar-notifications" class="topbar-notifications" aria-label="Notifications" aria-haspopup="true">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2"></rect><path d="M3 6.5l9 6.5 9-6.5"></path></svg>
@@ -34,25 +34,25 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"></path><path d="M5 10v10h14V10"></path></svg>
     </a>
     <div id="topbar-notifications-menu" class="topbar-menu topbar-notifications-menu" hidden>
-      <div class="topbar-menu-heading">Notifications</div>
-      <p class="topbar-notifications-empty">Coming soon — once a teacher connection exists, updates will show up here.</p>
+      <div class="topbar-menu-heading" data-immersion-key="notificationsHeading">Notifications</div>
+      <p class="topbar-notifications-empty" data-immersion-key="notificationsEmpty">Coming soon — once a teacher connection exists, updates will show up here.</p>
     </div>
     <div id="hub-todo-panel" class="hub-todo-panel" hidden>
       <div id="hub-todo-header" class="hub-todo-header">
-        <span class="hub-todo-title">To-do list</span>
+        <span class="hub-todo-title" data-immersion-key="todoTitle">To-do list</span>
         <button type="button" id="hub-todo-close" class="hub-todo-close" aria-label="Close">×</button>
       </div>
       <form id="hub-todo-add-form" class="hub-todo-add-form">
-        <input type="text" id="hub-todo-add-input" placeholder="Add a task…" autocomplete="off" />
+        <input type="text" id="hub-todo-add-input" placeholder="Add a task…" autocomplete="off" data-immersion-key="todoAddPlaceholder" />
         <select id="hub-todo-folder-select" class="hub-todo-folder-select" aria-label="Folder">
-          <option value="">No folder</option>
+          <option value="" data-immersion-key="todoNoFolder">No folder</option>
         </select>
-        <button type="submit">Add</button>
+        <button type="submit" data-immersion-key="todoAddButton">Add</button>
       </form>
       <div id="hub-todo-groups" class="hub-todo-groups"></div>
       <label class="hub-todo-show-completed">
         <input type="checkbox" id="hub-todo-show-completed" />
-        Show completed
+        <span data-immersion-key="todoShowCompleted">Show completed</span>
       </label>
     </div>
   </div>
@@ -62,44 +62,44 @@
       <button type="button" id="app-tab-plus" class="tab-bar-plus-btn" title="Open another section in a new tab">+</button>
       <div id="app-tab-picker-panel" class="app-tab-picker-panel" hidden>
         <select id="app-tab-section-select">
-          <option value="" disabled selected>Which section?</option>
-          <option value="vocab">Vocab Bank</option>
-          <option value="grammar">Grammar</option>
-          <option value="writing">Writing</option>
-          <option value="speaking">Speaking</option>
-          <option value="reading">Reading</option>
-          <option value="personal-hub">Personal Hub</option>
-          <option value="listening">Listening</option>
+          <option value="" disabled selected data-immersion-key="tabPickerSectionPlaceholder">Which section?</option>
+          <option value="vocab" data-immersion-key="sectionVocab">Vocab Bank</option>
+          <option value="grammar" data-immersion-key="sectionGrammar">Grammar</option>
+          <option value="writing" data-immersion-key="sectionWriting">Writing</option>
+          <option value="speaking" data-immersion-key="sectionSpeaking">Speaking</option>
+          <option value="reading" data-immersion-key="sectionReading">Reading</option>
+          <option value="personal-hub" data-immersion-key="sectionPersonalHub">Personal Hub</option>
+          <option value="listening" data-immersion-key="sectionListening">Listening</option>
         </select>
         <select id="app-tab-unit-select" hidden>
-          <option value="" disabled selected>Which one?</option>
+          <option value="" disabled selected data-immersion-key="tabPickerUnitPlaceholder">Which one?</option>
         </select>
-        <button type="button" id="app-tab-open-btn" class="secondary" hidden>Open</button>
-        <button type="button" id="app-tab-picker-cancel" class="secondary">Cancel</button>
+        <button type="button" id="app-tab-open-btn" class="secondary" hidden data-immersion-key="tabPickerOpen">Open</button>
+        <button type="button" id="app-tab-picker-cancel" class="secondary" data-immersion-key="tabPickerCancel">Cancel</button>
       </div>
     </div>
   </div>
   <header class="app-header" id="grammar-theme-header">
-    <a href="grammar.html" class="back-link" id="grammar-theme-back-link">&larr; Back to Grammar</a>
+    <a href="grammar.html" class="back-link" id="grammar-theme-back-link" data-immersion-key="backToGrammar">&larr; Back to Grammar</a>
     <h1 id="grammar-theme-heading">Folder</h1>
   </header>
   <main>
     <section class="panel grammar-notes-section">
       <a id="add-note-link" href="grammar-add-note.html" class="bubble">
-        <span class="bubble-title">+ Add note</span>
-        <span class="bubble-sub">Write down a sentence structure you noticed</span>
+        <span class="bubble-title" data-immersion-key="addNoteTitle">+ Add note</span>
+        <span class="bubble-sub" data-immersion-key="addNoteSub">Write down a sentence structure you noticed</span>
       </a>
 
       <!-- Only shown in Spanish's "Tenses and verb conjugations" folder. -->
       <a id="spanish-tenses-link" href="spanish-tenses.html" class="bubble" hidden>
-        <span class="bubble-title">All Spanish tenses</span>
-        <span class="bubble-sub">Full tense overview + a mixed-tense test mode</span>
+        <span class="bubble-title" data-immersion-key="allSpanishTensesTitle">All Spanish tenses</span>
+        <span class="bubble-sub" data-immersion-key="tensesOverviewSub">Full tense overview + a mixed-tense test mode</span>
       </a>
 
       <!-- Only shown in French's "Tenses and verb conjugations" folder. -->
       <a id="french-tenses-link" href="french-tenses.html" class="bubble" hidden>
-        <span class="bubble-title">All French tenses</span>
-        <span class="bubble-sub">Full tense overview + a mixed-tense test mode</span>
+        <span class="bubble-title" data-immersion-key="allFrenchTensesTitle">All French tenses</span>
+        <span class="bubble-sub" data-immersion-key="tensesOverviewSub">Full tense overview + a mixed-tense test mode</span>
       </a>
 
       <!-- Only shown for folders tagged with a recognized, practice-able
@@ -108,18 +108,18 @@
            auto-generate practice from. -->
       <div id="grammar-practice-cta" class="grammar-practice-cta" hidden>
         <div class="grammar-practice-cta-text">
-          <p class="grammar-practice-cta-title">Practice this grammar point</p>
+          <p class="grammar-practice-cta-title" data-immersion-key="practiceThisPointTitle">Practice this grammar point</p>
           <p class="hint" id="grammar-practice-cta-hint"></p>
         </div>
-        <button type="button" id="grammar-practice-start-btn" class="secondary">Practice</button>
+        <button type="button" id="grammar-practice-start-btn" class="secondary" data-immersion-key="practiceButton">Practice</button>
       </div>
 
       <div id="grammar-practice-panel" class="grammar-practice-panel" hidden>
         <div class="grammar-practice-header">
           <span id="grammar-practice-score" class="hint"></span>
-          <button type="button" id="grammar-practice-close-btn" class="secondary">Close practice</button>
+          <button type="button" id="grammar-practice-close-btn" class="secondary" data-immersion-key="closePracticeButton">Close practice</button>
         </div>
-        <div id="grammar-practice-loading" class="hint" hidden>Generating practice pairs…</div>
+        <div id="grammar-practice-loading" class="hint" hidden data-immersion-key="generatingPracticePairs">Generating practice pairs…</div>
         <div id="grammar-practice-card" class="grammar-practice-card" hidden>
           <p id="grammar-practice-prompt-label" class="grammar-practice-prompt-label"></p>
           <p id="grammar-practice-given" class="grammar-practice-given"></p>
@@ -131,8 +131,8 @@
           </label>
           <div id="grammar-practice-feedback" class="grammar-practice-feedback" hidden></div>
           <div class="detection-actions">
-            <button type="button" id="grammar-practice-check-btn">Check</button>
-            <button type="button" id="grammar-practice-next-btn" hidden>Next</button>
+            <button type="button" id="grammar-practice-check-btn" data-immersion-key="checkButton">Check</button>
+            <button type="button" id="grammar-practice-next-btn" hidden data-immersion-key="nextButton">Next</button>
           </div>
         </div>
       </div>

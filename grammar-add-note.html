@@ -15,10 +15,10 @@
     </button>
     <span id="topbar-lang-label" class="topbar-lang-label"></span>
     <div id="topbar-menu" class="topbar-menu" hidden>
-      <div class="topbar-menu-heading">Change language</div>
-      <button type="button" class="topbar-lang-option" data-lang="es">Spanish</button>
-      <button type="button" class="topbar-lang-option" data-lang="ja">Japanese</button>
-      <button type="button" class="topbar-lang-option" data-lang="fr">French</button>
+      <div class="topbar-menu-heading" data-immersion-key="changeLanguageHeading">Change language</div>
+      <button type="button" class="topbar-lang-option" data-lang="es" data-immersion-key="langNameEs">Spanish</button>
+      <button type="button" class="topbar-lang-option" data-lang="ja" data-immersion-key="langNameJa">Japanese</button>
+      <button type="button" class="topbar-lang-option" data-lang="fr" data-immersion-key="langNameFr">French</button>
     </div>
     <button type="button" id="topbar-notifications" class="topbar-notifications" aria-label="Notifications" aria-haspopup="true">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2"></rect><path d="M3 6.5l9 6.5 9-6.5"></path></svg>
@@ -34,25 +34,25 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"></path><path d="M5 10v10h14V10"></path></svg>
     </a>
     <div id="topbar-notifications-menu" class="topbar-menu topbar-notifications-menu" hidden>
-      <div class="topbar-menu-heading">Notifications</div>
-      <p class="topbar-notifications-empty">Coming soon — once a teacher connection exists, updates will show up here.</p>
+      <div class="topbar-menu-heading" data-immersion-key="notificationsHeading">Notifications</div>
+      <p class="topbar-notifications-empty" data-immersion-key="notificationsEmpty">Coming soon — once a teacher connection exists, updates will show up here.</p>
     </div>
     <div id="hub-todo-panel" class="hub-todo-panel" hidden>
       <div id="hub-todo-header" class="hub-todo-header">
-        <span class="hub-todo-title">To-do list</span>
+        <span class="hub-todo-title" data-immersion-key="todoTitle">To-do list</span>
         <button type="button" id="hub-todo-close" class="hub-todo-close" aria-label="Close">×</button>
       </div>
       <form id="hub-todo-add-form" class="hub-todo-add-form">
-        <input type="text" id="hub-todo-add-input" placeholder="Add a task…" autocomplete="off" />
+        <input type="text" id="hub-todo-add-input" placeholder="Add a task…" autocomplete="off" data-immersion-key="todoAddPlaceholder" />
         <select id="hub-todo-folder-select" class="hub-todo-folder-select" aria-label="Folder">
-          <option value="">No folder</option>
+          <option value="" data-immersion-key="todoNoFolder">No folder</option>
         </select>
-        <button type="submit">Add</button>
+        <button type="submit" data-immersion-key="todoAddButton">Add</button>
       </form>
       <div id="hub-todo-groups" class="hub-todo-groups"></div>
       <label class="hub-todo-show-completed">
         <input type="checkbox" id="hub-todo-show-completed" />
-        Show completed
+        <span data-immersion-key="todoShowCompleted">Show completed</span>
       </label>
     </div>
   </div>
@@ -62,26 +62,26 @@
       <button type="button" id="app-tab-plus" class="tab-bar-plus-btn" title="Open another section in a new tab">+</button>
       <div id="app-tab-picker-panel" class="app-tab-picker-panel" hidden>
         <select id="app-tab-section-select">
-          <option value="" disabled selected>Which section?</option>
-          <option value="vocab">Vocab Bank</option>
-          <option value="grammar">Grammar</option>
-          <option value="writing">Writing</option>
-          <option value="speaking">Speaking</option>
-          <option value="reading">Reading</option>
-          <option value="personal-hub">Personal Hub</option>
-          <option value="listening">Listening</option>
+          <option value="" disabled selected data-immersion-key="tabPickerSectionPlaceholder">Which section?</option>
+          <option value="vocab" data-immersion-key="sectionVocab">Vocab Bank</option>
+          <option value="grammar" data-immersion-key="sectionGrammar">Grammar</option>
+          <option value="writing" data-immersion-key="sectionWriting">Writing</option>
+          <option value="speaking" data-immersion-key="sectionSpeaking">Speaking</option>
+          <option value="reading" data-immersion-key="sectionReading">Reading</option>
+          <option value="personal-hub" data-immersion-key="sectionPersonalHub">Personal Hub</option>
+          <option value="listening" data-immersion-key="sectionListening">Listening</option>
         </select>
         <select id="app-tab-unit-select" hidden>
-          <option value="" disabled selected>Which one?</option>
+          <option value="" disabled selected data-immersion-key="tabPickerUnitPlaceholder">Which one?</option>
         </select>
-        <button type="button" id="app-tab-open-btn" class="secondary" hidden>Open</button>
-        <button type="button" id="app-tab-picker-cancel" class="secondary">Cancel</button>
+        <button type="button" id="app-tab-open-btn" class="secondary" hidden data-immersion-key="tabPickerOpen">Open</button>
+        <button type="button" id="app-tab-picker-cancel" class="secondary" data-immersion-key="tabPickerCancel">Cancel</button>
       </div>
     </div>
   </div>
   <header class="app-header" id="grammar-note-header">
-    <a href="grammar.html" class="back-link" id="grammar-note-back-link">&larr; Back to Grammar</a>
-    <h1 id="grammar-note-heading">New grammar note</h1>
+    <a href="grammar.html" class="back-link" id="grammar-note-back-link" data-immersion-key="backToGrammar">&larr; Back to Grammar</a>
+    <h1 id="grammar-note-heading" data-immersion-key="newGrammarNoteHeading">New grammar note</h1>
   </header>
   <main>
     <section class="panel">
@@ -94,13 +94,13 @@
         <div id="legacy-note-fields" hidden>
           <label>
             <span id="note-sentence-label">Spanish sentence or phrase</span>
-            <textarea id="note-sentence" rows="2" placeholder="Paste or type a sentence or phrase..."></textarea>
+            <textarea id="note-sentence" rows="2" placeholder="Paste or type a sentence or phrase..." data-immersion-key="pasteOrTypeSentencePlaceholder"></textarea>
           </label>
-          <button type="button" id="fetch-translation-btn" class="secondary">Look up translation</button>
+          <button type="button" id="fetch-translation-btn" class="secondary" data-immersion-key="lookUpTranslationButton">Look up translation</button>
           <p id="note-translation-display" class="hint" hidden></p>
 
           <details id="note-hint-details" hidden>
-            <summary>Get an AI hint</summary>
+            <summary data-immersion-key="getAiHintSummary">Get an AI hint</summary>
             <p id="note-structure-text" class="grammar-structure"></p>
             <p id="note-hint-text" class="hint"></p>
           </details>
@@ -111,7 +111,7 @@
           <p id="note-explanation-display" class="hint grammar-note-explanation" hidden></p>
 
           <label>
-            Sentence structure / notes
+            <span data-immersion-key="sentenceStructureNotesLabel">Sentence structure / notes</span>
             <textarea id="note-notes" rows="4"></textarea>
           </label>
         </div>
@@ -121,43 +121,43 @@
              and optional related variants nested underneath. -->
         <div id="structure-card-fields" hidden>
           <label>
-            Name this pattern
-            <input type="text" id="card-header" placeholder="e.g. Intention" />
+            <span data-immersion-key="nameThisPatternLabel">Name this pattern</span>
+            <input type="text" id="card-header" placeholder="e.g. Intention" data-immersion-key="nameThisPatternPlaceholder" />
           </label>
           <label>
-            Explain it in your own words
-            <textarea id="card-explanation" rows="3" placeholder="What is this pattern, and when do you use it?"></textarea>
+            <span data-immersion-key="explainOwnWordsLabel">Explain it in your own words</span>
+            <textarea id="card-explanation" rows="3" placeholder="What is this pattern, and when do you use it?" data-immersion-key="explainOwnWordsPlaceholder"></textarea>
           </label>
 
-          <button type="button" id="card-classify-btn" class="secondary">Identify this pattern</button>
+          <button type="button" id="card-classify-btn" class="secondary" data-immersion-key="identifyPatternButton">Identify this pattern</button>
           <div id="card-classify-status" class="card-classify-status" hidden></div>
 
           <div class="card-block">
-            <h3 class="card-block-heading">Examples</h3>
+            <h3 class="card-block-heading" data-immersion-key="examplesHeading">Examples</h3>
             <div id="card-examples-list" class="card-examples-list"></div>
-            <button type="button" id="card-add-example-btn" class="secondary">+ Add example</button>
+            <button type="button" id="card-add-example-btn" class="secondary" data-immersion-key="addExampleButton">+ Add example</button>
           </div>
 
           <div class="card-block">
-            <h3 class="card-block-heading">Related variants</h3>
-            <p class="hint">A related form of the same pattern (e.g. the same structure said about someone else) — nested here instead of its own folder entry.</p>
+            <h3 class="card-block-heading" data-immersion-key="relatedVariantsHeading">Related variants</h3>
+            <p class="hint" data-immersion-key="relatedVariantsHint">A related form of the same pattern (e.g. the same structure said about someone else) — nested here instead of its own folder entry.</p>
             <div id="card-variants-list" class="card-variants-list"></div>
-            <button type="button" id="card-add-variant-btn" class="secondary">+ Add related variant</button>
+            <button type="button" id="card-add-variant-btn" class="secondary" data-immersion-key="addRelatedVariantButton">+ Add related variant</button>
           </div>
         </div>
 
         <label>
-          Tags
-          <input type="text" id="note-tags" placeholder="e.g. reflexive idiom, pluperfect (comma-separated)" />
+          <span data-immersion-key="tagsLabel">Tags</span>
+          <input type="text" id="note-tags" placeholder="e.g. reflexive idiom, pluperfect (comma-separated)" data-immersion-key="tagsPlaceholder" />
         </label>
         <label>
-          Folder
+          <span data-immersion-key="folderLabel">Folder</span>
           <div class="select-with-button">
             <select id="note-theme-select"></select>
-            <button type="button" id="note-new-folder-btn" class="secondary">+ New</button>
+            <button type="button" id="note-new-folder-btn" class="secondary" data-immersion-key="newButtonPlus">+ New</button>
           </div>
         </label>
-        <button type="submit" id="note-submit-btn">Save note</button>
+        <button type="submit" id="note-submit-btn" data-immersion-key="saveNoteButton">Save note</button>
       </form>
     </section>
   </main>

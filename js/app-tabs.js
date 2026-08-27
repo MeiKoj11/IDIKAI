@@ -347,10 +347,11 @@ function resetAppTabPicker() {
   if (plusBtn) plusBtn.hidden = false;
 }
 
-function appTabAddUnitOption(select, href, label) {
+function appTabAddUnitOption(select, href, label, immersionKey) {
   const opt = document.createElement("option");
   opt.value = href;
   opt.textContent = label;
+  if (immersionKey) opt.dataset.immersionKey = immersionKey;
   select.appendChild(opt);
 }
 
@@ -363,6 +364,7 @@ function populateAppTabUnitSelect(section, unitSelect) {
   placeholder.disabled = true;
   placeholder.selected = true;
   placeholder.textContent = "Which one?";
+  placeholder.dataset.immersionKey = "whichOneLabel";
   unitSelect.appendChild(placeholder);
 
   // Every section always offers a way to create something new and open
@@ -372,21 +374,21 @@ function populateAppTabUnitSelect(section, unitSelect) {
     Storage.getThemes()
       .filter((t) => t.language === lang)
       .forEach((t) => appTabAddUnitOption(unitSelect, `add-vocab.html?id=${encodeURIComponent(t.id)}`, t.name));
-    appTabAddUnitOption(unitSelect, "__new_vocab__", "+ New theme…");
+    appTabAddUnitOption(unitSelect, "__new_vocab__", "+ New theme…", "newThemeOption");
   } else if (section === "grammar") {
     Storage.getGrammarThemes(lang).forEach((t) =>
       appTabAddUnitOption(unitSelect, `grammar-theme.html?id=${encodeURIComponent(t.id)}`, t.name)
     );
-    appTabAddUnitOption(unitSelect, "__new_grammar__", "+ New folder…");
+    appTabAddUnitOption(unitSelect, "__new_grammar__", "+ New folder…", "newFolderOption");
   } else if (section === "writing") {
     appTabAddUnitOption(unitSelect, `writing.html?lang=${lang}`, `${langName} Writing (list)`);
-    appTabAddUnitOption(unitSelect, `writing-entry.html?lang=${lang}`, "+ New entry");
+    appTabAddUnitOption(unitSelect, `writing-entry.html?lang=${lang}`, "+ New entry", "newEntryOption");
     Storage.getWritingEntries(lang).forEach((e) =>
       appTabAddUnitOption(unitSelect, `writing-entry.html?id=${encodeURIComponent(e.id)}`, e.title || "Untitled entry")
     );
   } else if (section === "speaking") {
     appTabAddUnitOption(unitSelect, `speaking.html?lang=${lang}`, `${langName} Speaking (list)`);
-    appTabAddUnitOption(unitSelect, `speaking-entry.html?lang=${lang}`, "+ New entry");
+    appTabAddUnitOption(unitSelect, `speaking-entry.html?lang=${lang}`, "+ New entry", "newEntryOption");
     Storage.getSpeakingEntries(lang).forEach((e) =>
       appTabAddUnitOption(unitSelect, `speaking-entry.html?id=${encodeURIComponent(e.id)}`, e.title || "Untitled entry")
     );

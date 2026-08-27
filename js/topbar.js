@@ -91,6 +91,7 @@ function addTopbarLogoutOption(menu) {
   logoutBtn.type = "button";
   logoutBtn.className = "topbar-lang-option topbar-logout-option";
   logoutBtn.textContent = "Log out";
+  logoutBtn.dataset.immersionKey = "logOut";
   logoutBtn.addEventListener("click", () => Storage.logout());
   menu.appendChild(logoutBtn);
 }

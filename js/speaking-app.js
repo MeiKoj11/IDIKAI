@@ -249,6 +249,7 @@ function handleEntryDetailsSubmit(e) {
   if (status) {
     status.hidden = false;
     status.textContent = "Saved.";
+    status.dataset.immersionKey = "savedStatus";
     clearTimeout(status.__hideTimer);
     status.__hideTimer = setTimeout(() => {
       status.hidden = true;
@@ -304,6 +305,7 @@ async function handleRecordButtonClick() {
     if (btn) {
       btn.textContent = "Stop";
       btn.classList.add("recording");
+      btn.dataset.immersionKey = "stopRecordingButton";
     }
     showRecordingStatus("");
   } catch (err) {
@@ -343,6 +345,7 @@ async function handleRecordingStopped() {
   if (btn) {
     btn.textContent = "Record";
     btn.classList.remove("recording");
+    btn.dataset.immersionKey = "recordButton";
   }
 
   const mimeType = mediaRecorder && mediaRecorder.mimeType ? mediaRecorder.mimeType : "audio/webm";

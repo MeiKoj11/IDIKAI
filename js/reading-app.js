@@ -107,7 +107,9 @@ document.addEventListener("DOMContentLoaded", () => {
       renderSideNotesList();
       updateGrammarNoteCount();
     } else {
-      document.getElementById("passage-text-display").textContent = "Passage not found.";
+      const notFoundEl = document.getElementById("passage-text-display");
+      notFoundEl.textContent = "Passage not found.";
+      notFoundEl.dataset.immersionKey = "passageNotFoundText";
     }
   }
 
@@ -223,12 +225,19 @@ function renderPassageList() {
   if (passages.length === 0) {
     const li = document.createElement("li");
     li.className = "empty-hint";
-    li.textContent =
-      activeFolderFilter && activeFolderFilter !== READING_FILTER_ALL_VALUE
-        ? "No passages in this folder yet."
-        : activeReadingLang
-        ? `No ${READING_LANGUAGE_NAMES[activeReadingLang]} passages yet — paste some text below to get started.`
-        : "No passages yet — paste some text below to get started.";
+    if (activeFolderFilter && activeFolderFilter !== READING_FILTER_ALL_VALUE) {
+      li.textContent = "No passages in this folder yet.";
+      li.dataset.immersionKey = "noPassagesInFolderYetText";
+    } else if (activeReadingLang) {
+      // Mixes a static hint with the language name — too many interpolated
+      // combinations to give a fixed translation key, so this one variant
+      // is left in English by design (matches the pattern used for other
+      // dynamic/interpolated messages across the app).
+      li.textContent = `No ${READING_LANGUAGE_NAMES[activeReadingLang]} passages yet — paste some text below to get started.`;
+    } else {
+      li.textContent = "No passages yet — paste some text below to get started.";
+      li.dataset.immersionKey = "noPassagesYetText";
+    }
     list.appendChild(li);
     return;
   }
@@ -279,11 +288,13 @@ function renderPassageFolderFilter() {
   const allOpt = document.createElement("option");
   allOpt.value = READING_FILTER_ALL_VALUE;
   allOpt.textContent = "All folders";
+  allOpt.dataset.immersionKey = "allFoldersOption";
   select.appendChild(allOpt);
 
   const noneOpt = document.createElement("option");
   noneOpt.value = READING_FILTER_NO_FOLDER_VALUE;
   noneOpt.textContent = "No folder (random passages)";
+  noneOpt.dataset.immersionKey = "noFolderRandomPassagesOption";
   select.appendChild(noneOpt);
 
   const folders = Storage.getReadingFolders(activeReadingLang || undefined);
@@ -314,6 +325,7 @@ function renderPassageFolderSelect(selectedId) {
   const noneOpt = document.createElement("option");
   noneOpt.value = READING_NO_FOLDER_VALUE;
   noneOpt.textContent = "No folder (random passage)";
+  noneOpt.dataset.immersionKey = "noFolderRandomPassageOption";
   select.appendChild(noneOpt);
 
   const folders = Storage.getReadingFolders(activeReadingLang || undefined);
@@ -327,6 +339,7 @@ function renderPassageFolderSelect(selectedId) {
   const newOpt = document.createElement("option");
   newOpt.value = READING_NEW_FOLDER_VALUE;
   newOpt.textContent = "+ New folder…";
+  newOpt.dataset.immersionKey = "newFolderOption";
   select.appendChild(newOpt);
 
   select.value = selectedId || READING_NO_FOLDER_VALUE;
@@ -698,7 +711,9 @@ async function handleWordClick(span, word) {
   const panel = document.getElementById("lookup-panel");
   panel.hidden = false;
   document.getElementById("lookup-word").textContent = word;
-  document.getElementById("lookup-result").textContent = "Looking up…";
+  const lookupResultEl = document.getElementById("lookup-result");
+  lookupResultEl.textContent = "Looking up…";
+  lookupResultEl.dataset.immersionKey = "lookingUpStatus";
   document.getElementById("lookup-grammar").textContent = "";
   document.getElementById("add-looked-up-word").hidden = true;
 
@@ -708,12 +723,18 @@ async function handleWordClick(span, word) {
   const wordClickLang = (currentPassage && currentPassage.language) || "es";
   const result = await Translate.lookupTranslation(word, wordClickLang, "en");
   if (!result || !result.translation) {
-    document.getElementById("lookup-result").textContent =
-      "No translation found — you can still add it manually from Vocab Bank.";
+    const noResultEl = document.getElementById("lookup-result");
+    noResultEl.textContent = "No translation found — you can still add it manually from Vocab Bank.";
+    noResultEl.dataset.immersionKey = "noTranslationFoundHint";
     return;
   }
 
-  document.getElementById("lookup-result").textContent = result.translation;
+  // This is the actual looked-up translation (dynamic, user-facing data,
+  // not app UI chrome) — must NOT carry over the "lookingUpStatus" key
+  // from above, or immersion mode would incorrectly overwrite it.
+  const finalResultEl = document.getElementById("lookup-result");
+  delete finalResultEl.dataset.immersionKey;
+  finalResultEl.textContent = result.translation;
   document.getElementById("add-looked-up-word").dataset.english = result.translation;
   document.getElementById("add-looked-up-word").hidden = false;
 
@@ -759,6 +780,9 @@ function findExistingJapaneseWord(word) {
 function displayKanjiResult(kanji, result) {
   const charMeaningEl = document.getElementById("kanji-char-meaning");
   const meaningEl = document.getElementById("kanji-meaning");
+  // Always dynamic, looked-up content from here on — clear any leftover
+  // "lookingUpStatus" key so immersion mode doesn't mistranslate it.
+  delete meaningEl.dataset.immersionKey;
   document.getElementById("kanji-furigana").textContent = result.furigana || "";
 
   const isSingleChar = Array.from(kanji).length === 1;
@@ -791,7 +815,9 @@ async function runKanjiLookup(kanji, context) {
   document.getElementById("kanji-char").textContent = kanji;
   document.getElementById("kanji-furigana").textContent = "";
   document.getElementById("kanji-char-meaning").hidden = true;
-  document.getElementById("kanji-meaning").textContent = "Looking up…";
+  const kanjiMeaningEl = document.getElementById("kanji-meaning");
+  kanjiMeaningEl.textContent = "Looking up…";
+  kanjiMeaningEl.dataset.immersionKey = "lookingUpStatus";
   const notice = document.getElementById("kanji-deck-notice");
   notice.hidden = true;
   document.getElementById("add-kanji-to-vocab").hidden = true;
@@ -805,8 +831,9 @@ async function runKanjiLookup(kanji, context) {
     // error, empty result, etc) instead of always blaming the server —
     // the server can easily be running fine and this endpoint still
     // failed for its own reason.
-    document.getElementById("kanji-meaning").textContent =
-      (result && result.error) || "No lookup found — check the server is running.";
+    const failedMeaningEl = document.getElementById("kanji-meaning");
+    delete failedMeaningEl.dataset.immersionKey;
+    failedMeaningEl.textContent = (result && result.error) || "No lookup found — check the server is running.";
     return;
   }
 
@@ -831,9 +858,12 @@ async function runKanjiLookup(kanji, context) {
     // so the learner has to try recalling it first.
     notice.hidden = false;
     notice.textContent = "You should know this kanji — it's in your deck! Try to recall it before revealing.";
+    notice.dataset.immersionKey = "kanjiInDeckNotice";
     showBtn.hidden = false;
     addBtn.hidden = true;
-    document.getElementById("kanji-meaning").textContent = "";
+    const clearedMeaningEl = document.getElementById("kanji-meaning");
+    delete clearedMeaningEl.dataset.immersionKey;
+    clearedMeaningEl.textContent = "";
     revealBtn.hidden = false;
     revealBtn.dataset.kanji = kanji;
     revealBtn.dataset.word = result.word;
@@ -958,7 +988,9 @@ async function showGrammarPanel(phrase) {
   panel.hidden = false;
 
   document.getElementById("grammar-phrase").textContent = phrase;
-  document.getElementById("grammar-translation").textContent = "Looking up…";
+  const grammarTranslationEl = document.getElementById("grammar-translation");
+  grammarTranslationEl.textContent = "Looking up…";
+  grammarTranslationEl.dataset.immersionKey = "lookingUpStatus";
   document.getElementById("grammar-structure-text").textContent = "";
   document.getElementById("grammar-hint-text").textContent = "";
   document.getElementById("save-grammar-note").hidden = true;
@@ -970,13 +1002,16 @@ async function showGrammarPanel(phrase) {
   saveBtn.dataset.phrase = phrase;
 
   if (!result || !result.translation) {
-    document.getElementById("grammar-translation").textContent =
-      "Couldn't look this up automatically — you can still save it and write your own notes.";
+    const failedTranslationEl = document.getElementById("grammar-translation");
+    failedTranslationEl.textContent = "Couldn't look this up automatically — you can still save it and write your own notes.";
+    failedTranslationEl.dataset.immersionKey = "grammarLookupFailedHint";
     saveBtn.dataset.translation = "";
     saveBtn.dataset.structure = "";
     saveBtn.dataset.explanation = "";
   } else {
-    document.getElementById("grammar-translation").textContent = result.translation;
+    const successTranslationEl = document.getElementById("grammar-translation");
+    delete successTranslationEl.dataset.immersionKey;
+    successTranslationEl.textContent = result.translation;
     document.getElementById("grammar-structure-text").textContent = result.structure || "";
     document.getElementById("grammar-hint-text").textContent = result.explanation || "";
     saveBtn.dataset.translation = result.translation;
@@ -1096,6 +1131,7 @@ function renderSideThemeOptions(selectId) {
   const newOpt = document.createElement("option");
   newOpt.value = GRAMMAR_NEW_THEME_VALUE;
   newOpt.textContent = "+ New folder…";
+  newOpt.dataset.immersionKey = "newFolderOption";
   select.appendChild(newOpt);
 
   if (selectId) {
@@ -1184,7 +1220,9 @@ function showVocabExisting(match) {
   if (!existing) return;
   existing.hidden = false;
 
-  document.getElementById("vocab-deck-notice-detail").textContent = "You should know this kanji — it's in your deck!";
+  const vocabDeckNoticeEl = document.getElementById("vocab-deck-notice-detail");
+  vocabDeckNoticeEl.textContent = "You should know this kanji — it's in your deck!";
+  vocabDeckNoticeEl.dataset.immersionKey = "kanjiInDeckNoticeShort";
   document.getElementById("vocab-existing-word").textContent = match.word.targetLang;
   document.getElementById("vocab-existing-furigana").textContent = match.word.furigana || "";
   document.getElementById("vocab-existing-meaning").textContent = match.word.english;
@@ -1222,6 +1260,7 @@ function renderVocabAddThemeOptions(selectId) {
   const newOpt = document.createElement("option");
   newOpt.value = NEW_THEME_VALUE;
   newOpt.textContent = "+ Create new theme…";
+  newOpt.dataset.immersionKey = "createNewThemeOption";
   select.appendChild(newOpt);
 
   if (selectId) {
@@ -1309,6 +1348,7 @@ function renderSideNotesList() {
     const li = document.createElement("li");
     li.className = "empty-hint";
     li.textContent = "No notes saved from this passage yet.";
+    li.dataset.immersionKey = "noNotesSavedFromPassageText";
     list.appendChild(li);
     return;
   }
@@ -1350,6 +1390,7 @@ function buildSideNoteCard(note) {
   deleteBtn.type = "button";
   deleteBtn.className = "secondary delete-note-btn";
   deleteBtn.textContent = "Delete";
+  deleteBtn.dataset.immersionKey = "btnDelete";
   deleteBtn.addEventListener("click", () => {
     if (!confirm("Delete this note? This can't be undone.")) return;
     Storage.deleteGrammarNote(note.id);
@@ -1415,6 +1456,7 @@ function renderThemeOptions(selectId) {
   const newOpt = document.createElement("option");
   newOpt.value = NEW_THEME_VALUE;
   newOpt.textContent = "+ Create new theme…";
+  newOpt.dataset.immersionKey = "createNewThemeOption";
   select.appendChild(newOpt);
 
   if (selectId) {

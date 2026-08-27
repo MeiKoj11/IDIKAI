@@ -247,6 +247,7 @@ function renderFolderSelectOptions(selectEl, selectedId) {
   const noneOpt = document.createElement("option");
   noneOpt.value = "";
   noneOpt.textContent = "No folder";
+  noneOpt.dataset.immersionKey = "todoNoFolder";
   selectEl.appendChild(noneOpt);
 
   folders.forEach((folder) => {
@@ -259,6 +260,7 @@ function renderFolderSelectOptions(selectEl, selectedId) {
   const newOpt = document.createElement("option");
   newOpt.value = "__new__";
   newOpt.textContent = "+ New folder…";
+  newOpt.dataset.immersionKey = "newFolderOption";
   selectEl.appendChild(newOpt);
 
   selectEl.value = selectedId || "";
@@ -296,6 +298,7 @@ function renderHubTasks() {
     const empty = document.createElement("p");
     empty.className = "empty-hint";
     empty.textContent = "No tasks yet — add one above.";
+    empty.dataset.immersionKey = "noTasksYetText";
     groups.appendChild(empty);
     return;
   }
@@ -322,6 +325,7 @@ function renderHubTasks() {
     const empty = document.createElement("p");
     empty.className = "empty-hint";
     empty.textContent = "Nothing to show — completed tasks are hidden.";
+    empty.dataset.immersionKey = "nothingToShowCompletedHiddenText";
     groups.appendChild(empty);
   }
 }
@@ -359,7 +363,8 @@ function buildHubTaskGroup(folderLabel, folderId, tasks) {
   // 5 spans to match the row grid's 5 columns (title, started, done,
   // folder, delete) — a mismatched count here throws the header labels
   // out of alignment with the checkboxes underneath them.
-  columnsLabel.innerHTML = "<span></span><span>Started</span><span>Done</span><span></span><span></span>";
+  columnsLabel.innerHTML =
+    '<span></span><span data-immersion-key="startedColumnLabel">Started</span><span data-immersion-key="doneColumnLabel">Done</span><span></span><span></span>';
   wrapper.appendChild(columnsLabel);
 
   const list = document.createElement("ul");

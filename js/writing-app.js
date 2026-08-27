@@ -691,12 +691,18 @@ function wireHelperNoteAutosave(input, field, statusId, lang) {
 
   const commit = () => {
     Storage.updateHubNotesText(lang, { [field]: input.value });
-    if (statusEl) statusEl.textContent = "Saved";
+    if (statusEl) {
+      statusEl.textContent = "Saved";
+      statusEl.dataset.immersionKey = "autosaveSavedStatus";
+    }
     timer = null;
   };
 
   input.addEventListener("input", () => {
-    if (statusEl) statusEl.textContent = "Unsaved changes…";
+    if (statusEl) {
+      statusEl.textContent = "Unsaved changes…";
+      statusEl.dataset.immersionKey = "unsavedChangesStatus";
+    }
     if (timer) clearTimeout(timer);
     timer = setTimeout(commit, AUTOSAVE_DELAY_MS);
   });
@@ -856,6 +862,7 @@ function renderHelperWordsPanel(lang) {
       addBtn.type = "button";
       addBtn.className = "secondary add-to-vocab-btn";
       addBtn.textContent = "Add to Vocab";
+      addBtn.dataset.immersionKey = "addToVocabButton";
       addBtn.dataset.wordId = w.id;
       actions.appendChild(addBtn);
     }
@@ -865,6 +872,7 @@ function renderHelperWordsPanel(lang) {
       addNoteBtn.type = "button";
       addNoteBtn.className = "secondary add-helper-note-btn";
       addNoteBtn.textContent = "+ Note";
+      addNoteBtn.dataset.immersionKey = "addNotePlusButton";
       addNoteBtn.dataset.wordId = w.id;
       actions.appendChild(addNoteBtn);
     }
@@ -873,6 +881,7 @@ function renderHelperWordsPanel(lang) {
     deleteBtn.type = "button";
     deleteBtn.className = "secondary delete-helper-word-btn";
     deleteBtn.textContent = "Delete";
+    deleteBtn.dataset.immersionKey = "btnDelete";
     deleteBtn.dataset.wordId = w.id;
     actions.appendChild(deleteBtn);
 
@@ -896,6 +905,7 @@ function renderHelperWordsPanel(lang) {
       editNoteBtn.type = "button";
       editNoteBtn.className = "secondary edit-helper-note-btn";
       editNoteBtn.textContent = "Edit note";
+      editNoteBtn.dataset.immersionKey = "editNoteButton";
       editNoteBtn.dataset.wordId = w.id;
       noteBlock.appendChild(editNoteBtn);
 
@@ -941,6 +951,7 @@ function buildHelperNoteEditor(helperWord) {
   const saveBtn = document.createElement("button");
   saveBtn.type = "button";
   saveBtn.textContent = "Save note";
+  saveBtn.dataset.immersionKey = "saveNoteButton";
   saveBtn.addEventListener("click", () => {
     Storage.updateHelperWordNotes(helperWord.id, textarea.value.trim());
     editingHelperNoteWordId = null;
@@ -952,6 +963,7 @@ function buildHelperNoteEditor(helperWord) {
   cancelBtn.type = "button";
   cancelBtn.className = "secondary";
   cancelBtn.textContent = "Cancel";
+  cancelBtn.dataset.immersionKey = "btnCancel";
   cancelBtn.addEventListener("click", () => {
     editingHelperNoteWordId = null;
     renderHelperWordsPanel(activeEntryLang);
@@ -1009,6 +1021,7 @@ function buildAddToVocabPanel(helperWord) {
   const saveBtn = document.createElement("button");
   saveBtn.type = "button";
   saveBtn.textContent = "Save";
+  saveBtn.dataset.immersionKey = "btnSave";
   saveBtn.addEventListener("click", () =>
     handleSaveAddToVocab(helperWord, themeSelect, targetInput, furiganaInput)
   );
@@ -1018,6 +1031,7 @@ function buildAddToVocabPanel(helperWord) {
   cancelBtn.type = "button";
   cancelBtn.className = "secondary";
   cancelBtn.textContent = "Cancel";
+  cancelBtn.dataset.immersionKey = "btnCancel";
   cancelBtn.addEventListener("click", () => {
     addingToVocabWordId = null;
     renderHelperWordsPanel(activeEntryLang);
@@ -1040,6 +1054,7 @@ function renderHelperThemeOptions(select, language, selectedId) {
   const newOpt = document.createElement("option");
   newOpt.value = HELPER_NEW_THEME_VALUE;
   newOpt.textContent = "+ Create new theme…";
+  newOpt.dataset.immersionKey = "createNewThemeOption";
   select.appendChild(newOpt);
 
   if (selectedId) {
@@ -1346,6 +1361,7 @@ function renderGrammarNotesPanel(entry) {
       addBtn.type = "button";
       addBtn.className = "secondary add-to-grammar-btn";
       addBtn.textContent = "Add to Grammar";
+      addBtn.dataset.immersionKey = "addToGrammarButton";
       addBtn.dataset.noteId = note.id;
       actions.appendChild(addBtn);
     }
@@ -1404,6 +1420,7 @@ function buildAddToGrammarPanel(note) {
   const saveBtn = document.createElement("button");
   saveBtn.type = "button";
   saveBtn.textContent = "Save";
+  saveBtn.dataset.immersionKey = "btnSave";
   saveBtn.addEventListener("click", () => handleSaveAddToGrammar(note, themeSelect));
   wrapper.appendChild(saveBtn);
 
@@ -1411,6 +1428,7 @@ function buildAddToGrammarPanel(note) {
   cancelBtn.type = "button";
   cancelBtn.className = "secondary";
   cancelBtn.textContent = "Cancel";
+  cancelBtn.dataset.immersionKey = "btnCancel";
   cancelBtn.addEventListener("click", () => {
     addingToGrammarNoteId = null;
     renderGrammarNotesPanel(Storage.getWritingEntry(activeEntryId));
@@ -1526,6 +1544,7 @@ function renderEntryTextInto(container, text, correctedWords, grammarCorrectedWo
     const empty = document.createElement("p");
     empty.className = "empty-hint";
     empty.textContent = "No writing yet — click Edit to add some.";
+    empty.dataset.immersionKey = "noWritingYetText";
     container.appendChild(empty);
     return;
   }
@@ -1614,6 +1633,7 @@ function renderReadingTabContent() {
     const empty = document.createElement("p");
     empty.className = "hint entry-tab-empty";
     empty.textContent = "No passage open — click + to add one, or link one above.";
+    empty.dataset.immersionKey = "noPassageOpenHint";
     content.appendChild(empty);
     return;
   }

@@ -172,6 +172,7 @@ function initGrammarThemePage() {
 
   if (!theme) {
     heading.textContent = "Folder not found";
+    heading.dataset.immersionKey = "folderNotFoundText";
     return;
   }
 
@@ -266,6 +267,7 @@ function initGrammarConjugationNotePage() {
     examplesRoot.appendChild(buildExamplesDisplayBlock(freshNote.examples));
   } else {
     examplesRoot.textContent = "No examples yet.";
+    examplesRoot.dataset.immersionKey = "noExamplesYetText";
   }
 
   const practiceRoot = document.getElementById("conj-practice-root");
@@ -516,6 +518,7 @@ function renderGrammarNoteList(themeId) {
     const li = document.createElement("li");
     li.className = "empty-hint";
     li.textContent = "No notes in this folder yet.";
+    li.dataset.immersionKey = "noNotesInFolderText";
     list.appendChild(li);
     return;
   }
@@ -625,6 +628,7 @@ function buildGrammarNoteCard(note) {
     editPersonalNoteBtn.type = "button";
     editPersonalNoteBtn.className = "secondary";
     editPersonalNoteBtn.textContent = "Edit personal note";
+    editPersonalNoteBtn.dataset.immersionKey = "editPersonalNoteButton";
     editPersonalNoteBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       editingGrammarPersonalNoteId = note.id;
@@ -653,6 +657,7 @@ function buildGrammarNoteCard(note) {
   editBtn.type = "button";
   editBtn.className = "secondary edit-note-btn";
   editBtn.textContent = "Edit";
+  editBtn.dataset.immersionKey = "btnEdit";
   editBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     window.location.href = `grammar-add-note.html?themeId=${encodeURIComponent(note.themeId)}&noteId=${encodeURIComponent(note.id)}`;
@@ -663,6 +668,7 @@ function buildGrammarNoteCard(note) {
   deleteBtn.type = "button";
   deleteBtn.className = "secondary delete-note-btn";
   deleteBtn.textContent = "Delete note";
+  deleteBtn.dataset.immersionKey = "deleteNoteButton";
   deleteBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     if (!confirm("Delete this note? This can't be undone.")) return;
@@ -768,6 +774,7 @@ function buildStructureCard(note) {
     const noPointBadge = document.createElement("p");
     noPointBadge.className = "grammar-card-label-badge grammar-card-label-none";
     noPointBadge.textContent = "No single clear grammar point identified.";
+    noPointBadge.dataset.immersionKey = "noPointIdentifiedText";
     detail.appendChild(noPointBadge);
   }
 
@@ -815,6 +822,7 @@ function buildStructureCard(note) {
     editPersonalNoteBtn.type = "button";
     editPersonalNoteBtn.className = "secondary";
     editPersonalNoteBtn.textContent = "Edit personal note";
+    editPersonalNoteBtn.dataset.immersionKey = "editPersonalNoteButton";
     editPersonalNoteBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       editingGrammarPersonalNoteId = note.id;
@@ -844,6 +852,7 @@ function buildStructureCard(note) {
     testBtn.type = "button";
     testBtn.className = "secondary";
     testBtn.textContent = "Test me on this";
+    testBtn.dataset.immersionKey = "testMeOnThisButton";
     testBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       toggleCardPractice(note, practicePanelWrap);
@@ -855,6 +864,7 @@ function buildStructureCard(note) {
   editBtn.type = "button";
   editBtn.className = "secondary edit-note-btn";
   editBtn.textContent = "Edit";
+  editBtn.dataset.immersionKey = "btnEdit";
   editBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     window.location.href = `grammar-add-note.html?themeId=${encodeURIComponent(note.themeId)}&noteId=${encodeURIComponent(note.id)}`;
@@ -865,6 +875,7 @@ function buildStructureCard(note) {
   deleteBtn.type = "button";
   deleteBtn.className = "secondary delete-note-btn";
   deleteBtn.textContent = "Delete note";
+  deleteBtn.dataset.immersionKey = "deleteNoteButton";
   deleteBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     if (!confirm("Delete this note? This can't be undone.")) return;
@@ -1012,6 +1023,7 @@ function renderCardPracticePanel(note, panelEl) {
     retryBtn.type = "button";
     retryBtn.className = "secondary";
     retryBtn.textContent = "Try again";
+    retryBtn.dataset.immersionKey = "tryAgainButton";
     retryBtn.addEventListener("click", async (e) => {
       e.stopPropagation();
       await fetchMoreCardPracticeItems(note);
@@ -1048,6 +1060,7 @@ function renderCardPracticePanel(note, panelEl) {
     const revealBtn = document.createElement("button");
     revealBtn.type = "button";
     revealBtn.textContent = "Show answer";
+    revealBtn.dataset.immersionKey = "showAnswerButton";
     revealBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       session.revealed = true;
@@ -1066,6 +1079,7 @@ function renderCardPracticePanel(note, panelEl) {
     const gotItBtn = document.createElement("button");
     gotItBtn.type = "button";
     gotItBtn.textContent = "Got it";
+    gotItBtn.dataset.immersionKey = "gotItButton";
     gotItBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       session.total += 1;
@@ -1080,6 +1094,7 @@ function renderCardPracticePanel(note, panelEl) {
     missedBtn.type = "button";
     missedBtn.className = "secondary";
     missedBtn.textContent = "Missed it";
+    missedBtn.dataset.immersionKey = "missedItButton";
     missedBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       session.total += 1;
@@ -1096,6 +1111,7 @@ function renderCardPracticePanel(note, panelEl) {
   closeBtn.type = "button";
   closeBtn.className = "secondary card-practice-close";
   closeBtn.textContent = "Close practice";
+  closeBtn.dataset.immersionKey = "closePracticeButton";
   closeBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     panelEl.hidden = true;
@@ -1290,6 +1306,7 @@ function renderConjugationPracticePanel(note, panelEl) {
       const checkBtn = document.createElement("button");
       checkBtn.type = "button";
       checkBtn.textContent = "Check";
+      checkBtn.dataset.immersionKey = "checkButton";
       checkBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         const result = JaConjugator.checkJapaneseAnswer(verb, form, session.typedAnswer);
@@ -1311,6 +1328,7 @@ function renderConjugationPracticePanel(note, panelEl) {
       const nextBtn = document.createElement("button");
       nextBtn.type = "button";
       nextBtn.textContent = "Next";
+      nextBtn.dataset.immersionKey = "nextButton";
       nextBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         nextConjugationQuestion(session);
@@ -1341,6 +1359,7 @@ function renderConjugationPracticePanel(note, panelEl) {
       const revealBtn = document.createElement("button");
       revealBtn.type = "button";
       revealBtn.textContent = "Show answer";
+    revealBtn.dataset.immersionKey = "showAnswerButton";
       revealBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         session.revealed = true;
@@ -1359,6 +1378,7 @@ function renderConjugationPracticePanel(note, panelEl) {
       const gotItBtn = document.createElement("button");
       gotItBtn.type = "button";
       gotItBtn.textContent = "Got it";
+    gotItBtn.dataset.immersionKey = "gotItButton";
       gotItBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         session.total += 1;
@@ -1372,6 +1392,7 @@ function renderConjugationPracticePanel(note, panelEl) {
       missedBtn.type = "button";
       missedBtn.className = "secondary";
       missedBtn.textContent = "Missed it";
+    missedBtn.dataset.immersionKey = "missedItButton";
       missedBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         session.total += 1;
@@ -1388,6 +1409,7 @@ function renderConjugationPracticePanel(note, panelEl) {
   closeBtn.type = "button";
   closeBtn.className = "secondary card-practice-close";
   closeBtn.textContent = "Close practice";
+  closeBtn.dataset.immersionKey = "closePracticeButton";
   closeBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     panelEl.hidden = true;
@@ -1415,6 +1437,7 @@ function buildGrammarPersonalNoteEditor(note) {
   const saveBtn = document.createElement("button");
   saveBtn.type = "button";
   saveBtn.textContent = "Save note";
+  saveBtn.dataset.immersionKey = "saveNoteButton";
   saveBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     Storage.updateGrammarNote(note.id, { notes: textarea.value.trim() });
@@ -1427,6 +1450,7 @@ function buildGrammarPersonalNoteEditor(note) {
   cancelBtn.type = "button";
   cancelBtn.className = "secondary";
   cancelBtn.textContent = "Cancel";
+  cancelBtn.dataset.immersionKey = "btnCancel";
   cancelBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     editingGrammarPersonalNoteId = null;
@@ -1541,6 +1565,7 @@ function renderCardClassifyStatus() {
     el.classList.remove("card-classify-ok");
     const noPointLine = document.createElement("p");
     noPointLine.textContent = "No single clear grammar point found yet.";
+    noPointLine.dataset.immersionKey = "noPointFoundYetText";
     el.appendChild(noPointLine);
   }
 
@@ -1558,6 +1583,7 @@ function renderCardClassifyStatus() {
     const acceptBtn = document.createElement("button");
     acceptBtn.type = "button";
     acceptBtn.textContent = "Accept";
+    acceptBtn.dataset.immersionKey = "acceptButton";
     acceptBtn.addEventListener("click", (e) => {
       e.preventDefault();
       cardGrammarLabelConfirmed = true;
@@ -1569,6 +1595,7 @@ function renderCardClassifyStatus() {
     discardBtn.type = "button";
     discardBtn.className = "secondary";
     discardBtn.textContent = "Discard";
+    discardBtn.dataset.immersionKey = "discardButton";
     discardBtn.addEventListener("click", (e) => {
       e.preventDefault();
       cardGrammarLabel = null;
@@ -1582,6 +1609,7 @@ function renderCardClassifyStatus() {
     undoBtn.type = "button";
     undoBtn.className = "secondary";
     undoBtn.textContent = "Undo";
+    undoBtn.dataset.immersionKey = "undoButton";
     undoBtn.addEventListener("click", (e) => {
       e.preventDefault();
       cardGrammarLabelConfirmed = false;
@@ -1593,6 +1621,7 @@ function renderCardClassifyStatus() {
   const recheckLink = document.createElement("a");
   recheckLink.href = "#";
   recheckLink.textContent = "Re-check";
+  recheckLink.dataset.immersionKey = "recheckLinkText";
   recheckLink.addEventListener("click", (e) => {
     e.preventDefault();
     runCardClassify(true);
@@ -1848,6 +1877,7 @@ function buildVariantBlock(variant) {
   removeVariantBtn.type = "button";
   removeVariantBtn.className = "secondary";
   removeVariantBtn.textContent = "Remove variant";
+  removeVariantBtn.dataset.immersionKey = "removeVariantButton";
   removeVariantBtn.addEventListener("click", () => {
     cardVariants = cardVariants.filter((v) => v.id !== variant.id);
     renderCardVariantsList();
@@ -1908,6 +1938,7 @@ function buildExampleRow(example, ownerArray, rerender) {
   translationLabel.className = "card-example-field";
   const translationCaption = document.createElement("span");
   translationCaption.textContent = "Translation";
+  translationCaption.dataset.immersionKey = "translationLabel";
   translationLabel.appendChild(translationCaption);
   const translationInput = document.createElement("input");
   translationInput.type = "text";
@@ -1935,6 +1966,7 @@ function buildExampleRow(example, ownerArray, rerender) {
       useBtn.type = "button";
       useBtn.className = "secondary";
       useBtn.textContent = "Use this";
+      useBtn.dataset.immersionKey = "useThisButton";
       useBtn.addEventListener("click", () => {
         example.target = example.corrected;
         example.lastCheckedText = example.corrected;
@@ -1958,6 +1990,7 @@ function buildExampleRow(example, ownerArray, rerender) {
   removeBtn.type = "button";
   removeBtn.className = "secondary card-example-remove";
   removeBtn.textContent = "Remove";
+  removeBtn.dataset.immersionKey = "removeButton";
   removeBtn.addEventListener("click", () => {
     const idx = ownerArray.indexOf(example);
     if (idx !== -1) ownerArray.splice(idx, 1);
@@ -2054,6 +2087,7 @@ function renderGrammarThemeOptions(selectId) {
   const newOpt = document.createElement("option");
   newOpt.value = GRAMMAR_NEW_THEME_VALUE;
   newOpt.textContent = "+ New folder…";
+  newOpt.dataset.immersionKey = "newFolderOption";
   select.appendChild(newOpt);
 
   if (selectId) {

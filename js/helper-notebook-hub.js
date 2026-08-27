@@ -107,6 +107,7 @@ function renderHelperHubReminders(category) {
     const li = document.createElement("li");
     li.className = "empty-hint";
     li.textContent = "Nothing here yet.";
+    li.dataset.immersionKey = "nothingHereYet";
     list.appendChild(li);
     return;
   }

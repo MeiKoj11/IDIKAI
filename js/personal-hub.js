@@ -98,6 +98,7 @@ function renderPersonalNoteList() {
     const li = document.createElement("li");
     li.className = "empty-hint";
     li.textContent = "No bubbles yet — add one above.";
+    li.dataset.immersionKey = "noBubblesYetText";
     list.appendChild(li);
     return;
   }
@@ -136,6 +137,7 @@ function renderPersonalNoteList() {
     editBtn.type = "button";
     editBtn.className = "secondary edit-personal-note-btn";
     editBtn.textContent = "Edit";
+    editBtn.dataset.immersionKey = "btnEdit";
     editBtn.dataset.noteId = note.id;
     actions.appendChild(editBtn);
 
@@ -143,6 +145,7 @@ function renderPersonalNoteList() {
     deleteBtn.type = "button";
     deleteBtn.className = "secondary delete-personal-note-btn";
     deleteBtn.textContent = "Delete";
+    deleteBtn.dataset.immersionKey = "btnDelete";
     deleteBtn.dataset.noteId = note.id;
     actions.appendChild(deleteBtn);
 
@@ -175,6 +178,7 @@ function buildPersonalNoteEditForm(note) {
   const saveBtn = document.createElement("button");
   saveBtn.type = "button";
   saveBtn.textContent = "Save";
+  saveBtn.dataset.immersionKey = "btnSave";
   saveBtn.addEventListener("click", () => handleSavePersonalNoteEdit(note.id, wrapper));
   actions.appendChild(saveBtn);
 
@@ -182,6 +186,7 @@ function buildPersonalNoteEditForm(note) {
   cancelBtn.type = "button";
   cancelBtn.className = "secondary";
   cancelBtn.textContent = "Cancel";
+  cancelBtn.dataset.immersionKey = "btnCancel";
   cancelBtn.addEventListener("click", () => {
     editingPersonalNoteId = null;
     renderPersonalNoteList();

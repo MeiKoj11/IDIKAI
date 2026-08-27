@@ -15,10 +15,10 @@
     </button>
     <span id="topbar-lang-label" class="topbar-lang-label"></span>
     <div id="topbar-menu" class="topbar-menu" hidden>
-      <div class="topbar-menu-heading">Change language</div>
-      <button type="button" class="topbar-lang-option" data-lang="es">Spanish</button>
-      <button type="button" class="topbar-lang-option" data-lang="ja">Japanese</button>
-      <button type="button" class="topbar-lang-option" data-lang="fr">French</button>
+      <div class="topbar-menu-heading" data-immersion-key="changeLanguageHeading">Change language</div>
+      <button type="button" class="topbar-lang-option" data-lang="es" data-immersion-key="langNameEs">Spanish</button>
+      <button type="button" class="topbar-lang-option" data-lang="ja" data-immersion-key="langNameJa">Japanese</button>
+      <button type="button" class="topbar-lang-option" data-lang="fr" data-immersion-key="langNameFr">French</button>
     </div>
     <button type="button" id="topbar-notifications" class="topbar-notifications" aria-label="Notifications" aria-haspopup="true">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2"></rect><path d="M3 6.5l9 6.5 9-6.5"></path></svg>
@@ -34,25 +34,25 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"></path><path d="M5 10v10h14V10"></path></svg>
     </a>
     <div id="topbar-notifications-menu" class="topbar-menu topbar-notifications-menu" hidden>
-      <div class="topbar-menu-heading">Notifications</div>
-      <p class="topbar-notifications-empty">Coming soon — once a teacher connection exists, updates will show up here.</p>
+      <div class="topbar-menu-heading" data-immersion-key="notificationsHeading">Notifications</div>
+      <p class="topbar-notifications-empty" data-immersion-key="notificationsEmpty">Coming soon — once a teacher connection exists, updates will show up here.</p>
     </div>
     <div id="hub-todo-panel" class="hub-todo-panel" hidden>
       <div id="hub-todo-header" class="hub-todo-header">
-        <span class="hub-todo-title">To-do list</span>
+        <span class="hub-todo-title" data-immersion-key="todoTitle">To-do list</span>
         <button type="button" id="hub-todo-close" class="hub-todo-close" aria-label="Close">×</button>
       </div>
       <form id="hub-todo-add-form" class="hub-todo-add-form">
-        <input type="text" id="hub-todo-add-input" placeholder="Add a task…" autocomplete="off" />
+        <input type="text" id="hub-todo-add-input" placeholder="Add a task…" autocomplete="off" data-immersion-key="todoAddPlaceholder" />
         <select id="hub-todo-folder-select" class="hub-todo-folder-select" aria-label="Folder">
-          <option value="">No folder</option>
+          <option value="" data-immersion-key="todoNoFolder">No folder</option>
         </select>
-        <button type="submit">Add</button>
+        <button type="submit" data-immersion-key="todoAddButton">Add</button>
       </form>
       <div id="hub-todo-groups" class="hub-todo-groups"></div>
       <label class="hub-todo-show-completed">
         <input type="checkbox" id="hub-todo-show-completed" />
-        Show completed
+        <span data-immersion-key="todoShowCompleted">Show completed</span>
       </label>
     </div>
   </div>
@@ -62,90 +62,90 @@
       <button type="button" id="app-tab-plus" class="tab-bar-plus-btn" title="Open another section in a new tab">+</button>
       <div id="app-tab-picker-panel" class="app-tab-picker-panel" hidden>
         <select id="app-tab-section-select">
-          <option value="" disabled selected>Which section?</option>
-          <option value="vocab">Vocab Bank</option>
-          <option value="grammar">Grammar</option>
-          <option value="writing">Writing</option>
-          <option value="speaking">Speaking</option>
-          <option value="reading">Reading</option>
-          <option value="personal-hub">Personal Hub</option>
-          <option value="listening">Listening</option>
+          <option value="" disabled selected data-immersion-key="tabPickerSectionPlaceholder">Which section?</option>
+          <option value="vocab" data-immersion-key="sectionVocab">Vocab Bank</option>
+          <option value="grammar" data-immersion-key="sectionGrammar">Grammar</option>
+          <option value="writing" data-immersion-key="sectionWriting">Writing</option>
+          <option value="speaking" data-immersion-key="sectionSpeaking">Speaking</option>
+          <option value="reading" data-immersion-key="sectionReading">Reading</option>
+          <option value="personal-hub" data-immersion-key="sectionPersonalHub">Personal Hub</option>
+          <option value="listening" data-immersion-key="sectionListening">Listening</option>
         </select>
         <select id="app-tab-unit-select" hidden>
-          <option value="" disabled selected>Which one?</option>
+          <option value="" disabled selected data-immersion-key="tabPickerUnitPlaceholder">Which one?</option>
         </select>
-        <button type="button" id="app-tab-open-btn" class="secondary" hidden>Open</button>
-        <button type="button" id="app-tab-picker-cancel" class="secondary">Cancel</button>
+        <button type="button" id="app-tab-open-btn" class="secondary" hidden data-immersion-key="tabPickerOpen">Open</button>
+        <button type="button" id="app-tab-picker-cancel" class="secondary" data-immersion-key="tabPickerCancel">Cancel</button>
       </div>
     </div>
   </div>
   <header class="app-header">
-    <a href="theme.html" id="quiz-back-link" class="back-link">&larr; Back</a>
-    <h1>Quiz — <span id="active-theme-name"></span></h1>
+    <a href="theme.html" id="quiz-back-link" class="back-link" data-immersion-key="backPlain">&larr; Back</a>
+    <h1><span data-immersion-key="quizHeadingPrefix">Quiz —</span> <span id="active-theme-name"></span></h1>
   </header>
   <main>
     <section class="panel" id="quiz-panel">
       <div id="quiz-setup">
         <div class="quiz-mode-select">
-          <label><input type="radio" name="quiz-mode" value="vocab" checked /> Vocabulary</label>
-          <label id="conjugation-mode-label"><input type="radio" name="quiz-mode" value="conjugation" /> Verb Conjugation</label>
+          <label><input type="radio" name="quiz-mode" value="vocab" checked /> <span data-immersion-key="vocabularyLabel">Vocabulary</span></label>
+          <label id="conjugation-mode-label"><input type="radio" name="quiz-mode" value="conjugation" /> <span data-immersion-key="verbConjugationLabel">Verb Conjugation</span></label>
         </div>
-        <p class="hint">Themes to include (defaults to just this one — tick more to combine):</p>
+        <p class="hint" data-immersion-key="themesToIncludeHint">Themes to include (defaults to just this one — tick more to combine):</p>
         <div id="quiz-theme-checkboxes" class="checkbox-grid-single"></div>
 
         <div id="vocab-quiz-options">
           <div class="quiz-direction">
-            <label><input type="radio" name="direction" value="en-tl" checked /> English &rarr; Target language</label>
-            <label><input type="radio" name="direction" value="tl-en" /> Target language &rarr; English</label>
+            <label><input type="radio" name="direction" value="en-tl" checked /> <span data-immersion-key="englishToTargetLabel">English &rarr; Target language</span></label>
+            <label><input type="radio" name="direction" value="tl-en" /> <span data-immersion-key="targetToEnglishLabel">Target language &rarr; English</span></label>
           </div>
           <label class="checkbox-label" id="verb-drill-label">
-            <input type="checkbox" id="include-verb-drill" /> Also drill saved conjugation tables
+            <input type="checkbox" id="include-verb-drill" /> <span data-immersion-key="alsoDrillTablesLabel">Also drill saved conjugation tables</span>
           </label>
         </div>
 
         <div id="conjugation-quiz-options" hidden>
-          <p class="hint">
+          <p class="hint" data-immersion-key="conjugationQuizHint">
             Quizzes on verbs found in the themes above — a word counts as a verb if its Spanish
             side is exactly the infinitive (e.g. "hablar"), not a conjugated form.
           </p>
-          <strong>Tenses</strong>
+          <strong data-immersion-key="tensesLabel">Tenses</strong>
           <div id="quiz-tense-checkboxes" class="checkbox-grid-single"></div>
         </div>
 
         <label class="checkbox-label">
           <input type="checkbox" id="limit-quiz-size" checked />
-          Limit to a random
+          <span data-immersion-key="limitToRandomLabel">Limit to a random</span>
           <input type="number" id="quiz-size" value="15" min="1" step="1" class="quiz-size-input" />
-          cards
+          <span data-immersion-key="cardsLabel">cards</span>
         </label>
-        <button type="button" id="start-quiz">Start quiz</button>
+        <button type="button" id="start-quiz" data-immersion-key="startQuizButton">Start quiz</button>
       </div>
       <div id="quiz-card" class="quiz-card" hidden>
         <p id="quiz-prompt" class="quiz-prompt"></p>
-        <button type="button" id="show-answer">Show answer</button>
+        <button type="button" id="show-answer" data-immersion-key="showAnswerButton">Show answer</button>
         <p id="quiz-answer" class="quiz-answer" hidden></p>
         <div id="quiz-buttons" class="quiz-buttons" hidden>
-          <button type="button" id="quiz-got-it">Got it</button>
-          <button type="button" id="quiz-review-again" class="secondary">Review again</button>
+          <button type="button" id="quiz-got-it" data-immersion-key="gotItButton">Got it</button>
+          <button type="button" id="quiz-review-again" class="secondary" data-immersion-key="reviewAgainButton">Review again</button>
         </div>
       </div>
       <div id="conjugation-quiz-card" class="quiz-card" hidden>
         <p id="conjugation-quiz-prompt" class="quiz-prompt"></p>
-        <input type="text" id="conjugation-answer-input" placeholder="Type the conjugated form..." />
-        <button type="button" id="check-conjugation-answer">Check</button>
+        <input type="text" id="conjugation-answer-input" placeholder="Type the conjugated form..." data-immersion-key="typeConjugatedFormPlaceholder" />
+        <button type="button" id="check-conjugation-answer" data-immersion-key="checkButton">Check</button>
         <div id="conjugation-result" hidden>
           <p id="conjugation-result-text"></p>
           <div class="detection-actions">
-            <button type="button" id="conjugation-next">Next</button>
-            <button type="button" id="conjugation-override" class="secondary" hidden>
+            <button type="button" id="conjugation-next" data-immersion-key="nextButton">Next</button>
+            <button type="button" id="conjugation-override" class="secondary" hidden data-immersion-key="markCorrectButton">
               Actually, mark this correct
             </button>
           </div>
         </div>
       </div>
       <div id="quiz-done" class="quiz-done" hidden>
-        <p>Done for now.</p>
-        <button type="button" id="restart-quiz">Set up another quiz</button>
+        <p data-immersion-key="doneForNow">Done for now.</p>
+        <button type="button" id="restart-quiz" data-immersion-key="setUpAnotherQuizButton">Set up another quiz</button>
       </div>
     </section>
   </main>

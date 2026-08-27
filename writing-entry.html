@@ -15,10 +15,10 @@
     </button>
     <span id="topbar-lang-label" class="topbar-lang-label"></span>
     <div id="topbar-menu" class="topbar-menu" hidden>
-      <div class="topbar-menu-heading">Change language</div>
-      <button type="button" class="topbar-lang-option" data-lang="es">Spanish</button>
-      <button type="button" class="topbar-lang-option" data-lang="ja">Japanese</button>
-      <button type="button" class="topbar-lang-option" data-lang="fr">French</button>
+      <div class="topbar-menu-heading" data-immersion-key="changeLanguageHeading">Change language</div>
+      <button type="button" class="topbar-lang-option" data-lang="es" data-immersion-key="langNameEs">Spanish</button>
+      <button type="button" class="topbar-lang-option" data-lang="ja" data-immersion-key="langNameJa">Japanese</button>
+      <button type="button" class="topbar-lang-option" data-lang="fr" data-immersion-key="langNameFr">French</button>
     </div>
     <button type="button" id="topbar-notifications" class="topbar-notifications" aria-label="Notifications" aria-haspopup="true">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2"></rect><path d="M3 6.5l9 6.5 9-6.5"></path></svg>
@@ -34,25 +34,25 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"></path><path d="M5 10v10h14V10"></path></svg>
     </a>
     <div id="topbar-notifications-menu" class="topbar-menu topbar-notifications-menu" hidden>
-      <div class="topbar-menu-heading">Notifications</div>
-      <p class="topbar-notifications-empty">Coming soon — once a teacher connection exists, updates will show up here.</p>
+      <div class="topbar-menu-heading" data-immersion-key="notificationsHeading">Notifications</div>
+      <p class="topbar-notifications-empty" data-immersion-key="notificationsEmpty">Coming soon — once a teacher connection exists, updates will show up here.</p>
     </div>
     <div id="hub-todo-panel" class="hub-todo-panel" hidden>
       <div id="hub-todo-header" class="hub-todo-header">
-        <span class="hub-todo-title">To-do list</span>
+        <span class="hub-todo-title" data-immersion-key="todoTitle">To-do list</span>
         <button type="button" id="hub-todo-close" class="hub-todo-close" aria-label="Close">×</button>
       </div>
       <form id="hub-todo-add-form" class="hub-todo-add-form">
-        <input type="text" id="hub-todo-add-input" placeholder="Add a task…" autocomplete="off" />
+        <input type="text" id="hub-todo-add-input" placeholder="Add a task…" autocomplete="off" data-immersion-key="todoAddPlaceholder" />
         <select id="hub-todo-folder-select" class="hub-todo-folder-select" aria-label="Folder">
-          <option value="">No folder</option>
+          <option value="" data-immersion-key="todoNoFolder">No folder</option>
         </select>
-        <button type="submit">Add</button>
+        <button type="submit" data-immersion-key="todoAddButton">Add</button>
       </form>
       <div id="hub-todo-groups" class="hub-todo-groups"></div>
       <label class="hub-todo-show-completed">
         <input type="checkbox" id="hub-todo-show-completed" />
-        Show completed
+        <span data-immersion-key="todoShowCompleted">Show completed</span>
       </label>
     </div>
   </div>
@@ -62,25 +62,25 @@
       <button type="button" id="app-tab-plus" class="tab-bar-plus-btn" title="Open another section in a new tab">+</button>
       <div id="app-tab-picker-panel" class="app-tab-picker-panel" hidden>
         <select id="app-tab-section-select">
-          <option value="" disabled selected>Which section?</option>
-          <option value="vocab">Vocab Bank</option>
-          <option value="grammar">Grammar</option>
-          <option value="writing">Writing</option>
-          <option value="speaking">Speaking</option>
-          <option value="reading">Reading</option>
-          <option value="personal-hub">Personal Hub</option>
-          <option value="listening">Listening</option>
+          <option value="" disabled selected data-immersion-key="tabPickerSectionPlaceholder">Which section?</option>
+          <option value="vocab" data-immersion-key="sectionVocab">Vocab Bank</option>
+          <option value="grammar" data-immersion-key="sectionGrammar">Grammar</option>
+          <option value="writing" data-immersion-key="sectionWriting">Writing</option>
+          <option value="speaking" data-immersion-key="sectionSpeaking">Speaking</option>
+          <option value="reading" data-immersion-key="sectionReading">Reading</option>
+          <option value="personal-hub" data-immersion-key="sectionPersonalHub">Personal Hub</option>
+          <option value="listening" data-immersion-key="sectionListening">Listening</option>
         </select>
         <select id="app-tab-unit-select" hidden>
-          <option value="" disabled selected>Which one?</option>
+          <option value="" disabled selected data-immersion-key="tabPickerUnitPlaceholder">Which one?</option>
         </select>
-        <button type="button" id="app-tab-open-btn" class="secondary" hidden>Open</button>
-        <button type="button" id="app-tab-picker-cancel" class="secondary">Cancel</button>
+        <button type="button" id="app-tab-open-btn" class="secondary" hidden data-immersion-key="tabPickerOpen">Open</button>
+        <button type="button" id="app-tab-picker-cancel" class="secondary" data-immersion-key="tabPickerCancel">Cancel</button>
       </div>
     </div>
   </div>
   <header class="app-header" id="entry-header">
-    <a href="writing.html" id="entry-back-link" class="back-link">&larr; Back</a>
+    <a href="writing.html" id="entry-back-link" class="back-link" data-immersion-key="backPlain">&larr; Back</a>
     <h1 id="entry-heading">Writing Entry</h1>
   </header>
   <main class="writing-entry-layout">
@@ -98,33 +98,33 @@
         <p id="vocab-check-status" class="hint" hidden></p>
         <p id="grammar-check-status" class="hint" hidden></p>
         <div class="detection-actions">
-          <button type="button" id="edit-entry-btn" class="secondary">Edit</button>
-          <button type="button" id="vocab-check-btn">Vocab check</button>
-          <button type="button" id="grammar-check-btn">Grammar check</button>
+          <button type="button" id="edit-entry-btn" class="secondary" data-immersion-key="btnEdit">Edit</button>
+          <button type="button" id="vocab-check-btn" data-immersion-key="vocabCheckButton">Vocab check</button>
+          <button type="button" id="grammar-check-btn" data-immersion-key="grammarCheckButton">Grammar check</button>
         </div>
-        <p class="hint">
+        <p class="hint" data-immersion-key="vocabCheckExplainer">
           Vocab check looks up any <code>&lt;word&gt;</code> still left in your writing and replaces it with the
           real word — replaced words are shown in red so it's obvious what was corrected.
         </p>
-        <p class="hint">
+        <p class="hint" data-immersion-key="grammarCheckExplainer">
           Grammar check reads the whole entry for real sentence-level mistakes — conjugation, agreement,
           particles, word order — and fixes them, also shown in red. Separate from Vocab check on purpose.
         </p>
         <details id="grammar-compare-wrap" class="edit-reference-block" hidden open>
-          <summary>Before / after grammar check</summary>
+          <summary data-immersion-key="beforeAfterGrammarCheckSummary">Before / after grammar check</summary>
           <div class="grammar-compare-stack">
             <div class="grammar-compare-block">
-              <p class="grammar-compare-label">Before</p>
+              <p class="grammar-compare-label" data-immersion-key="beforeLabel">Before</p>
               <div id="grammar-compare-before" class="writing-view-text-box edit-reference-text"></div>
             </div>
             <div class="grammar-compare-block">
-              <p class="grammar-compare-label">After</p>
+              <p class="grammar-compare-label" data-immersion-key="afterLabel">After</p>
               <div id="grammar-compare-after" class="writing-view-text-box edit-reference-text"></div>
             </div>
           </div>
         </details>
         <details id="grammar-notes-wrap" class="edit-reference-block" hidden>
-          <summary>What grammar check changed</summary>
+          <summary data-immersion-key="whatGrammarCheckChangedSummary">What grammar check changed</summary>
           <ul id="grammar-notes-list" class="grammar-notes-list"></ul>
         </details>
       </section>
@@ -134,35 +134,35 @@
       <section class="panel" id="entry-details-panel">
         <div id="edit-reference-wrap" hidden>
           <details class="edit-reference-block">
-            <summary>Original entry (as first written)</summary>
+            <summary data-immersion-key="originalEntrySummary">Original entry (as first written)</summary>
             <div id="edit-original-text" class="writing-view-text-box edit-reference-text"></div>
           </details>
           <details class="edit-reference-block" open>
-            <summary>Current version (corrections in red)</summary>
+            <summary data-immersion-key="currentVersionSummary">Current version (corrections in red)</summary>
             <div id="edit-corrected-text" class="writing-view-text-box edit-reference-text"></div>
           </details>
         </div>
         <form id="entry-details-form" class="stacked-form">
           <label>
-            Title
-            <input type="text" id="entry-title" placeholder="e.g. My weekend" required />
+            <span data-immersion-key="titleLabel">Title</span>
+            <input type="text" id="entry-title" placeholder="e.g. My weekend" required data-immersion-key="entryTitlePlaceholder" />
           </label>
           <label>
-            Date
+            <span data-immersion-key="dateLabel">Date</span>
             <input type="date" id="entry-date" required />
           </label>
           <label>
-            Link to a Reading passage (optional)
+            <span data-immersion-key="linkPassageOptionalLabel">Link to a Reading passage (optional)</span>
             <select id="entry-link-select">
-              <option value="">No link</option>
+              <option value="" data-immersion-key="noLinkOption">No link</option>
             </select>
           </label>
-          <p class="hint">Linking a passage adds it as a tab below so you can reference it while you write.</p>
+          <p class="hint" data-immersion-key="linkingPassageHint">Linking a passage adds it as a tab below so you can reference it while you write.</p>
           <label>
-            Your writing
-            <textarea id="entry-text" class="writing-textarea" rows="14" placeholder="Write your entry here... don't know a word? wrap it in angle brackets, e.g. <keys>"></textarea>
+            <span data-immersion-key="yourWritingLabel">Your writing</span>
+            <textarea id="entry-text" class="writing-textarea" rows="14" placeholder="Write your entry here... don't know a word? wrap it in angle brackets, e.g. <keys>" data-immersion-key="yourWritingPlaceholder"></textarea>
           </label>
-          <p class="hint">
+          <p class="hint" data-immersion-key="bracketWordsHint">
             Don't know a word (or short phrase) in the target language? Wrap it in angle brackets, like
             <code>&lt;keys&gt;</code> — it'll get logged in your Helper Notebook, and you can swap it for the
             real word later with Vocab check. For verbs, bracket the infinitive (<code>&lt;to eat&gt;</code>,
@@ -171,59 +171,60 @@
           </p>
           <p id="entry-word-count" class="hint">No unknown words in this entry yet.</p>
           <div class="detection-actions">
-            <button type="submit">Save entry</button>
-            <button type="button" id="cancel-edit-btn" class="secondary">Cancel</button>
+            <button type="submit" data-immersion-key="saveEntryButton">Save entry</button>
+            <button type="button" id="cancel-edit-btn" class="secondary" data-immersion-key="btnCancel">Cancel</button>
             <span id="entry-autosave-status" class="entry-autosave-status"></span>
           </div>
         </form>
       </section>
 
       <section class="panel" id="entry-reading-panel">
-        <h2>Reference while you write</h2>
-        <p class="hint">Open a Reading passage (or your linked one) here to reference while you write.</p>
+        <h2 data-immersion-key="referenceWhileWritingHeading">Reference while you write</h2>
+        <p class="hint" data-immersion-key="referenceWhileWritingHint">Open a Reading passage (or your linked one) here to reference while you write.</p>
         <div id="entry-tab-strip" class="tab-strip">
           <div id="entry-tab-strip-tabs" class="tab-strip-tabs"></div>
           <div class="tab-strip-add">
             <button type="button" id="entry-tab-plus" class="tab-bar-plus-btn" title="Open a passage to reference">+</button>
             <select id="entry-tab-picker" class="tab-bar-picker" hidden>
-              <option value="" disabled selected>Open which passage?</option>
+              <option value="" disabled selected data-immersion-key="openWhichPassageOption">Open which passage?</option>
             </select>
           </div>
         </div>
         <div id="entry-tab-content" class="entry-tab-content">
-          <p class="hint entry-tab-empty">No passage open — click + to add one, or link one above.</p>
+          <p class="hint entry-tab-empty" data-immersion-key="noPassageOpenHint">No passage open — click + to add one, or link one above.</p>
         </div>
       </section>
 
-      <button type="button" id="delete-entry-btn" class="secondary delete-entry-btn">Delete this entry</button>
+      <button type="button" id="delete-entry-btn" class="secondary delete-entry-btn" data-immersion-key="deleteEntryButton">Delete this entry</button>
     </div>
 
     <aside class="panel writing-helper-panel" id="writing-helper-panel">
-      <h2>Helper Notebook</h2>
+      <h2 data-immersion-key="helperNotebookHeading">Helper Notebook</h2>
 
       <section class="helper-section" id="helper-section-vocab">
-        <h3 class="helper-section-title">Vocab from brackets</h3>
-        <p class="hint">
+        <h3 class="helper-section-title" data-immersion-key="vocabFromBracketsHeading">Vocab from brackets</h3>
+        <p class="hint" data-immersion-key="vocabFromBracketsHint">
           Words you've bracketed while writing, waiting to be learned. Run Vocab check to fill these in.
         </p>
         <ul id="helper-notebook-list" class="word-list helper-notebook-list"></ul>
       </section>
 
       <section class="helper-section" id="helper-section-personal-notes">
-        <h3 class="helper-section-title">Notes for yourself</h3>
-        <p class="hint">Private — just for you. (Same notes as Personal Hub's Helper Notebook.)</p>
+        <h3 class="helper-section-title" data-immersion-key="notesForYourselfHeading">Notes for yourself</h3>
+        <p class="hint" data-immersion-key="notesForYourselfHint">Private — just for you. (Same notes as Personal Hub's Helper Notebook.)</p>
         <textarea
           id="helper-personal-note"
           class="helper-notes-textarea"
           rows="4"
           placeholder="Anything you want to remember…"
+          data-immersion-key="anythingToRememberPlaceholder"
         ></textarea>
         <p id="helper-personal-note-status" class="entry-autosave-status"></p>
       </section>
 
       <section class="helper-section" id="helper-section-teacher-notes">
-        <h3 class="helper-section-title">Questions for your teacher</h3>
-        <p class="hint">
+        <h3 class="helper-section-title" data-immersion-key="questionsForTeacherHeading">Questions for your teacher</h3>
+        <p class="hint" data-immersion-key="questionsForTeacherHint">
           Not private — once a teacher connection exists, they'll be able to see these (but never your personal
           notes above).
         </p>
@@ -232,6 +233,7 @@
           class="helper-notes-textarea"
           rows="4"
           placeholder="Anything you want to ask…"
+          data-immersion-key="anythingToAskPlaceholder"
         ></textarea>
         <p id="helper-teacher-note-status" class="entry-autosave-status"></p>
       </section>

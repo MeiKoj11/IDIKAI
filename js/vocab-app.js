@@ -316,6 +316,7 @@ function renderThemeList() {
     deleteBtn.type = "button";
     deleteBtn.className = "secondary delete-theme-btn";
     deleteBtn.textContent = "Delete theme";
+    deleteBtn.dataset.immersionKey = "deleteThemeButton";
     deleteBtn.addEventListener("click", (e) => {
       // The whole card is a click-to-open link — without this the click
       // would both delete the theme AND navigate into the page for a
@@ -656,6 +657,7 @@ async function handleBulkImportExtractClick() {
   if (btn) {
     btn.disabled = true;
     btn.textContent = "Extracting...";
+    btn.dataset.immersionKey = "extractingStatus";
   }
   if (statusEl) statusEl.hidden = true;
 
@@ -664,6 +666,7 @@ async function handleBulkImportExtractClick() {
   if (btn) {
     btn.disabled = false;
     btn.textContent = "Extract flashcards";
+    btn.dataset.immersionKey = "extractFlashcardsButton";
   }
 
   if (result.error || !result.words) {
@@ -866,6 +869,7 @@ function renderWordList() {
     const li = document.createElement("li");
     li.className = "empty-hint";
     li.textContent = "No words yet — add one above.";
+    li.dataset.immersionKey = "noWordsYetText";
     list.appendChild(li);
     return;
   }
@@ -909,6 +913,7 @@ function renderWordList() {
       editBtn.type = "button";
       editBtn.className = "secondary edit-word-btn";
       editBtn.textContent = "Edit";
+      editBtn.dataset.immersionKey = "btnEdit";
       editBtn.dataset.wordId = word.id;
       actions.appendChild(editBtn);
 
@@ -916,6 +921,7 @@ function renderWordList() {
       moveBtn.type = "button";
       moveBtn.className = "secondary move-word-btn";
       moveBtn.textContent = "Move/Copy";
+      moveBtn.dataset.immersionKey = "moveCopyButton";
       moveBtn.dataset.wordId = word.id;
       actions.appendChild(moveBtn);
 
@@ -923,6 +929,7 @@ function renderWordList() {
       deleteBtn.type = "button";
       deleteBtn.className = "secondary delete-word-btn";
       deleteBtn.textContent = "Delete";
+      deleteBtn.dataset.immersionKey = "btnDelete";
       deleteBtn.dataset.wordId = word.id;
       actions.appendChild(deleteBtn);
 
@@ -956,6 +963,7 @@ function renderMoveThemeOptions(select, selectedId) {
   const newOpt = document.createElement("option");
   newOpt.value = MOVE_NEW_THEME_VALUE;
   newOpt.textContent = "+ Create new theme…";
+  newOpt.dataset.immersionKey = "createNewThemeOption";
   select.appendChild(newOpt);
 
   if (selectedId) {
@@ -1009,6 +1017,7 @@ function buildMovePanel(word) {
   const moveBtn = document.createElement("button");
   moveBtn.type = "button";
   moveBtn.textContent = "Move";
+  moveBtn.dataset.immersionKey = "moveButton";
   moveBtn.addEventListener("click", () => handleMoveWord(word.id, select));
   wrapper.appendChild(moveBtn);
 
@@ -1016,6 +1025,7 @@ function buildMovePanel(word) {
   copyBtn.type = "button";
   copyBtn.className = "secondary";
   copyBtn.textContent = "Copy";
+  copyBtn.dataset.immersionKey = "copyButton";
   copyBtn.addEventListener("click", () => handleCopyWord(word.id, select));
   wrapper.appendChild(copyBtn);
 
@@ -1023,6 +1033,7 @@ function buildMovePanel(word) {
   cancelBtn.type = "button";
   cancelBtn.className = "secondary";
   cancelBtn.textContent = "Cancel";
+  cancelBtn.dataset.immersionKey = "btnCancel";
   cancelBtn.addEventListener("click", () => {
     movingWordId = null;
     renderWordList();
@@ -1106,6 +1117,7 @@ function buildWordEditForm(word) {
   const saveBtn = document.createElement("button");
   saveBtn.type = "button";
   saveBtn.textContent = "Save";
+  saveBtn.dataset.immersionKey = "btnSave";
   saveBtn.addEventListener("click", () => handleSaveWordEdit(word.id, wrapper));
   wrapper.appendChild(saveBtn);
 
@@ -1113,6 +1125,7 @@ function buildWordEditForm(word) {
   cancelBtn.type = "button";
   cancelBtn.className = "secondary";
   cancelBtn.textContent = "Cancel";
+  cancelBtn.dataset.immersionKey = "btnCancel";
   cancelBtn.addEventListener("click", () => {
     editingWordId = null;
     renderWordList();
@@ -1248,6 +1261,7 @@ function renderQuizThemeCheckboxes() {
 
   if (themes.length === 0) {
     container.textContent = "Add a theme with some words first.";
+    container.dataset.immersionKey = "addThemeWithWordsFirstText";
     return;
   }
 

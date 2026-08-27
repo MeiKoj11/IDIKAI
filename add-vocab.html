@@ -15,10 +15,10 @@
     </button>
     <span id="topbar-lang-label" class="topbar-lang-label"></span>
     <div id="topbar-menu" class="topbar-menu" hidden>
-      <div class="topbar-menu-heading">Change language</div>
-      <button type="button" class="topbar-lang-option" data-lang="es">Spanish</button>
-      <button type="button" class="topbar-lang-option" data-lang="ja">Japanese</button>
-      <button type="button" class="topbar-lang-option" data-lang="fr">French</button>
+      <div class="topbar-menu-heading" data-immersion-key="changeLanguageHeading">Change language</div>
+      <button type="button" class="topbar-lang-option" data-lang="es" data-immersion-key="langNameEs">Spanish</button>
+      <button type="button" class="topbar-lang-option" data-lang="ja" data-immersion-key="langNameJa">Japanese</button>
+      <button type="button" class="topbar-lang-option" data-lang="fr" data-immersion-key="langNameFr">French</button>
     </div>
     <button type="button" id="topbar-notifications" class="topbar-notifications" aria-label="Notifications" aria-haspopup="true">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2"></rect><path d="M3 6.5l9 6.5 9-6.5"></path></svg>
@@ -34,25 +34,25 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"></path><path d="M5 10v10h14V10"></path></svg>
     </a>
     <div id="topbar-notifications-menu" class="topbar-menu topbar-notifications-menu" hidden>
-      <div class="topbar-menu-heading">Notifications</div>
-      <p class="topbar-notifications-empty">Coming soon — once a teacher connection exists, updates will show up here.</p>
+      <div class="topbar-menu-heading" data-immersion-key="notificationsHeading">Notifications</div>
+      <p class="topbar-notifications-empty" data-immersion-key="notificationsEmpty">Coming soon — once a teacher connection exists, updates will show up here.</p>
     </div>
     <div id="hub-todo-panel" class="hub-todo-panel" hidden>
       <div id="hub-todo-header" class="hub-todo-header">
-        <span class="hub-todo-title">To-do list</span>
+        <span class="hub-todo-title" data-immersion-key="todoTitle">To-do list</span>
         <button type="button" id="hub-todo-close" class="hub-todo-close" aria-label="Close">×</button>
       </div>
       <form id="hub-todo-add-form" class="hub-todo-add-form">
-        <input type="text" id="hub-todo-add-input" placeholder="Add a task…" autocomplete="off" />
+        <input type="text" id="hub-todo-add-input" placeholder="Add a task…" autocomplete="off" data-immersion-key="todoAddPlaceholder" />
         <select id="hub-todo-folder-select" class="hub-todo-folder-select" aria-label="Folder">
-          <option value="">No folder</option>
+          <option value="" data-immersion-key="todoNoFolder">No folder</option>
         </select>
-        <button type="submit">Add</button>
+        <button type="submit" data-immersion-key="todoAddButton">Add</button>
       </form>
       <div id="hub-todo-groups" class="hub-todo-groups"></div>
       <label class="hub-todo-show-completed">
         <input type="checkbox" id="hub-todo-show-completed" />
-        Show completed
+        <span data-immersion-key="todoShowCompleted">Show completed</span>
       </label>
     </div>
   </div>
@@ -62,91 +62,91 @@
       <button type="button" id="app-tab-plus" class="tab-bar-plus-btn" title="Open another section in a new tab">+</button>
       <div id="app-tab-picker-panel" class="app-tab-picker-panel" hidden>
         <select id="app-tab-section-select">
-          <option value="" disabled selected>Which section?</option>
-          <option value="vocab">Vocab Bank</option>
-          <option value="grammar">Grammar</option>
-          <option value="writing">Writing</option>
-          <option value="speaking">Speaking</option>
-          <option value="reading">Reading</option>
-          <option value="personal-hub">Personal Hub</option>
-          <option value="listening">Listening</option>
+          <option value="" disabled selected data-immersion-key="tabPickerSectionPlaceholder">Which section?</option>
+          <option value="vocab" data-immersion-key="sectionVocab">Vocab Bank</option>
+          <option value="grammar" data-immersion-key="sectionGrammar">Grammar</option>
+          <option value="writing" data-immersion-key="sectionWriting">Writing</option>
+          <option value="speaking" data-immersion-key="sectionSpeaking">Speaking</option>
+          <option value="reading" data-immersion-key="sectionReading">Reading</option>
+          <option value="personal-hub" data-immersion-key="sectionPersonalHub">Personal Hub</option>
+          <option value="listening" data-immersion-key="sectionListening">Listening</option>
         </select>
         <select id="app-tab-unit-select" hidden>
-          <option value="" disabled selected>Which one?</option>
+          <option value="" disabled selected data-immersion-key="tabPickerUnitPlaceholder">Which one?</option>
         </select>
-        <button type="button" id="app-tab-open-btn" class="secondary" hidden>Open</button>
-        <button type="button" id="app-tab-picker-cancel" class="secondary">Cancel</button>
+        <button type="button" id="app-tab-open-btn" class="secondary" hidden data-immersion-key="tabPickerOpen">Open</button>
+        <button type="button" id="app-tab-picker-cancel" class="secondary" data-immersion-key="tabPickerCancel">Cancel</button>
       </div>
     </div>
   </div>
   <header class="app-header" id="page-header">
-    <a href="theme.html" id="add-vocab-back-link" class="back-link">&larr; Back</a>
-    <h1>Add New Vocab</h1>
+    <a href="theme.html" id="add-vocab-back-link" class="back-link" data-immersion-key="backPlain">&larr; Back</a>
+    <h1 data-immersion-key="addNewVocabHeading">Add New Vocab</h1>
   </header>
 
   <main id="vocab-main-content">
     <section class="panel" id="add-word-panel">
-      <h2>Add a word — <span id="active-theme-name"></span></h2>
+      <h2><span data-immersion-key="addWordHeadingPrefix">Add a word —</span> <span id="active-theme-name"></span></h2>
       <form id="add-word-form" class="stacked-form">
         <label>
-          English
+          <span data-immersion-key="englishLabel">English</span>
           <input type="text" id="field-english" placeholder="e.g. to speak" />
         </label>
         <label>
-          <span>Target language (<span id="active-theme-lang-label"></span>)</span>
+          <span><span data-immersion-key="targetLanguageLabel">Target language (</span><span id="active-theme-lang-label"></span>)</span>
           <input type="text" id="field-tl" placeholder="e.g. hablar, or a conjugated form like hablo" />
         </label>
         <div id="furigana-field" hidden>
           <label>
-            Furigana (optional)
+            <span data-immersion-key="furiganaOptionalLabel">Furigana (optional)</span>
             <input type="text" id="field-furigana" placeholder="reading" />
           </label>
         </div>
         <label>
-          Example sentence (optional)
+          <span data-immersion-key="exampleSentenceOptionalLabel">Example sentence (optional)</span>
           <textarea id="field-example" rows="2" placeholder="e.g. a sentence showing how this word is used"></textarea>
         </label>
-        <p class="hint">
+        <p class="hint" data-immersion-key="addWordHint">
           Fill in just one side and leave the other blank — the app will try to fill it in for
           you (a quick online lookup, or verb-form detection for Spanish), and let you check it
           before saving. Needs an internet connection to auto-fill; you can always type both
           sides yourself instead.
         </p>
-        <button type="submit">Add word</button>
+        <button type="submit" data-immersion-key="addWordButton">Add word</button>
       </form>
       <div id="verb-detection-panel" class="detection-panel" hidden>
         <p id="detection-summary"></p>
         <div class="detection-actions">
-          <button type="button" id="use-translation-only">Just use this translation</button>
-          <button type="button" id="cancel-detection" class="secondary">Cancel</button>
+          <button type="button" id="use-translation-only" data-immersion-key="justUseTranslationButton">Just use this translation</button>
+          <button type="button" id="cancel-detection" class="secondary" data-immersion-key="btnCancel">Cancel</button>
         </div>
         <details>
-          <summary>Or build a conjugation table for this verb</summary>
+          <summary data-immersion-key="buildConjugationTableSummary">Or build a conjugation table for this verb</summary>
           <div class="checkbox-grid">
             <div>
-              <strong>Tenses</strong>
+              <strong data-immersion-key="tensesLabel">Tenses</strong>
               <div id="tense-checkboxes"></div>
             </div>
             <div>
-              <strong>Persons</strong>
+              <strong data-immersion-key="personsLabel">Persons</strong>
               <div id="person-checkboxes"></div>
             </div>
           </div>
-          <button type="button" id="generate-table">Generate table &amp; save</button>
+          <button type="button" id="generate-table" data-immersion-key="generateTableButton">Generate table &amp; save</button>
           <div id="verb-table-preview" class="table-preview"></div>
         </details>
       </div>
     </section>
     <section class="panel" id="bulk-import-panel">
-      <h2>Import a vocab list</h2>
-      <p class="hint">
+      <h2 data-immersion-key="importVocabListHeading">Import a vocab list</h2>
+      <p class="hint" data-immersion-key="importVocabListHint">
         Paste a list of words/phrases — yours, or copied from a textbook, worksheet, or website.
         It doesn't need to be tidy, just recognizable as a vocab list — it'll figure out which side
         is English and pull out clean pairs for you to review before anything is saved.
       </p>
       <div class="stacked-form">
-        <textarea id="bulk-import-text" rows="6" placeholder="Paste your vocab list here..."></textarea>
-        <button type="button" id="bulk-import-extract-btn">Extract flashcards</button>
+        <textarea id="bulk-import-text" rows="6" placeholder="Paste your vocab list here..." data-immersion-key="pasteVocabListPlaceholder"></textarea>
+        <button type="button" id="bulk-import-extract-btn" data-immersion-key="extractFlashcardsButton">Extract flashcards</button>
       </div>
       <p id="bulk-import-status" class="hint" hidden></p>
 
@@ -154,25 +154,25 @@
         <div class="bulk-import-review-header">
           <span id="bulk-import-review-count"></span>
           <div class="bulk-import-review-actions">
-            <button type="button" id="bulk-import-select-all" class="secondary">Select all</button>
-            <button type="button" id="bulk-import-select-none" class="secondary">Select none</button>
+            <button type="button" id="bulk-import-select-all" class="secondary" data-immersion-key="selectAllButton">Select all</button>
+            <button type="button" id="bulk-import-select-none" class="secondary" data-immersion-key="selectNoneButton">Select none</button>
           </div>
         </div>
         <ul id="bulk-import-list" class="bulk-import-list"></ul>
         <div class="bulk-import-save-row">
-          <button type="button" id="bulk-import-save-btn">Save selected</button>
-          <button type="button" id="bulk-import-discard-btn" class="secondary">Discard</button>
+          <button type="button" id="bulk-import-save-btn" data-immersion-key="saveSelectedButton">Save selected</button>
+          <button type="button" id="bulk-import-discard-btn" class="secondary" data-immersion-key="discardButton">Discard</button>
         </div>
       </div>
       <p id="bulk-import-save-status" class="hint" hidden></p>
     </section>
     <section class="panel" id="word-list-panel">
-      <h2>Words — <span id="active-theme-name-2"></span></h2>
+      <h2><span data-immersion-key="wordsHeadingPrefix">Words —</span> <span id="active-theme-name-2"></span></h2>
       <ul id="word-list" class="word-list"></ul>
     </section>
     <section class="panel" id="conjugation-tables-panel" hidden>
-      <h2>Conjugation Tables</h2>
-      <p class="hint">One merged table per verb — flashcards link here instead of showing the full table inline.</p>
+      <h2 data-immersion-key="conjugationTablesHeading">Conjugation Tables</h2>
+      <p class="hint" data-immersion-key="conjugationTablesHint">One merged table per verb — flashcards link here instead of showing the full table inline.</p>
       <div id="conjugation-tables"></div>
     </section>
   </main>

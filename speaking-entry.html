@@ -15,10 +15,10 @@
     </button>
     <span id="topbar-lang-label" class="topbar-lang-label"></span>
     <div id="topbar-menu" class="topbar-menu" hidden>
-      <div class="topbar-menu-heading">Change language</div>
-      <button type="button" class="topbar-lang-option" data-lang="es">Spanish</button>
-      <button type="button" class="topbar-lang-option" data-lang="ja">Japanese</button>
-      <button type="button" class="topbar-lang-option" data-lang="fr">French</button>
+      <div class="topbar-menu-heading" data-immersion-key="changeLanguageHeading">Change language</div>
+      <button type="button" class="topbar-lang-option" data-lang="es" data-immersion-key="langNameEs">Spanish</button>
+      <button type="button" class="topbar-lang-option" data-lang="ja" data-immersion-key="langNameJa">Japanese</button>
+      <button type="button" class="topbar-lang-option" data-lang="fr" data-immersion-key="langNameFr">French</button>
     </div>
     <button type="button" id="topbar-notifications" class="topbar-notifications" aria-label="Notifications" aria-haspopup="true">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2"></rect><path d="M3 6.5l9 6.5 9-6.5"></path></svg>
@@ -34,25 +34,25 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"></path><path d="M5 10v10h14V10"></path></svg>
     </a>
     <div id="topbar-notifications-menu" class="topbar-menu topbar-notifications-menu" hidden>
-      <div class="topbar-menu-heading">Notifications</div>
-      <p class="topbar-notifications-empty">Coming soon — once a teacher connection exists, updates will show up here.</p>
+      <div class="topbar-menu-heading" data-immersion-key="notificationsHeading">Notifications</div>
+      <p class="topbar-notifications-empty" data-immersion-key="notificationsEmpty">Coming soon — once a teacher connection exists, updates will show up here.</p>
     </div>
     <div id="hub-todo-panel" class="hub-todo-panel" hidden>
       <div id="hub-todo-header" class="hub-todo-header">
-        <span class="hub-todo-title">To-do list</span>
+        <span class="hub-todo-title" data-immersion-key="todoTitle">To-do list</span>
         <button type="button" id="hub-todo-close" class="hub-todo-close" aria-label="Close">×</button>
       </div>
       <form id="hub-todo-add-form" class="hub-todo-add-form">
-        <input type="text" id="hub-todo-add-input" placeholder="Add a task…" autocomplete="off" />
+        <input type="text" id="hub-todo-add-input" placeholder="Add a task…" autocomplete="off" data-immersion-key="todoAddPlaceholder" />
         <select id="hub-todo-folder-select" class="hub-todo-folder-select" aria-label="Folder">
-          <option value="">No folder</option>
+          <option value="" data-immersion-key="todoNoFolder">No folder</option>
         </select>
-        <button type="submit">Add</button>
+        <button type="submit" data-immersion-key="todoAddButton">Add</button>
       </form>
       <div id="hub-todo-groups" class="hub-todo-groups"></div>
       <label class="hub-todo-show-completed">
         <input type="checkbox" id="hub-todo-show-completed" />
-        Show completed
+        <span data-immersion-key="todoShowCompleted">Show completed</span>
       </label>
     </div>
   </div>
@@ -62,85 +62,85 @@
       <button type="button" id="app-tab-plus" class="tab-bar-plus-btn" title="Open another section in a new tab">+</button>
       <div id="app-tab-picker-panel" class="app-tab-picker-panel" hidden>
         <select id="app-tab-section-select">
-          <option value="" disabled selected>Which section?</option>
-          <option value="vocab">Vocab Bank</option>
-          <option value="grammar">Grammar</option>
-          <option value="writing">Writing</option>
-          <option value="speaking">Speaking</option>
-          <option value="reading">Reading</option>
-          <option value="personal-hub">Personal Hub</option>
-          <option value="listening">Listening</option>
+          <option value="" disabled selected data-immersion-key="tabPickerSectionPlaceholder">Which section?</option>
+          <option value="vocab" data-immersion-key="sectionVocab">Vocab Bank</option>
+          <option value="grammar" data-immersion-key="sectionGrammar">Grammar</option>
+          <option value="writing" data-immersion-key="sectionWriting">Writing</option>
+          <option value="speaking" data-immersion-key="sectionSpeaking">Speaking</option>
+          <option value="reading" data-immersion-key="sectionReading">Reading</option>
+          <option value="personal-hub" data-immersion-key="sectionPersonalHub">Personal Hub</option>
+          <option value="listening" data-immersion-key="sectionListening">Listening</option>
         </select>
         <select id="app-tab-unit-select" hidden>
-          <option value="" disabled selected>Which one?</option>
+          <option value="" disabled selected data-immersion-key="tabPickerUnitPlaceholder">Which one?</option>
         </select>
-        <button type="button" id="app-tab-open-btn" class="secondary" hidden>Open</button>
-        <button type="button" id="app-tab-picker-cancel" class="secondary">Cancel</button>
+        <button type="button" id="app-tab-open-btn" class="secondary" hidden data-immersion-key="tabPickerOpen">Open</button>
+        <button type="button" id="app-tab-picker-cancel" class="secondary" data-immersion-key="tabPickerCancel">Cancel</button>
       </div>
     </div>
   </div>
   <header class="app-header" id="entry-header">
-    <a href="speaking.html" id="entry-back-link" class="back-link">&larr; Back</a>
+    <a href="speaking.html" id="entry-back-link" class="back-link" data-immersion-key="backPlain">&larr; Back</a>
     <h1 id="entry-heading">Speaking Entry</h1>
   </header>
   <main>
     <section class="panel" id="entry-details-panel">
       <form id="entry-details-form" class="stacked-form">
         <label>
-          Title
-          <input type="text" id="entry-title" placeholder="e.g. Ordering at a cafe" required />
+          <span data-immersion-key="titleLabel">Title</span>
+          <input type="text" id="entry-title" placeholder="e.g. Ordering at a cafe" required data-immersion-key="speakingEntryTitlePlaceholder" />
         </label>
         <label>
-          Date
+          <span data-immersion-key="dateLabel">Date</span>
           <input type="date" id="entry-date" required />
         </label>
         <label>
-          Link to a Reading passage (optional)
+          <span data-immersion-key="linkPassageOptionalLabel">Link to a Reading passage (optional)</span>
           <select id="entry-link-select">
-            <option value="">No link</option>
+            <option value="" data-immersion-key="noLinkOption">No link</option>
           </select>
         </label>
-        <p class="hint">Linking a passage adds it as a tab below so you can read it aloud while recording.</p>
-        <button type="submit">Save entry</button>
-        <p id="entry-save-status" class="hint" hidden>Saved.</p>
+        <p class="hint" data-immersion-key="linkingPassageReadAloudHint">Linking a passage adds it as a tab below so you can read it aloud while recording.</p>
+        <button type="submit" data-immersion-key="saveEntryButton">Save entry</button>
+        <p id="entry-save-status" class="hint" hidden data-immersion-key="savedStatus">Saved.</p>
       </form>
     </section>
 
     <section class="panel" id="recorder-panel">
-      <h2>Recording</h2>
+      <h2 data-immersion-key="recordingHeading">Recording</h2>
       <div class="recorder-controls">
-        <button type="button" id="record-btn">Record</button>
+        <button type="button" id="record-btn" data-immersion-key="recordButton">Record</button>
         <span id="record-timer" class="record-timer">0:00</span>
       </div>
       <p id="recording-status" class="hint" hidden></p>
       <audio id="playback-audio" controls hidden></audio>
-      <button type="button" id="delete-recording-btn" class="secondary" hidden>Delete recording</button>
+      <button type="button" id="delete-recording-btn" class="secondary" hidden data-immersion-key="deleteRecordingButton">Delete recording</button>
     </section>
 
     <section class="panel" id="entry-reading-panel">
-      <h2>Read while you speak</h2>
-      <p class="hint">Open a Reading passage (or your linked one) or one of your own Writing entries here to read aloud while you record.</p>
+      <h2 data-immersion-key="readWhileSpeakHeading">Read while you speak</h2>
+      <p class="hint" data-immersion-key="readWhileSpeakHint">Open a Reading passage (or your linked one) or one of your own Writing entries here to read aloud while you record.</p>
       <div id="entry-tab-strip" class="tab-strip">
         <div id="entry-tab-strip-tabs" class="tab-strip-tabs"></div>
         <div class="tab-strip-add">
           <button type="button" id="entry-tab-plus" class="tab-bar-plus-btn" title="Open a passage or Writing entry to read">+</button>
           <select id="entry-tab-type-picker" class="tab-bar-picker" hidden>
-            <option value="" disabled selected>Reading or Writing?</option>
-            <option value="p">Reading passage</option>
-            <option value="w">Writing entry</option>
+            <option value="" disabled selected data-immersion-key="readingOrWritingOption">Reading or Writing?</option>
+            <option value="p" data-immersion-key="readingPassageOption">Reading passage</option>
+            <option value="w" data-immersion-key="writingEntryOption">Writing entry</option>
           </select>
           <select id="entry-tab-picker" class="tab-bar-picker" hidden>
-            <option value="" disabled selected>Open which one?</option>
+            <option value="" disabled selected data-immersion-key="openWhichOneOption">Open which one?</option>
           </select>
-          <button type="button" id="entry-tab-picker-cancel" class="secondary" hidden>Cancel</button>
+          <button type="button" id="entry-tab-picker-cancel" class="secondary" hidden data-immersion-key="btnCancel">Cancel</button>
         </div>
       </div>
       <div id="entry-tab-content" class="entry-tab-content">
-        <p class="hint entry-tab-empty">Nothing open to read — click + to add a passage or a Writing entry, or link a passage above.</p>
+        <p class="hint entry-tab-empty" data-immersion-key="nothingOpenToReadHint">Nothing open to read — click + to add a passage or a Writing entry, or link a passage above.</p>
       </div>
     </section>
 
-    <button type="button" id="delete-entry-btn" class="secondary delete-entry-btn">Delete this entry</button>
+    <button type="button" id="delete-entry-btn" class="secondary delete-entry-btn" data-immersion-key="deleteEntryButton">Delete this entry</button>
   </main>
   <script src="js/topbar.js"></script>
   <script src="js/immersion.js"></script>
