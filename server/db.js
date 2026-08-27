@@ -26,11 +26,98 @@
 */
 
 const path = require("path");
+const fs = require("fs");
 const crypto = require("crypto");
 const { DatabaseSync } = require("node:sqlite");
 
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, "data.db");
 const db = new DatabaseSync(DB_PATH);
+
+// ---- Backups ----
+// A second line of defense on top of the persistent disk itself: a
+// full, consistent snapshot of the whole database, taken periodically
+// and on every boot, kept in a backups/ folder right next to the live
+// .db file (so it's on the same persistent disk and survives redeploys
+// too). This exists specifically so a bug, a bad deploy, or a mistake
+// can never be the ONLY copy of anyone's data — there's always a
+// recent point to restore from.
+const BACKUP_DIR = path.join(path.dirname(DB_PATH), "backups");
+// Deliberately generous — these are small text-only databases (a few
+// MB at most), so keeping a long history costs almost nothing, and
+// "nothing important ever gets deleted" is the whole point of this
+// feature. Only prunes once there are MORE than this many, and only
+// the oldest beyond that count.
+const MAX_BACKUPS_TO_KEEP = 500;
+
+function backupFileName(date) {
+  const pad = (n, len) => String(n).padStart(len || 2, "0");
+  const y = date.getFullYear();
+  const mo = pad(date.getMonth() + 1);
+  const d = pad(date.getDate());
+  const h = pad(date.getHours());
+  const mi = pad(date.getMinutes());
+  const s = pad(date.getSeconds());
+  return `app-${y}${mo}${d}-${h}${mi}${s}.db`;
+}
+
+// Uses SQLite's own VACUUM INTO rather than copying the file with fs —
+// VACUUM INTO produces a single, consistent, valid database file even
+// while the live one is open and in use, which a plain file copy can't
+// safely guarantee.
+function backupDatabase() {
+  try {
+    fs.mkdirSync(BACKUP_DIR, { recursive: true });
+    const dest = path.join(BACKUP_DIR, backupFileName(new Date()));
+    // The filename is generated entirely by this function (not from any
+    // user input), so it's safe to inline directly into the SQL string —
+    // node:sqlite doesn't support bound parameters inside VACUUM INTO.
+    const escaped = dest.replace(/'/g, "''");
+    db.exec(`VACUUM INTO '${escaped}'`);
+    pruneOldBackups();
+    return dest;
+  } catch (e) {
+    console.error("Database backup failed:", e);
+    return null;
+  }
+}
+
+function listBackups() {
+  try {
+    return fs
+      .readdirSync(BACKUP_DIR)
+      .filter((name) => /^app-\d{8}-\d{6}\.db$/.test(name))
+      .map((name) => {
+        const full = path.join(BACKUP_DIR, name);
+        const stat = fs.statSync(full);
+        return { name, size: stat.size, createdAt: stat.mtime.toISOString() };
+      })
+      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)); // newest first
+  } catch (e) {
+    return [];
+  }
+}
+
+// Only ever deletes the OLDEST backups, and only once there are more
+// than MAX_BACKUPS_TO_KEEP — never touches anything recent.
+function pruneOldBackups() {
+  const backups = listBackups(); // newest first
+  if (backups.length <= MAX_BACKUPS_TO_KEEP) return;
+  backups.slice(MAX_BACKUPS_TO_KEEP).forEach((b) => {
+    try {
+      fs.unlinkSync(path.join(BACKUP_DIR, b.name));
+    } catch (e) {
+      // Non-fatal — worst case a few extra old backups stick around.
+    }
+  });
+}
+
+function getBackupPath(name) {
+  // Whitelist the exact filename shape backupFileName() produces —
+  // blocks any path-traversal attempt via a crafted "name".
+  if (!/^app-\d{8}-\d{6}\.db$/.test(name)) return null;
+  const full = path.join(BACKUP_DIR, name);
+  return fs.existsSync(full) ? full : null;
+}
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
@@ -197,4 +284,8 @@ module.exports = {
   setUserData,
   importUserData,
   verifyPassword,
+  backupDatabase,
+  listBackups,
+  getBackupPath,
+  BACKUP_DIR,
 };

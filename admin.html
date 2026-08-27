@@ -36,6 +36,16 @@
 
       <h2 class="auth-section-heading">Existing accounts</h2>
       <ul id="admin-user-list" class="auth-user-list"></ul>
+
+      <h2 class="auth-section-heading">Automatic backups</h2>
+      <p class="hint">
+        A full snapshot of everyone's data is saved automatically every few hours (and right after every
+        deploy), so there's always a recent point to restore from if anything ever goes wrong. These never
+        get deleted except the very oldest once there are hundreds of them.
+      </p>
+      <button type="button" id="admin-backup-now-btn" class="secondary">Back up right now</button>
+      <p id="admin-backup-status" class="hint" hidden></p>
+      <ul id="admin-backup-list" class="auth-user-list"></ul>
     </div>
   </main>
 

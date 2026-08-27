@@ -25,6 +25,44 @@ function loadUserList() {
     });
 }
 
+// Sizes like "2.3 MB" instead of a raw byte count — matters here since
+// this list can realistically grow into the hundreds of entries.
+function formatBytes(bytes) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function loadBackupList() {
+  fetch("/api/admin/backups")
+    .then((res) => res.json())
+    .then(({ backups }) => {
+      const list = document.getElementById("admin-backup-list");
+      if (!list) return;
+      list.innerHTML = "";
+      if (!backups || backups.length === 0) {
+        const li = document.createElement("li");
+        li.textContent = "No backups yet — one gets taken automatically within a few hours, or click “Back up right now” above.";
+        list.appendChild(li);
+        return;
+      }
+      backups.forEach((b) => {
+        const li = document.createElement("li");
+        const link = document.createElement("a");
+        link.href = `/api/admin/backups/${encodeURIComponent(b.name)}`;
+        link.download = b.name;
+        link.textContent = b.name;
+        li.appendChild(link);
+        const when = new Date(b.createdAt).toLocaleString();
+        li.appendChild(document.createTextNode(` — ${when} — ${formatBytes(b.size)}`));
+        list.appendChild(li);
+      });
+    })
+    .catch(() => {
+      // Non-critical — the rest of the admin page still works without this list.
+    });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   fetch("/api/me")
     .then((res) => {
@@ -42,7 +80,29 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       document.getElementById("admin-panel").hidden = false;
       loadUserList();
+      loadBackupList();
     });
+
+  const backupNowBtn = document.getElementById("admin-backup-now-btn");
+  const backupStatus = document.getElementById("admin-backup-status");
+  if (backupNowBtn) {
+    backupNowBtn.addEventListener("click", () => {
+      backupNowBtn.disabled = true;
+      backupStatus.hidden = false;
+      backupStatus.textContent = "Backing up…";
+      fetch("/api/admin/backups", { method: "POST" })
+        .then((res) => res.json().then((body) => ({ ok: res.ok, body })))
+        .then(({ ok, body }) => {
+          backupNowBtn.disabled = false;
+          backupStatus.textContent = ok ? "Backup saved." : body.error || "Backup failed.";
+          if (ok) loadBackupList();
+        })
+        .catch(() => {
+          backupNowBtn.disabled = false;
+          backupStatus.textContent = "Could not reach the server.";
+        });
+    });
+  }
 
   const form = document.getElementById("admin-create-form");
   const errorEl = document.getElementById("admin-create-error");

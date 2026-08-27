@@ -48,6 +48,7 @@ const IMMERSION_STRINGS = {
   todoNoFolder: { es: "Sin carpeta", ja: "フォルダなし", fr: "Aucun dossier" },
   todoShowCompleted: { es: "Mostrar completadas", ja: "完了済みを表示", fr: "Afficher terminées" },
   logOut: { es: "Cerrar sesión", ja: "ログアウト", fr: "Se déconnecter" },
+  downloadMyDataOption: { es: "Descargar mis datos", ja: "自分のデータをダウンロード", fr: "Télécharger mes données" },
   tabPickerSectionPlaceholder: { es: "¿Qué sección?", ja: "どのセクション？", fr: "Quelle section ?" },
   tabPickerUnitPlaceholder: { es: "¿Cuál?", ja: "どれ？", fr: "Lequel ?" },
   tabPickerOpen: { es: "Abrir", ja: "開く", fr: "Ouvrir" },

@@ -31,25 +31,62 @@
 
 let _dataCache = {};
 
+// Set to true only if every load attempt below fails. This is the
+// single most important safety flag in the whole sync system: it used
+// to be that a failed load silently left _dataCache as {} and the page
+// carried on as if the account had no data at all — meaning the very
+// next save (adding one word, one entry, anything) would overwrite the
+// real server-side value for that key with just the new item, quietly
+// destroying everything else that used to be there. writeJSON() below
+// refuses to run at all while this flag is set, so a broken load can
+// no longer turn into a destructive write.
+let _dataLoadFailed = false;
+
 (function loadAccountData() {
-  try {
-    const xhr = new XMLHttpRequest();
-    xhr.open("GET", "/api/data", false); // synchronous, on purpose — see file header
-    xhr.send(null);
+  // A single dropped connection or a brief server restart (e.g. the
+  // moment a deploy restarts the service) used to be enough to trigger
+  // the data-loss bug described above, so this retries a few times —
+  // synchronously, matching the rest of this function's already-
+  // documented tradeoff — before concluding the load really failed.
+  const MAX_ATTEMPTS = 4;
 
-    if (xhr.status === 401) {
-      const returnTo = encodeURIComponent(window.location.pathname + window.location.search);
-      window.location.replace(`login.html?return=${returnTo}`);
-      return;
-    }
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const xhr = new XMLHttpRequest();
+      xhr.open("GET", "/api/data", false); // synchronous, on purpose — see file header
+      xhr.send(null);
 
-    if (xhr.status >= 200 && xhr.status < 300) {
-      _dataCache = JSON.parse(xhr.responseText || "{}");
-    } else {
-      console.error(`Could not load your synced data (server returned ${xhr.status}). Starting empty for this session.`);
+      if (xhr.status === 401) {
+        const returnTo = encodeURIComponent(window.location.pathname + window.location.search);
+        window.location.replace(`login.html?return=${returnTo}`);
+        return;
+      }
+
+      if (xhr.status >= 200 && xhr.status < 300) {
+        _dataCache = JSON.parse(xhr.responseText || "{}");
+        return; // success — nothing more to do
+      }
+
+      console.warn(`Attempt ${attempt}/${MAX_ATTEMPTS}: could not load your synced data (server returned ${xhr.status}).`);
+    } catch (e) {
+      console.warn(`Attempt ${attempt}/${MAX_ATTEMPTS}: could not reach the server to load your data.`, e);
     }
-  } catch (e) {
-    console.error("Could not reach the server to load your data. Starting empty for this session.", e);
+  }
+
+  // Every attempt failed. Do NOT let the page continue on with an
+  // empty cache — that's exactly what used to silently wipe accounts.
+  // Block the page instead and make the failure impossible to miss.
+  _dataLoadFailed = true;
+  console.error("Could not load your synced data after several attempts — refusing to continue, to protect your saved data.");
+  if (typeof document !== "undefined") {
+    document.title = "Couldn't load your data";
+    document.documentElement.innerHTML =
+      '<body style="font-family: system-ui, sans-serif; max-width: 34em; margin: 4em auto; padding: 0 1.5em; line-height: 1.6; color: #221E1C;">' +
+      "<h1>Couldn't load your saved data</h1>" +
+      "<p>To protect your account, nothing was loaded or changed. This is usually a brief, temporary problem " +
+      "(like the server restarting) — waiting a few seconds and reloading almost always fixes it.</p>" +
+      '<button onclick="window.location.reload()" style="font-size: 1rem; padding: 0.6em 1.2em; cursor: pointer;">Reload</button>' +
+      "</body>";
   }
 })();
 
@@ -98,6 +135,14 @@ function readJSON(key, fallback) {
 let _pendingWrites = {};
 
 function writeJSON(key, value, isRetry) {
+  // Belt-and-suspenders on top of the load-retry/hard-block above: if
+  // somehow a write is ever attempted while the initial load never
+  // actually succeeded, refuse it outright rather than risk persisting
+  // a value computed from an incomplete/empty cache.
+  if (_dataLoadFailed) {
+    console.error(`Refusing to save "${key}" — your data never finished loading, so saving now could overwrite it.`);
+    return;
+  }
   _dataCache[key] = value;
   _pendingWrites[key] = value;
   fetch("/api/data", {

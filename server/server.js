@@ -970,6 +970,60 @@ function handleApiRoute(req, res, url) {
     return true;
   }
 
+  // ---- GET /api/export (download this account's full data as JSON) ----
+  // A one-click, always-available safety net for the account owner —
+  // completely independent of the server's own automatic backups, so
+  // there's always an off-server copy too if anything ever goes wrong.
+  if (url.pathname === "/api/export" && req.method === "GET") {
+    const user = getSessionUser(req);
+    if (!user) return sendJSON(res, 401, { error: "Not logged in." }) || true;
+    const data = db.getAllUserData(user.id);
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const filename = `idikai-export-${stamp}.json`;
+    res.writeHead(200, {
+      "content-type": "application/json",
+      "content-disposition": `attachment; filename="${filename}"`,
+    });
+    res.end(JSON.stringify(data, null, 2));
+    return true;
+  }
+
+  // ---- GET /api/admin/backups (admin only) — list automatic full-DB backups ----
+  if (url.pathname === "/api/admin/backups" && req.method === "GET") {
+    const user = getSessionUser(req);
+    if (!user) return sendJSON(res, 401, { error: "Not logged in." }) || true;
+    if (!user.is_admin) return sendJSON(res, 403, { error: "Admin only." }) || true;
+    sendJSON(res, 200, { backups: db.listBackups() });
+    return true;
+  }
+
+  // ---- POST /api/admin/backups (admin only) — trigger a backup right now ----
+  if (url.pathname === "/api/admin/backups" && req.method === "POST") {
+    const user = getSessionUser(req);
+    if (!user) return sendJSON(res, 401, { error: "Not logged in." }) || true;
+    if (!user.is_admin) return sendJSON(res, 403, { error: "Admin only." }) || true;
+    const dest = db.backupDatabase();
+    if (!dest) return sendJSON(res, 500, { error: "Backup failed — check server logs." }) || true;
+    sendJSON(res, 200, { ok: true });
+    return true;
+  }
+
+  // ---- GET /api/admin/backups/:filename (admin only) — download one raw .db backup ----
+  if (url.pathname.startsWith("/api/admin/backups/") && req.method === "GET") {
+    const user = getSessionUser(req);
+    if (!user) return sendJSON(res, 401, { error: "Not logged in." }) || true;
+    if (!user.is_admin) return sendJSON(res, 403, { error: "Admin only." }) || true;
+    const name = decodeURIComponent(url.pathname.slice("/api/admin/backups/".length));
+    const full = db.getBackupPath(name);
+    if (!full) return sendJSON(res, 404, { error: "Backup not found." }) || true;
+    res.writeHead(200, {
+      "content-type": "application/octet-stream",
+      "content-disposition": `attachment; filename="${name}"`,
+    });
+    fs.createReadStream(full).pipe(res);
+    return true;
+  }
+
   // ---- GET /api/admin/users (admin only) ----
   if (url.pathname === "/api/admin/users" && req.method === "GET") {
     const user = getSessionUser(req);
@@ -1507,10 +1561,24 @@ function bootstrapAdminAccount() {
   console.log(`Created admin account for ${email}.`);
 }
 
+// Full-database backups: one immediately on every boot (so a snapshot
+// always exists right after a deploy, before anything can go wrong),
+// then again on a fixed interval for as long as the process stays up.
+// See db.js's backupDatabase() for how this stays safe to run while
+// the live database is in active use.
+const BACKUP_INTERVAL_MS = 6 * 60 * 60 * 1000; // every 6 hours
+
+function runScheduledBackup() {
+  const dest = db.backupDatabase();
+  if (dest) console.log(`Database backup saved: ${dest}`);
+}
+
 server.listen(PORT, () => {
   if (!API_KEY) {
     console.warn("⚠️  ANTHROPIC_API_KEY is not set. Copy .env.example to .env and add your key.");
   }
   bootstrapAdminAccount();
+  runScheduledBackup();
+  setInterval(runScheduledBackup, BACKUP_INTERVAL_MS);
   console.log(`Dictionary lookup server running at http://localhost:${PORT}`);
 });

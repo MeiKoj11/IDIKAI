@@ -71,9 +71,31 @@ function initTopbar(lang) {
     });
   });
 
+  addTopbarBackupOption(document.getElementById("topbar-menu"));
   addTopbarLogoutOption(document.getElementById("topbar-menu"));
 
   if (typeof initImmersion === "function") initImmersion(lang);
+}
+
+// A one-click "download everything this account has saved" button,
+// reachable from every page for the same reason addTopbarLogoutOption
+// is — added here at runtime so all 18+ pages get it without another
+// find-and-replace sweep. Exists as an always-available safety net
+// independent of the server's own automatic backups: an off-server
+// copy you can grab any time, in your own Downloads folder.
+function addTopbarBackupOption(menu) {
+  if (!menu || menu.querySelector(".topbar-backup-option") || typeof Storage === "undefined") return;
+
+  const btn = document.createElement("a");
+  btn.className = "topbar-lang-option topbar-backup-option";
+  btn.textContent = "Download my data";
+  btn.dataset.immersionKey = "downloadMyDataOption";
+  btn.href = "/api/export";
+  // A real download, not a navigation — the server's Content-Disposition
+  // header on /api/export already forces "download" behavior, but this
+  // keeps this tab from otherwise navigating away if that ever changes.
+  btn.download = "";
+  menu.appendChild(btn);
 }
 
 // Appended at runtime rather than baked into every page's own HTML —
