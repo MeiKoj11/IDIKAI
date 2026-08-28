@@ -3262,7 +3262,9 @@ details[open] > .hub-todo-group-summary::before {
 /* Test mode */
 
 .tenses-test-card {
-  max-width: 460px;
+  max-width: 520px;
+  max-height: 88vh;
+  overflow-y: auto;
 }
 
 .tenses-test-checkboxes {
@@ -3295,6 +3297,83 @@ details[open] > .hub-todo-group-summary::before {
   gap: 0.5rem;
   flex-wrap: wrap;
   margin-top: 0.5rem;
+}
+
+/* Custom/random Conjugation Test config screen */
+
+.tenses-test-random-btn {
+  width: 100%;
+  padding: 0.65rem 1rem;
+  font-weight: 600;
+}
+
+.tenses-test-or {
+  text-align: center;
+  margin: 0.6rem 0;
+  font-size: 0.8rem;
+  color: #C0BFB2;
+}
+
+.tenses-test-section {
+  margin: 0.9rem 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.tenses-test-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #ECE6D3;
+}
+
+.tenses-test-section-head div {
+  display: flex;
+  gap: 0.4rem;
+}
+
+button.secondary.tiny {
+  padding: 0.25rem 0.6rem;
+  font-size: 0.75rem;
+}
+
+.tenses-test-verb-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  max-height: 30vh;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.tenses-test-checkboxes-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1rem;
+}
+
+.tenses-test-checkboxes-inline label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.88rem;
+}
+
+.tenses-test-direction-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1.2rem;
+}
+
+.tenses-test-direction-options label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.88rem;
 }
 
 /* Accounts: login / admin / migrate-data pages — small standalone

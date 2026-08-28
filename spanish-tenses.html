@@ -116,11 +116,47 @@
       </div>
 
       <div id="tenses-test-setup">
-        <p class="hint" data-immersion-key="pickTensesHintEs">Pick which tenses to be tested on. Every person (yo/tú/él/nosotros/vosotros/ellos) can come up, weighted a bit toward yo and tú. Verbs are a mix of regular and irregular (mostly regular).</p>
-        <div id="tenses-test-checkboxes" class="tenses-test-checkboxes"></div>
+        <button type="button" id="tenses-test-random-btn" class="tenses-test-random-btn" data-immersion-key="randomTestButton">🎲 Random test (every verb, every tense)</button>
+        <p class="tenses-test-or" data-immersion-key="orDesignYourOwn">— or design your own —</p>
+
+        <div class="tenses-test-section">
+          <div class="tenses-test-section-head">
+            <span data-immersion-key="verbsLabel">Verbs</span>
+            <div>
+              <button type="button" id="tenses-test-verbs-select-all" class="secondary tiny" data-immersion-key="selectAllButton">Select all</button>
+              <button type="button" id="tenses-test-verbs-clear" class="secondary tiny" data-immersion-key="clearButton">Clear</button>
+            </div>
+          </div>
+          <p class="hint" data-immersion-key="verbsSourceHintEs">Includes the app's default verbs plus any verb you've saved to your own Vocab Bank (only verbs saved by themselves, not ones from a saved phrase).</p>
+          <div id="tenses-test-verb-checkboxes" class="tenses-test-verb-checkboxes"></div>
+        </div>
+
+        <div class="tenses-test-section">
+          <div class="tenses-test-section-head"><span data-immersion-key="personsLabel">Persons</span></div>
+          <div id="tenses-test-person-checkboxes" class="tenses-test-checkboxes-inline"></div>
+        </div>
+
+        <div class="tenses-test-section">
+          <div class="tenses-test-section-head">
+            <span data-immersion-key="tensesLabel">Tenses</span>
+            <div>
+              <button type="button" id="tenses-test-select-all" class="secondary tiny" data-immersion-key="selectAllButton">Select all</button>
+              <button type="button" id="tenses-test-clear" class="secondary tiny" data-immersion-key="clearButton">Clear</button>
+            </div>
+          </div>
+          <div id="tenses-test-checkboxes" class="tenses-test-checkboxes"></div>
+        </div>
+
+        <div class="tenses-test-section">
+          <div class="tenses-test-section-head"><span data-immersion-key="directionLabel">Direction</span></div>
+          <div class="tenses-test-direction-options">
+            <label><input type="radio" name="tenses-test-direction" value="enToTl" checked /> <span data-immersion-key="directionEnToTlEs">English → Spanish</span></label>
+            <label><input type="radio" name="tenses-test-direction" value="tlToEn" /> <span data-immersion-key="directionTlToEnEs">Spanish → English</span></label>
+            <label><input type="radio" name="tenses-test-direction" value="mixed" /> <span data-immersion-key="directionMixed">Mixed</span></label>
+          </div>
+        </div>
+
         <div class="tenses-test-setup-actions">
-          <button type="button" id="tenses-test-select-all" class="secondary" data-immersion-key="selectAllButton">Select all</button>
-          <button type="button" id="tenses-test-clear" class="secondary" data-immersion-key="clearButton">Clear</button>
           <button type="button" id="tenses-test-start-btn" data-immersion-key="startTestButton">Start test</button>
         </div>
       </div>
@@ -148,6 +184,8 @@
   <script src="js/translate.js"></script>
   <script src="js/spanish-verb-data.js"></script>
   <script src="js/spanish-conjugator.js"></script>
+  <script src="js/english-verb-forms.js"></script>
+  <script src="js/conjugation-test-prompts.js"></script>
   <script src="js/spanish-tenses-app.js"></script>
 </body>
 </html>

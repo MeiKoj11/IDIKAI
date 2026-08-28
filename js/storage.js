@@ -262,15 +262,19 @@ function deleteWord(wordId) {
   writeJSON(STORAGE_KEYS.words, words);
 }
 
-// Every saved word tagged as a Japanese verb with a known conjugation
-// class — the pool the Grammar conjugation-practice quizzes draw from,
-// alongside the built-in common-verb list in ja-conjugator.js. Only
-// words saved (or re-saved) after the verb-tagging feature shipped will
-// have partOfSpeech/verbClass set — see vocab-app.js's pendingVerbInfo.
+// Every saved word tagged as a verb with a known conjugation
+// class/type — the pool the Grammar conjugation-practice quizzes (and
+// the Conjugation Test's "your saved verbs" option) draw from, alongside
+// each language's own built-in common-verb list. Japanese words carry
+// "verbClass" (godan/ichidan/irregular-*); Spanish/French words carry
+// "verbType" (ar/er/ir/re/irregular) — see vocab-app.js's
+// pendingVerbInfo. Only words saved (or re-saved) after the relevant
+// verb-tagging feature shipped will have these set; older saves are
+// silently excluded rather than guessed at.
 function getVerbWords(language) {
   const words = readJSON(STORAGE_KEYS.words, []);
   const themeIds = new Set(getThemes().filter((t) => t.language === language).map((t) => t.id));
-  return words.filter((w) => themeIds.has(w.themeId) && w.partOfSpeech === "verb" && w.verbClass);
+  return words.filter((w) => themeIds.has(w.themeId) && w.partOfSpeech === "verb" && (w.verbClass || w.verbType));
 }
 
 // A flashcard counts as an exact duplicate if both sides match an

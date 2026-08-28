@@ -76,7 +76,8 @@ with ONLY a JSON object (no markdown, no code fences, no explanation) with exact
     "tense": string,
     "person": string
   } or null,
-  "verbClass": "godan" | "ichidan" | "irregular-suru" | "irregular-kuru" | null
+  "verbClass": "godan" | "ichidan" | "irregular-suru" | "irregular-kuru" | null,
+  "verbType": "ar" | "er" | "ir" | "re" | "irregular" | null
 }
 
 Rules:
@@ -136,6 +137,27 @@ Rules:
       godan, a well-known trap; get this distinction right rather than guessing from the spelling
       pattern alone) and every verb ending in う/く/ぐ/す/つ/ぬ/ぶ/む. Conjugates by shifting the final
       kana across its row (e.g. 飲む -> 飲ま/飲み/飲む/飲め/飲も).
+- "verbType" is ONLY ever filled in when "partOfSpeech" is "verb" AND the verb is SPANISH or FRENCH
+  (the dictionary/infinitive form, on whichever side is Spanish/French) — set it to null for every
+  other case (Japanese verbs, non-verbs, no Spanish/French involved). Same purpose as "verbClass"
+  above: lets locally written code conjugate the verb without another API call, so be conservative
+  rather than guessing wrong:
+    - Spanish: "ar" or "ir" only when the verb is FULLY REGULAR in every tense (no stem change, no
+      spelling change, no irregular stem, no irregular participle) — e.g. "hablar" -> "ar",
+      "vivir" -> "ir". Set to "irregular" for ANYTHING else, including stem-changers (pensar,
+      dormir), spelling-changers (buscar, llegar), and any verb with an irregular form anywhere in
+      its conjugation (ser, ir, tener, hacer...). (Spanish has no "-er"/"-re" values; a fully
+      regular -er verb like "comer" is unusual enough that if you're not certain it has zero
+      irregularities anywhere, mark it "irregular" instead.)
+    - French: "er", "ir", or "re" only when the verb is FULLY REGULAR for that group in every tense
+      (no stem/spelling change, no irregular participle, uses "avoir" as its compound-tense
+      auxiliary) — e.g. "parler" -> "er", "finir" -> "ir", "vendre" -> "re". Set to "irregular" for
+      anything else, including spelling-changers (manger, commencer, acheter, appeler), any verb
+      that takes "être" instead of "avoir" (aller, arriver, sortir...), and true irregulars (être,
+      avoir, faire, aller, pouvoir, vouloir, devoir...).
+  When genuinely unsure whether a verb is fully regular, prefer "irregular" — a false "irregular" is
+  harmless (the app just won't auto-conjugate it locally), but a false regular classification would
+  produce a wrong conjugated form.
 - Output nothing except the JSON object described above.`;
 
 // Claude sometimes wraps JSON in a ```json ... ``` code fence even when

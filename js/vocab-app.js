@@ -37,13 +37,14 @@ let pendingDetection = null;
 let editingWordId = null;
 // id of the word currently showing its inline move/copy panel, or null.
 let movingWordId = null;
-// { query, partOfSpeech, verbClass } set right after a Japanese
-// dictionary lookup that identified a verb and its conjugation class —
-// consumed (and cleared) the moment the word actually gets saved, so a
-// verb looked up once but never saved doesn't leak its tag onto some
-// unrelated later word. `query` is whichever side was typed in to
-// trigger the lookup (lowercased/trimmed), used to sanity-check that
-// what's about to be saved is still the same word that was looked up.
+// { query, partOfSpeech, verbClass } (Japanese) or { query, partOfSpeech,
+// verbType } (Spanish/French) set right after a dictionary lookup that
+// identified a verb and its conjugation class — consumed (and cleared)
+// the moment the word actually gets saved, so a verb looked up once but
+// never saved doesn't leak its tag onto some unrelated later word.
+// `query` is whichever side was typed in to trigger the lookup
+// (lowercased/trimmed), used to sanity-check that what's about to be
+// saved is still the same word that was looked up.
 let pendingVerbInfo = null;
 
 // Quiz state
@@ -367,9 +368,10 @@ async function handleAddWordSubmit(e) {
   // saved untagged, same as any word saved before this feature existed.
   if (english && tl) {
     const word = { english, targetLang: tl, furigana: furiganaInput.value.trim(), exampleSentence };
-    if (activeTheme.language === "ja" && pendingVerbInfo && pendingVerbInfo.query === tl.toLowerCase()) {
+    if (pendingVerbInfo && pendingVerbInfo.query === tl.toLowerCase()) {
       word.partOfSpeech = pendingVerbInfo.partOfSpeech;
-      word.verbClass = pendingVerbInfo.verbClass;
+      if (pendingVerbInfo.verbClass) word.verbClass = pendingVerbInfo.verbClass;
+      if (pendingVerbInfo.verbType) word.verbType = pendingVerbInfo.verbType;
     }
     pendingVerbInfo = null;
     saveWordAndReset(word);
@@ -447,6 +449,16 @@ async function handleAddWordSubmit(e) {
       query: (english ? filledValue : tl).toLowerCase(),
       partOfSpeech: result.partOfSpeech,
       verbClass: result.verbClass,
+    };
+  } else if (
+    (activeTheme.language === "es" || activeTheme.language === "fr") &&
+    result.partOfSpeech === "verb" &&
+    result.verbType
+  ) {
+    pendingVerbInfo = {
+      query: (english ? filledValue : tl).toLowerCase(),
+      partOfSpeech: result.partOfSpeech,
+      verbType: result.verbType,
     };
   } else {
     pendingVerbInfo = null;
