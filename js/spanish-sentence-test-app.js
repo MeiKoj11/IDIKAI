@@ -428,11 +428,15 @@ async function checkSentenceTestAnswer() {
   verdict.textContent = result.verbCorrect ? "Correct verb!" : "Not quite — the verb wasn't right.";
   feedback.appendChild(verdict);
 
-  if (result.corrected && result.corrected.trim() && result.corrected.trim() !== typed) {
-    const correctedLine = document.createElement("div");
-    correctedLine.textContent = result.corrected.trim();
-    feedback.appendChild(correctedLine);
-  }
+  // Always show the correct sentence as clickable words — even when it
+  // matches exactly what was typed — so any word (like "la mudanza"
+  // above) can be looked up and saved to the Vocab Bank straight from
+  // the feedback, not just from the original prompt sentence.
+  const correctedText = (result.corrected && result.corrected.trim()) || typed;
+  const correctedLine = document.createElement("div");
+  renderClickableSentence(correctedLine, correctedText, answerLanguage);
+  feedback.appendChild(correctedLine);
+
   if (result.note) {
     const noteLine = document.createElement("div");
     noteLine.className = "hint";
