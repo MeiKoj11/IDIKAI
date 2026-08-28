@@ -386,6 +386,19 @@ function deletePassage(passageId) {
   writeJSON(STORAGE_KEYS.passages, passages);
 }
 
+// Generic merge-update, mirroring updateWord — used so far only by the
+// furigana-review feature (persisting the growing list of looked-up
+// words/readings onto the passage itself), but written generically in
+// case something else needs to patch a passage later.
+function updatePassage(passageId, updates) {
+  const passages = readJSON(STORAGE_KEYS.passages, []);
+  const passage = passages.find((p) => p.id === passageId);
+  if (!passage) return null;
+  Object.assign(passage, updates);
+  writeJSON(STORAGE_KEYS.passages, passages);
+  return passage;
+}
+
 // ---- Reading folders ----
 // Purely organizational — a passage without a folderId is just an
 // uncategorized/"random" passage, same as today, so this is additive
@@ -1028,6 +1041,7 @@ const Storage = {
   getPassage,
   addPassage,
   deletePassage,
+  updatePassage,
   getReadingFolders,
   getReadingFolder,
   addReadingFolder,

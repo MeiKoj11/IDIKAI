@@ -27,6 +27,10 @@ let selectedWord = null; // the word currently shown in the lookup panel
 // word record only if "Save to vocab"/"Add to theme" is actually clicked.
 let pendingVocabExamples = null;
 let pendingLookupExamples = null;
+// Whether the passage reader is currently showing the static "furigana
+// review" view (built from currentPassage.furiganaLookups) instead of
+// the normal interactive click-to-lookup view.
+let furiganaReviewActive = false;
 // The language context for reading.html (from ?lang=es|ja) — filters the
 // passage list, sets the new-passage default language, and picks the
 // OCR language pack. passage.html doesn't need this: it reads the
@@ -111,6 +115,17 @@ document.addEventListener("DOMContentLoaded", () => {
       renderThemeOptions();
       renderSideNotesList();
       updateGrammarNoteCount();
+      updateVocabNoteCount();
+
+      // The furigana-review toggle only makes sense for Japanese, and
+      // only once at least one lookup's been recorded on this passage —
+      // recordFuriganaLookup() unhides it as soon as the first one
+      // happens, but a passage revisited later may already have some
+      // saved from a previous session.
+      const reviewBtn = document.getElementById("toggle-furigana-review");
+      if (reviewBtn) {
+        reviewBtn.hidden = !(currentPassage.language === "ja" && Array.isArray(currentPassage.furiganaLookups) && currentPassage.furiganaLookups.length > 0);
+      }
     } else {
       const notFoundEl = document.getElementById("passage-text-display");
       notFoundEl.textContent = "Passage not found.";
@@ -129,6 +144,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const deleteBtn = document.getElementById("delete-passage");
   if (deleteBtn) deleteBtn.addEventListener("click", handleDeletePassage);
+
+  const toggleVocabNotesBtn = document.getElementById("toggle-vocab-notes-panel");
+  if (toggleVocabNotesBtn) toggleVocabNotesBtn.addEventListener("click", toggleVocabNotesPanel);
+
+  const toggleFuriganaReviewBtn = document.getElementById("toggle-furigana-review");
+  if (toggleFuriganaReviewBtn) toggleFuriganaReviewBtn.addEventListener("click", toggleFuriganaReviewView);
 
   const themeSelect = document.getElementById("add-to-theme-select");
   if (themeSelect) themeSelect.addEventListener("change", handleThemeSelectChange);
@@ -706,6 +727,116 @@ function renderPassageReader() {
   });
 }
 
+// ---------------------------------------------------------------------
+// Furigana review — after clicking/selecting kanji around a passage, the
+// readings looked up along the way are remembered on the passage itself
+// (currentPassage.furiganaLookups) so the learner can later switch to a
+// static, non-interactive view of the same text with "(furigana)"
+// written in brackets right after every word they had to look up —
+// useful as a quick re-read/review pass once they're done working
+// through a passage the first time.
+// ---------------------------------------------------------------------
+
+function escapeHtml(str) {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// Records (or updates) one {text, furigana} pair on the current passage.
+// "text" must be the literal substring as it actually appears in the
+// passage — callers are responsible for that guarantee (see
+// recordFuriganaLookupFromKanjiResult below for the kanji-panel case,
+// where the AI's resolved "word" doesn't always literally match what's
+// in the text, e.g. a conjugated verb vs. its dictionary form).
+function recordFuriganaLookup(text, furigana) {
+  if (!currentPassage || !text || !furigana) return;
+  const list = Array.isArray(currentPassage.furiganaLookups) ? currentPassage.furiganaLookups.slice() : [];
+  const existingIdx = list.findIndex((entry) => entry.text === text);
+  if (existingIdx !== -1) {
+    list[existingIdx] = { text, furigana };
+  } else {
+    list.push({ text, furigana });
+  }
+  currentPassage.furiganaLookups = list;
+  Storage.updatePassage(currentPassage.id, { furiganaLookups: list });
+
+  const reviewBtn = document.getElementById("toggle-furigana-review");
+  if (reviewBtn && reviewBtn.hidden && currentPassage.language === "ja") reviewBtn.hidden = false;
+}
+
+// The kanji-panel's "word" is the DICTIONARY form of whatever the
+// clicked/selected kanji turned out to be part of — for an unconjugated
+// word (most nouns, place names, etc.) that's identical to what's
+// literally in the passage, but for a conjugated verb/adjective it can
+// differ (e.g. clicking 食 inside 食べた returns dictionary form 食べる,
+// which never literally appears in that text). Only ever record a
+// literal, verifiable substring of the passage — falling back to just
+// the clicked/selected characters themselves when the fuller resolved
+// word doesn't check out, and skipping entirely rather than guessing
+// when even that can't be confirmed.
+function recordFuriganaLookupFromKanjiResult(kanji, result) {
+  if (!result || !result.furigana || !currentPassage) return;
+  if (result.word === kanji || !result.word) {
+    recordFuriganaLookup(kanji, result.furigana);
+    return;
+  }
+  const normalized = normalizeWhitespace(currentPassage.text, "ja");
+  if (normalized.includes(result.word)) {
+    recordFuriganaLookup(result.word, result.furigana);
+  }
+  // else: dictionary form doesn't literally appear (conjugated form) —
+  // skip rather than annotate the wrong text.
+}
+
+// Greedy longest-match-first scan — checked against every recorded pair
+// at each position rather than a single combined regex, since pairs can
+// themselves contain regex-special characters and this stays simple.
+function annotateParagraph(paragraphText, pairs) {
+  let result = "";
+  let i = 0;
+  while (i < paragraphText.length) {
+    const match = pairs.find((pair) => paragraphText.startsWith(pair.text, i));
+    if (match) {
+      result += `${escapeHtml(match.text)}<span class="furigana-annotation">(${escapeHtml(match.furigana)})</span>`;
+      i += match.text.length;
+    } else {
+      result += escapeHtml(paragraphText[i]);
+      i += 1;
+    }
+  }
+  return result;
+}
+
+function renderFuriganaAnnotatedView() {
+  const container = document.getElementById("passage-text-display");
+  if (!container || !currentPassage) return;
+
+  const pairs = (currentPassage.furiganaLookups || [])
+    .filter((p) => p.text && p.furigana)
+    .slice()
+    .sort((a, b) => b.text.length - a.text.length);
+
+  const paragraphs = normalizeWhitespace(currentPassage.text, currentPassage.language).split(/\n\n/);
+  container.innerHTML = paragraphs.map((paragraphText) => `<p>${annotateParagraph(paragraphText, pairs)}</p>`).join("");
+}
+
+function toggleFuriganaReviewView() {
+  furiganaReviewActive = !furiganaReviewActive;
+  const btn = document.getElementById("toggle-furigana-review");
+  if (furiganaReviewActive) {
+    renderFuriganaAnnotatedView();
+    if (btn) {
+      btn.textContent = "Show original";
+      btn.dataset.immersionKey = "showOriginalPassageButton";
+    }
+  } else {
+    renderPassageReader();
+    if (btn) {
+      btn.textContent = "Show furigana for looked-up words";
+      btn.dataset.immersionKey = "showFuriganaReviewButton";
+    }
+  }
+}
+
 // Builds the "grammar" caption for a recognized conjugated verb form,
 // e.g. "saber (to know) — imperfect subjunctive, yo".
 function formatConjugationInfo(ci) {
@@ -907,7 +1038,10 @@ async function runKanjiLookup(kanji, context) {
   addBtn.dataset.word = result.word;
   addBtn.dataset.furigana = result.furigana || "";
   addBtn.dataset.meaning = result.meaning || "";
+  addBtn.dataset.sourceExcerpt = kanji;
   showBtn.dataset.word = kanji;
+
+  recordFuriganaLookupFromKanjiResult(kanji, result);
 
   // Deliberately checked against "kanji" (exactly what was clicked or
   // selected) rather than "result.word" (the backend's contextually-
@@ -980,6 +1114,7 @@ function handleAddKanjiToVocabClick() {
     word: addBtn.dataset.word || "",
     furigana: addBtn.dataset.furigana || "",
     meaning: addBtn.dataset.meaning || "",
+    sourceExcerpt: addBtn.dataset.sourceExcerpt || addBtn.dataset.word || "",
   });
 
   const bottomPanel = document.getElementById("kanji-panel");
@@ -1086,6 +1221,7 @@ async function showGrammarPanel(phrase) {
     delete successTranslationEl.dataset.immersionKey;
     successTranslationEl.textContent = result.translation;
     document.getElementById("grammar-furigana").textContent = result.furigana || "";
+    if (result.furigana) recordFuriganaLookup(phrase, result.furigana);
     document.getElementById("grammar-structure-text").textContent = result.structure || "";
     document.getElementById("grammar-hint-text").textContent = result.explanation || "";
     saveBtn.dataset.translation = result.translation;
@@ -1154,18 +1290,27 @@ function handleSaveGrammarNoteClick() {
 // passage reader instead of navigating to a separate page.
 // ---------------------------------------------------------------------
 
-// Swaps the side panel between its two content modes without touching
-// the open/close/resize mechanics (same panel element, same divider,
-// same remembered width) — "grammar" is the notes form/list built
-// earlier, "vocab" is the kanji add/existing-word display added for
-// Japanese Reading.
+// Swaps the side panel between its content modes without touching the
+// open/close/resize mechanics (same panel element, same divider, same
+// remembered width) — "grammar" is the notes form/list, "vocab" is the
+// kanji/word add-or-existing display, "vocab-notes" is the saved-from-
+// this-passage vocab list (mirrors "grammar"'s saved-notes list).
 function showPanelMode(mode) {
+  const panel = document.getElementById("grammar-side-panel");
   const title = document.getElementById("side-panel-title");
   const grammarContent = document.getElementById("grammar-mode-content");
   const vocabContent = document.getElementById("vocab-panel-content");
-  if (title) title.textContent = mode === "vocab" ? "Vocab" : "Grammar notes";
-  if (grammarContent) grammarContent.hidden = mode === "vocab";
+  const vocabNotesContent = document.getElementById("vocab-notes-content");
+  if (panel) panel.dataset.mode = mode;
+  if (title) {
+    const headingKey = mode === "vocab" ? "vocabHeading" : mode === "vocab-notes" ? "vocabNotesHeading" : "grammarNotesHeading";
+    title.dataset.immersionKey = headingKey;
+    title.textContent = mode === "vocab" ? "Vocab" : mode === "vocab-notes" ? "Vocab notes" : "Grammar notes";
+  }
+  if (grammarContent) grammarContent.hidden = mode !== "grammar";
   if (vocabContent) vocabContent.hidden = mode !== "vocab";
+  if (vocabNotesContent) vocabNotesContent.hidden = mode !== "vocab-notes";
+  if (mode === "vocab-notes") renderVocabNotesList();
 }
 
 function openGrammarSidePanel(mode) {
@@ -1189,14 +1334,26 @@ function closeGrammarSidePanel() {
   hideVocabPanelContent();
 }
 
-function toggleGrammarSidePanel() {
+// Shared by both header toggle buttons ("Grammar notes" and "Vocab
+// notes"): if the panel's closed, open it straight to that mode; if
+// it's already open showing that same mode, close it; if it's open
+// showing something else, just switch to that mode without closing.
+function togglePanelMode(mode) {
   const panel = document.getElementById("grammar-side-panel");
   if (!panel) return;
-  if (panel.hidden) {
-    openGrammarSidePanel("grammar");
-  } else {
+  if (!panel.hidden && panel.dataset.mode === mode) {
     closeGrammarSidePanel();
+  } else {
+    openGrammarSidePanel(mode);
   }
+}
+
+function toggleGrammarSidePanel() {
+  togglePanelMode("grammar");
+}
+
+function toggleVocabNotesPanel() {
+  togglePanelMode("vocab-notes");
 }
 
 function showSideNoteForm(prefill) {
@@ -1353,6 +1510,12 @@ function showVocabAddForm(prefill) {
   document.getElementById("vocab-add-furigana").value = (prefill && prefill.furigana) || "";
   document.getElementById("vocab-add-meaning").value = (prefill && prefill.meaning) || "";
   document.getElementById("vocab-add-infinitive").value = (prefill && prefill.infinitive) || "";
+  // Not a visible field — carried through to handleVocabAddFormSubmit so
+  // the saved word can be located back in the passage later (the "word"
+  // field above is sometimes a dictionary form that doesn't literally
+  // appear in the text, e.g. from the kanji panel, so this is tracked
+  // separately rather than reusing it).
+  form.dataset.sourceExcerpt = (prefill && (prefill.sourceExcerpt || prefill.word)) || "";
   renderVocabAddThemeOptions();
 
   // Each time this panel is (re)opened for a word, any example sentences
@@ -1495,6 +1658,7 @@ function handleVocabAddFormSubmit(e) {
   const infinitive = document.getElementById("vocab-add-infinitive").value.trim();
   if (!word || !meaning) return;
 
+  const form = document.getElementById("vocab-add-form");
   const saved = Storage.addWordIfNotDuplicate(themeId, {
     english: meaning,
     targetLang: word,
@@ -1502,7 +1666,11 @@ function handleVocabAddFormSubmit(e) {
     notes: "",
     infinitive,
     exampleSentences: pendingVocabExamples || undefined,
+    sourcePassageId: currentPassage ? currentPassage.id : undefined,
+    sourceExcerpt: (form && form.dataset.sourceExcerpt) || word,
   });
+  updateVocabNoteCount();
+  renderVocabNotesList();
 
   if (saved) {
     alert(`${word} — added to your vocab deck.`);
@@ -1521,6 +1689,94 @@ function updateGrammarNoteCount() {
   if (!badge || !currentPassage) return;
   const count = Storage.getGrammarNotes().filter((n) => n.sourcePassageId === currentPassage.id).length;
   badge.textContent = String(count);
+}
+
+function updateVocabNoteCount() {
+  const badge = document.getElementById("vocab-note-count");
+  if (!badge || !currentPassage) return;
+  const count = Storage.getWords().filter((w) => w.sourcePassageId === currentPassage.id).length;
+  badge.textContent = String(count);
+}
+
+function renderVocabNotesList() {
+  const list = document.getElementById("vocab-notes-list");
+  if (!list || !currentPassage) return;
+
+  const words = Storage.getWords().filter((w) => w.sourcePassageId === currentPassage.id);
+  list.innerHTML = "";
+
+  if (words.length === 0) {
+    const li = document.createElement("li");
+    li.className = "empty-hint";
+    li.textContent = "No vocab saved from this passage yet.";
+    li.dataset.immersionKey = "noVocabSavedFromPassageText";
+    list.appendChild(li);
+    return;
+  }
+
+  words
+    .slice()
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .forEach((word) => list.appendChild(buildSideVocabNoteCard(word)));
+}
+
+function buildSideVocabNoteCard(word) {
+  const li = document.createElement("li");
+  li.className = "word-item vocab-note-item";
+  li.tabIndex = 0;
+
+  const main = document.createElement("div");
+  main.className = "word-main";
+
+  const text = document.createElement("span");
+  text.className = "word-label";
+  let label = `${word.english} — ${word.targetLang}`;
+  if (word.furigana) label += ` (${word.furigana})`;
+  text.textContent = label;
+  main.appendChild(text);
+
+  li.appendChild(main);
+
+  const locate = () => scrollToPassageExcerpt(word.sourceExcerpt || word.targetLang);
+  li.addEventListener("click", locate);
+  li.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      locate();
+    }
+  });
+
+  return li;
+}
+
+// Used by the vocab notes list (click a saved word to jump to where it
+// appears in the passage) — brings the containing paragraph into view
+// and briefly flashes it. Deliberately paragraph-level rather than
+// trying to highlight the exact characters: the passage is rendered as
+// a mix of per-character spans (Japanese kanji) and per-token spans
+// (everything else) with plain text nodes in between, so precisely
+// locating an arbitrary saved excerpt across that mix isn't reliable,
+// but scrolling to the right paragraph and flashing it is more than
+// enough to actually find the word by eye.
+function scrollToPassageExcerpt(excerpt) {
+  if (!excerpt) return;
+  const container = document.getElementById("passage-text-display");
+  if (!container) return;
+
+  const paragraphs = Array.from(container.querySelectorAll("p"));
+  const match = paragraphs.find((p) => p.textContent.includes(excerpt));
+  if (!match) {
+    alert("Couldn't find that word in the current passage text.");
+    return;
+  }
+
+  match.scrollIntoView({ behavior: "smooth", block: "center" });
+  match.classList.remove("flash-highlight");
+  // Force a reflow so re-adding the class restarts the animation even
+  // if the same paragraph was just flashed a moment ago.
+  void match.offsetWidth;
+  match.classList.add("flash-highlight");
+  setTimeout(() => match.classList.remove("flash-highlight"), 1700);
 }
 
 function renderSideNotesList() {
@@ -1700,7 +1956,11 @@ function handleAddLookedUpWord() {
     notes: grammar,
     infinitive: addBtn.dataset.infinitive || "",
     exampleSentences: pendingLookupExamples || undefined,
+    sourcePassageId: currentPassage ? currentPassage.id : undefined,
+    sourceExcerpt: selectedWord,
   });
+  updateVocabNoteCount();
+  renderVocabNotesList();
 
   const resultEl = document.getElementById("lookup-result");
   if (saved) {

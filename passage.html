@@ -82,6 +82,7 @@
   <header class="app-header">
     <a href="reading.html" class="back-link" data-immersion-key="backToPassages">&larr; Back to Passages</a>
     <h1 id="passage-title-heading">Passage</h1>
+    <button type="button" id="toggle-vocab-notes-panel" class="secondary header-right-btn"><span data-immersion-key="vocabNotesPrefix">Vocab notes (</span><span id="vocab-note-count">0</span>)</button>
     <button type="button" id="toggle-grammar-panel" class="secondary header-right-btn"><span data-immersion-key="grammarNotesPrefix">Grammar notes (</span><span id="grammar-note-count">0</span>)</button>
   </header>
   <main id="reading-main">
@@ -175,12 +176,23 @@
             </div>
           </form>
         </div>
+
+        <div id="vocab-notes-content" hidden>
+          <div id="vocab-notes-list-wrapper">
+            <h3 class="side-notes-heading" data-immersion-key="savedFromPassageHeading">Saved from this passage</h3>
+            <p class="hint" data-immersion-key="vocabNotesLocateHint">Click a word to jump to where it appears in the text.</p>
+            <ul id="vocab-notes-list" class="word-list"></ul>
+          </div>
+        </div>
       </aside>
 
       <div id="split-divider" class="split-divider" hidden></div>
 
       <section class="panel" id="passage-reader-panel">
-        <p class="hint" id="reader-hint" data-immersion-key="readerHint">Click any word to look it up. Drag to select a phrase or sentence to save a grammar note.</p>
+        <div class="passage-reader-toolbar">
+          <p class="hint" id="reader-hint" data-immersion-key="readerHint">Click any word to look it up. Drag to select a phrase or sentence to save a grammar note.</p>
+          <button type="button" id="toggle-furigana-review" class="secondary" hidden data-immersion-key="showFuriganaReviewButton">Show furigana for looked-up words</button>
+        </div>
         <div id="passage-text-display" class="passage-text"></div>
         <button type="button" id="delete-passage" class="secondary" data-immersion-key="deletePassageButton">Delete this passage</button>
       </section>
