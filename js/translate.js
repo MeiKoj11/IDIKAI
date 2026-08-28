@@ -133,8 +133,13 @@ async function extractTextFromImage(base64Image, mediaType) {
 // fuller paragraph.
 async function explainGrammar(phrase, context) {
   try {
-    const params = new URLSearchParams({ phrase, context: context || "" });
-    const res = await fetch(`${API_BASE}/explain-grammar?${params.toString()}`);
+    // POST with a JSON body (not a GET query string) — a whole passage
+    // as context used to blow past the URL length limit on long passages.
+    const res = await fetch(`${API_BASE}/explain-grammar`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ phrase, context: context || "" }),
+    });
     if (!res.ok) return null;
     const data = await res.json();
     if (!data || !data.translation) return null;

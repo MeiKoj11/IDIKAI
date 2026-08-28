@@ -1203,29 +1203,55 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  if (url.pathname === "/explain-grammar" && req.method === "GET") {
-    const phrase = url.searchParams.get("phrase");
-    const context = url.searchParams.get("context") || "";
+  // POST (not GET) so the full passage can be sent as a JSON body instead
+  // of a URL query string — long passages (especially Japanese, which
+  // balloons under percent-encoding) used to blow past Node's ~16KB
+  // request-line limit and fail with a 431.
+  if (url.pathname === "/explain-grammar" && req.method === "POST") {
+    const bodyChunks = [];
+    let bodyBytes = 0;
+    req.on("data", (chunk) => {
+      bodyChunks.push(chunk);
+      bodyBytes += chunk.length;
+      // A whole passage plus a phrase — generous headroom, same ballpark
+      // as the other passage-sized POST endpoints below.
+      if (bodyBytes > 2 * 1024 * 1024) req.destroy();
+    });
+    req.on("end", () => {
+      const rawBody = Buffer.concat(bodyChunks).toString("utf8");
+      let parsed;
+      try {
+        parsed = JSON.parse(rawBody);
+      } catch (e) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "Invalid JSON body." }));
+        return;
+      }
 
-    if (!phrase) {
-      res.writeHead(400, { "content-type": "application/json" });
-      res.end(JSON.stringify({ error: "Missing phrase query param." }));
-      return;
-    }
+      const { phrase, context } = parsed;
+      if (!phrase) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "Missing phrase." }));
+        return;
+      }
 
-    console.log(`Explaining grammar for "${phrase}"...`);
+      console.log(`Explaining grammar for "${phrase}"...`);
 
-    callClaudeForGrammarExplain(phrase, context)
-      .then((result) => {
-        console.log("  ->", JSON.stringify(result));
-        res.writeHead(200, { "content-type": "application/json" });
-        res.end(JSON.stringify(result));
-      })
-      .catch((err) => {
-        console.error(err.message);
-        res.writeHead(500, { "content-type": "application/json" });
-        res.end(JSON.stringify({ error: err.message }));
-      });
+      callClaudeForGrammarExplain(phrase, context || "")
+        .then((result) => {
+          console.log("  ->", JSON.stringify(result));
+          res.writeHead(200, { "content-type": "application/json" });
+          res.end(JSON.stringify(result));
+        })
+        .catch((err) => {
+          console.error(err.message);
+          res.writeHead(500, { "content-type": "application/json" });
+          res.end(JSON.stringify({ error: err.message }));
+        });
+    });
+    req.on("error", (err) => {
+      console.error(err.message);
+    });
     return;
   }
 
