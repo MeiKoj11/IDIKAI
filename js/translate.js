@@ -423,6 +423,81 @@ async function generateGrammarPractice(concept, language, excludeWords) {
   }
 }
 
+// Powers the "sentence mode" Conjugation Test — generates one AI
+// sentence per question (English + target-language pair, both using the
+// requested verb correctly conjugated), unlike the quick test's fully
+// local template engine. Always returns { englishSentence, targetSentence,
+// verbFormEnglish, verbFormTarget, error }; the sentence fields are null
+// on failure.
+async function generateConjugationSentence(language, infinitive, english, tenseLabel, personLabel, avoidSentences) {
+  try {
+    const res = await fetch(`${API_BASE}/generate-conjugation-sentence`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ language, infinitive, english, tenseLabel, personLabel, avoidSentences: avoidSentences || [] }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      const reason = (data && data.error) || `Server responded with ${res.status}.`;
+      console.error("generate-conjugation-sentence failed:", reason);
+      return { englishSentence: null, targetSentence: null, verbFormEnglish: null, verbFormTarget: null, error: reason };
+    }
+    if (!data || typeof data.englishSentence !== "string" || typeof data.targetSentence !== "string") {
+      console.error("generate-conjugation-sentence: unexpected response shape", data);
+      return { englishSentence: null, targetSentence: null, verbFormEnglish: null, verbFormTarget: null, error: "The server didn't return a usable result." };
+    }
+    return {
+      englishSentence: data.englishSentence,
+      targetSentence: data.targetSentence,
+      verbFormEnglish: data.verbFormEnglish || "",
+      verbFormTarget: data.verbFormTarget || "",
+      error: null,
+    };
+  } catch (e) {
+    console.error("generate-conjugation-sentence: could not reach the server", e);
+    return {
+      englishSentence: null,
+      targetSentence: null,
+      verbFormEnglish: null,
+      verbFormTarget: null,
+      error: "Couldn't reach the lookup server at localhost:3001 — is `node server.js` running?",
+    };
+  }
+}
+
+// Grades a sentence-mode answer — verb-strict, everything-else-lenient
+// per the app's design (see server.js's CHECK_CONJUGATION_SENTENCE_PROMPT).
+// Always returns { verbCorrect, corrected, note, error }; verbCorrect is
+// null on failure so callers can distinguish "wrong" from "couldn't grade".
+async function checkConjugationSentence(answerLanguage, referenceSentence, expectedVerbForm, userAnswer) {
+  try {
+    const res = await fetch(`${API_BASE}/check-conjugation-sentence`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ answerLanguage, referenceSentence, expectedVerbForm, userAnswer }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      const reason = (data && data.error) || `Server responded with ${res.status}.`;
+      console.error("check-conjugation-sentence failed:", reason);
+      return { verbCorrect: null, corrected: null, note: null, error: reason };
+    }
+    if (!data || typeof data.verbCorrect !== "boolean" || typeof data.corrected !== "string") {
+      console.error("check-conjugation-sentence: unexpected response shape", data);
+      return { verbCorrect: null, corrected: null, note: null, error: "The server didn't return a usable result." };
+    }
+    return { verbCorrect: data.verbCorrect, corrected: data.corrected, note: data.note || null, error: null };
+  } catch (e) {
+    console.error("check-conjugation-sentence: could not reach the server", e);
+    return {
+      verbCorrect: null,
+      corrected: null,
+      note: null,
+      error: "Couldn't reach the lookup server at localhost:3001 — is `node server.js` running?",
+    };
+  }
+}
+
 const Translate = {
   lookupTranslation,
   checkConjugation,
@@ -436,6 +511,8 @@ const Translate = {
   classifyGrammarPoint,
   generateCardPractice,
   generateGrammarPractice,
+  generateConjugationSentence,
+  checkConjugationSentence,
 };
 
 if (typeof module !== "undefined" && module.exports) {

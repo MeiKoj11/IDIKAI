@@ -494,6 +494,84 @@ function callClaudeForExampleCheck(text, language, patternContext) {
   return callClaudeJSON(CHECK_EXAMPLE_SENTENCE_PROMPT, userMessage, 500);
 }
 
+// Powers the "sentence mode" Conjugation Test (as opposed to the quick,
+// fully-local single-verb-form test) — generates ONE natural full
+// sentence per question, in both English and the target language, that
+// uses the requested verb correctly conjugated for a specific tense/
+// person. Deliberately asked to weave in a little extra incidental
+// vocabulary (a noun/adjective/adverb beyond basic function words) so
+// there's usually something worth clicking to look up, per the "she can
+// highlight 'key' and the Spanish comes up" request — but kept short and
+// natural rather than stuffed with rare words.
+const GENERATE_CONJUGATION_SENTENCE_PROMPT = `You write natural, level-appropriate practice
+sentences for a language-learning app's conjugation drill (Spanish or French — you'll be told which).
+Given a verb (infinitive + English gloss), a specific tense, and a specific grammatical person, write
+ONE natural sentence — declarative, a question, or negative, vary it across requests — that uses that
+verb correctly conjugated for that exact tense/person, then give the correct, natural translation of
+that exact sentence in the other language. Respond with ONLY a JSON object (no markdown, no code
+fences, no explanation) with exactly this shape:
+
+{ "englishSentence": string, "targetSentence": string, "verbFormEnglish": string, "verbFormTarget": string }
+
+Rules:
+- "englishSentence" and "targetSentence" must be faithful translations of each other, both naturally
+  phrased (not stiff word-for-word translation).
+- "verbFormEnglish" is the exact conjugated verb phrase as it appears in "englishSentence" (e.g.
+  "would have given"). "verbFormTarget" is the exact conjugated verb form as it appears in
+  "targetSentence" (e.g. "habría dado").
+- The sentence must clearly and unambiguously use the requested tense/person — don't hedge into a
+  different one.
+- Keep the sentence short (roughly 5-12 words) and naturally include 1-2 pieces of vocabulary beyond
+  basic function words (a concrete noun, adjective, or adverb) so there's something a learner might
+  not already know — but keep it natural, not contrived or a vocabulary showcase.
+- Avoid idioms or phrasing that doesn't translate directly between the two languages.
+- Never reuse a sentence you've already been asked to avoid (a list may be given).
+- Output nothing except the JSON object.`;
+
+function callClaudeForGenerateConjugationSentence(language, infinitive, english, tenseLabel, personLabel, avoidSentences) {
+  const avoidLines = (avoidSentences || []).length
+    ? `\n\nAvoid reusing (in either language) any of these previous sentences:\n${avoidSentences.map((s) => `- ${s}`).join("\n")}`
+    : "";
+  const userMessage = `Language: ${LANGUAGE_NAMES[language] || language}.\nVerb: "${infinitive}" (${english}).\nTense: ${tenseLabel}.\nPerson: ${personLabel}.${avoidLines}`;
+  return callClaudeJSON(GENERATE_CONJUGATION_SENTENCE_PROMPT, userMessage, 500);
+}
+
+// Grades a learner's typed answer for sentence-mode: the conjugated
+// verb form must be correct for the answer to count, but everything
+// else (a wrong noun, minor word choice, spelling) gets corrected in
+// feedback without failing the question — exactly the split the user
+// asked for ("marking doesnt care about incorrect noun but still
+// corrects incorrect noun, the verb must be correct").
+const CHECK_CONJUGATION_SENTENCE_PROMPT = `You are grading a language learner's sentence-translation
+answer for a conjugation drill (Spanish, French, or English — you'll be told which language they
+answered in). Scoring is ENTIRELY about whether they correctly conjugated one specific target verb —
+everything else about the sentence should be corrected and shown, but must NOT affect whether the
+answer counts as correct. Respond with ONLY a JSON object (no markdown, no code fences, no
+explanation) with exactly this shape:
+
+{ "verbCorrect": boolean, "corrected": string, "note": string or null }
+
+Rules:
+- "verbCorrect" is true only if the learner's sentence contains that verb correctly conjugated for the
+  intended tense/person — a wrong mood/tense/person, or an entirely different verb, is false. Minor
+  accent or spelling slips in the verb itself still count as correct if the intended form is clearly
+  right.
+- "corrected" is the learner's OWN sentence with only what's actually wrong fixed (verb conjugation if
+  wrong, agreement, wrong word choice such as a mistaken noun, spelling) — keep their own wording and
+  structure wherever it's valid rather than substituting the reference sentence. If their sentence was
+  already fully correct, "corrected" should be identical to what they typed (trivial capitalization/
+  punctuation cleanup aside).
+- "note" is ONE short, encouraging sentence in plain teaching language pointing out anything that was
+  off (the verb, or anything else that got corrected) — or null if the answer needed no correction at
+  all.
+- Judge the sentence in whichever language the learner answered in, as told to you — never mix
+  languages.`;
+
+function callClaudeForCheckConjugationSentence(answerLanguage, referenceSentence, expectedVerbForm, userAnswer) {
+  const userMessage = `Language answered in: ${LANGUAGE_NAMES[answerLanguage] || answerLanguage}.\nReference (fully correct) sentence: ${referenceSentence}\nThe verb form that must appear, correctly conjugated: "${expectedVerbForm}"\nLearner's answer: ${userAnswer}`;
+  return callClaudeJSON(CHECK_CONJUGATION_SENTENCE_PROMPT, userMessage, 500);
+}
+
 // Used when saving a Grammar structure card — identifies what specific
 // grammar point the card's header/explanation/examples actually
 // describe, so the app can later generate fresh practice for exactly
@@ -1334,6 +1412,94 @@ const server = http.createServer((req, res) => {
       console.log(`Checking example sentence (${language}): "${text}"...`);
 
       callClaudeForExampleCheck(text, language, patternContext)
+        .then((result) => {
+          console.log("  ->", JSON.stringify(result));
+          res.writeHead(200, { "content-type": "application/json" });
+          res.end(JSON.stringify(result));
+        })
+        .catch((err) => {
+          console.error(err.message);
+          res.writeHead(500, { "content-type": "application/json" });
+          res.end(JSON.stringify({ error: err.message }));
+        });
+    });
+    return;
+  }
+
+  if (url.pathname === "/generate-conjugation-sentence" && req.method === "POST") {
+    const bodyChunks = [];
+    let bodyBytes = 0;
+    req.on("data", (chunk) => {
+      bodyChunks.push(chunk);
+      bodyBytes += chunk.length;
+      // One request's worth of a verb/tense/person + a short avoid-list
+      // of previous sentences — generous headroom, same as other small
+      // POST endpoints.
+      if (bodyBytes > 512 * 1024) req.destroy();
+    });
+    req.on("end", () => {
+      const rawBody = Buffer.concat(bodyChunks).toString("utf8");
+      let parsed;
+      try {
+        parsed = JSON.parse(rawBody);
+      } catch (e) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "Invalid JSON body." }));
+        return;
+      }
+
+      const { language, infinitive, english, tenseLabel, personLabel, avoidSentences } = parsed;
+      if (!language || !infinitive || !tenseLabel || !personLabel) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "Missing language, infinitive, tenseLabel, or personLabel." }));
+        return;
+      }
+
+      console.log(`Generating conjugation sentence (${language}): ${infinitive}, ${tenseLabel}, ${personLabel}...`);
+
+      callClaudeForGenerateConjugationSentence(language, infinitive, english || "", tenseLabel, personLabel, avoidSentences)
+        .then((result) => {
+          res.writeHead(200, { "content-type": "application/json" });
+          res.end(JSON.stringify(result));
+        })
+        .catch((err) => {
+          console.error(err.message);
+          res.writeHead(500, { "content-type": "application/json" });
+          res.end(JSON.stringify({ error: err.message }));
+        });
+    });
+    return;
+  }
+
+  if (url.pathname === "/check-conjugation-sentence" && req.method === "POST") {
+    const bodyChunks = [];
+    let bodyBytes = 0;
+    req.on("data", (chunk) => {
+      bodyChunks.push(chunk);
+      bodyBytes += chunk.length;
+      if (bodyBytes > 512 * 1024) req.destroy();
+    });
+    req.on("end", () => {
+      const rawBody = Buffer.concat(bodyChunks).toString("utf8");
+      let parsed;
+      try {
+        parsed = JSON.parse(rawBody);
+      } catch (e) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "Invalid JSON body." }));
+        return;
+      }
+
+      const { answerLanguage, referenceSentence, expectedVerbForm, userAnswer } = parsed;
+      if (!answerLanguage || !referenceSentence || !expectedVerbForm || !userAnswer) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "Missing answerLanguage, referenceSentence, expectedVerbForm, or userAnswer." }));
+        return;
+      }
+
+      console.log(`Checking conjugation sentence (${answerLanguage}): "${userAnswer}"...`);
+
+      callClaudeForCheckConjugationSentence(answerLanguage, referenceSentence, expectedVerbForm, userAnswer)
         .then((result) => {
           console.log("  ->", JSON.stringify(result));
           res.writeHead(200, { "content-type": "application/json" });
