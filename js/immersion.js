@@ -288,6 +288,8 @@ const IMMERSION_STRINGS = {
   generateExamplesButton: { es: "✨ Generar 3 ejemplos", ja: "✨ 例文を3つ生成", fr: "✨ Générer 3 exemples" },
   generatingExamplesStatus: { es: "Generando…", ja: "生成中…", fr: "Génération en cours…" },
   generateExamplesFailedHint: { es: "No se pudieron generar ejemplos. Inténtalo de nuevo.", ja: "例文を生成できませんでした。もう一度お試しください。", fr: "Impossible de générer des exemples. Réessaie." },
+  seeHiraganaButton: { es: "Ver hiragana", ja: "ひらがなを見る", fr: "Voir le hiragana" },
+  hideHiraganaButton: { es: "Ocultar hiragana", ja: "ひらがなを隠す", fr: "Masquer le hiragana" },
   saveToVocabButton: { es: "Guardar en el vocabulario", ja: "単語帳に保存", fr: "Enregistrer dans le vocabulaire" },
   readerHint: { es: "Haz clic en cualquier palabra para buscarla. Arrastra para seleccionar una frase u oración y guardar una nota de gramática.", ja: "単語をクリックすると意味を調べられます。ドラッグしてフレーズや文を選択すると文法メモとして保存できます。", fr: "Clique sur n'importe quel mot pour le rechercher. Fais glisser pour sélectionner une expression ou une phrase et enregistrer une note de grammaire." },
   deletePassageButton: { es: "Eliminar este texto", ja: "この文章を削除", fr: "Supprimer ce texte" },

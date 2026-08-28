@@ -142,6 +142,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const vocabExamplesBtn = document.getElementById("vocab-generate-examples-btn");
   if (vocabExamplesBtn) vocabExamplesBtn.addEventListener("click", handleGenerateVocabExamplesClick);
 
+  const vocabFuriganaToggleBtn = document.getElementById("vocab-examples-toggle-furigana");
+  if (vocabFuriganaToggleBtn) vocabFuriganaToggleBtn.addEventListener("click", () => toggleExamplesFurigana("vocab-examples-list", "vocab-examples-toggle-furigana"));
+
+  const lookupFuriganaToggleBtn = document.getElementById("lookup-examples-toggle-furigana");
+  if (lookupFuriganaToggleBtn) lookupFuriganaToggleBtn.addEventListener("click", () => toggleExamplesFurigana("lookup-examples-list", "lookup-examples-toggle-furigana"));
+
   const deleteBtn = document.getElementById("delete-passage");
   if (deleteBtn) deleteBtn.addEventListener("click", handleDeletePassage);
 
@@ -1568,23 +1574,55 @@ async function handleGenerateVocabExamplesClick() {
 }
 
 // Shared by the vocab-add panel and the word-lookup panel — a plain
-// bulleted list, target-language sentence first with its English
-// translation right underneath in smaller, muted text.
+// bulleted list, target-language sentence first, an optional hiragana
+// reading (Japanese only, hidden until the "See hiragana" toggle next to
+// the list is clicked — see toggleExamplesFurigana), then the English
+// translation underneath in smaller, muted text.
 function renderExamplesList(listEl, examples) {
   listEl.innerHTML = "";
+  listEl.classList.remove("show-furigana");
+  let hasFurigana = false;
+
   examples.forEach((ex) => {
     const li = document.createElement("li");
     const textLine = document.createElement("div");
     textLine.className = "example-text";
     textLine.textContent = ex.text || "";
+    li.appendChild(textLine);
+
+    if (ex.furigana) {
+      hasFurigana = true;
+      const furiganaLine = document.createElement("div");
+      furiganaLine.className = "example-furigana";
+      furiganaLine.textContent = ex.furigana;
+      li.appendChild(furiganaLine);
+    }
+
     const translationLine = document.createElement("div");
     translationLine.className = "example-translation";
     translationLine.textContent = ex.translation || "";
-    li.appendChild(textLine);
     li.appendChild(translationLine);
     listEl.appendChild(li);
   });
   listEl.hidden = false;
+
+  // The toggle button lives just outside the <ul> (same id prefix, see
+  // markup) so it survives listEl.innerHTML resets above.
+  const toggleBtn = document.getElementById(listEl.id === "vocab-examples-list" ? "vocab-examples-toggle-furigana" : "lookup-examples-toggle-furigana");
+  if (toggleBtn) {
+    toggleBtn.hidden = !hasFurigana;
+    toggleBtn.textContent = "See hiragana";
+    toggleBtn.dataset.immersionKey = "seeHiraganaButton";
+  }
+}
+
+function toggleExamplesFurigana(listId, toggleBtnId) {
+  const listEl = document.getElementById(listId);
+  const toggleBtn = document.getElementById(toggleBtnId);
+  if (!listEl || !toggleBtn) return;
+  const showing = listEl.classList.toggle("show-furigana");
+  toggleBtn.textContent = showing ? "Hide hiragana" : "See hiragana";
+  toggleBtn.dataset.immersionKey = showing ? "hideHiraganaButton" : "seeHiraganaButton";
 }
 
 function renderVocabAddThemeOptions(selectId) {
@@ -1749,15 +1787,73 @@ function buildSideVocabNoteCard(word) {
   return li;
 }
 
+// Finds the exact occurrence of "excerpt" inside paragraphEl (which can
+// be split across several text nodes and spans — Japanese kanji render
+// one span per character, everything else renders one span per token,
+// with plain text nodes for whitespace/punctuation/hiragana in between)
+// and wraps just that text in a <mark>, returning it. Works by walking
+// every text node to build one concatenated string alongside a lookup
+// back to (node, offset), finding the excerpt in that string, then
+// pointing a Range at the matching real DOM positions — this is exact
+// regardless of how the surrounding markup is chopped up, unlike trying
+// to match against individual spans one at a time.
+function highlightExcerptInParagraph(paragraphEl, excerpt) {
+  const walker = document.createTreeWalker(paragraphEl, NodeFilter.SHOW_TEXT);
+  const textNodes = [];
+  let fullText = "";
+  let node;
+  while ((node = walker.nextNode())) {
+    textNodes.push({ node, start: fullText.length });
+    fullText += node.textContent;
+  }
+
+  const idx = fullText.indexOf(excerpt);
+  if (idx === -1) return null;
+  const endIdx = idx + excerpt.length;
+
+  const locate = (offset) => {
+    for (let i = textNodes.length - 1; i >= 0; i--) {
+      if (offset >= textNodes[i].start) return { node: textNodes[i].node, offset: offset - textNodes[i].start };
+    }
+    return null;
+  };
+  const startLoc = locate(idx);
+  const endLoc = locate(endIdx);
+  if (!startLoc || !endLoc) return null;
+
+  const range = document.createRange();
+  try {
+    range.setStart(startLoc.node, startLoc.offset);
+    range.setEnd(endLoc.node, endLoc.offset);
+    const mark = document.createElement("mark");
+    mark.className = "flash-highlight-word";
+    range.surroundContents(mark);
+    return mark;
+  } catch (e) {
+    // surroundContents throws if the range only partially selects an
+    // element it doesn't fully contain — rare, but fall back cleanly
+    // rather than leaving a half-wrapped DOM behind.
+    return null;
+  }
+}
+
+// Removes a highlight <mark> added above without losing anything it
+// wrapped (including any click listeners still attached to the original
+// spans inside it — surroundContents moves nodes into the mark, it
+// doesn't clone them, so unwrapping restores them exactly as they were).
+function unwrapHighlightMark(mark) {
+  const parent = mark.parentNode;
+  if (!parent) return;
+  while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
+  parent.removeChild(mark);
+}
+
 // Used by the vocab notes list (click a saved word to jump to where it
-// appears in the passage) — brings the containing paragraph into view
-// and briefly flashes it. Deliberately paragraph-level rather than
-// trying to highlight the exact characters: the passage is rendered as
-// a mix of per-character spans (Japanese kanji) and per-token spans
-// (everything else) with plain text nodes in between, so precisely
-// locating an arbitrary saved excerpt across that mix isn't reliable,
-// but scrolling to the right paragraph and flashing it is more than
-// enough to actually find the word by eye.
+// appears in the passage) — scrolls to and briefly highlights the exact
+// saved text if it can be pinpointed, falling back to flashing the whole
+// containing paragraph if not (e.g. the excerpt no longer appears
+// verbatim because the passage text was edited after the word was
+// saved).
 function scrollToPassageExcerpt(excerpt) {
   if (!excerpt) return;
   const container = document.getElementById("passage-text-display");
@@ -1770,10 +1866,20 @@ function scrollToPassageExcerpt(excerpt) {
     return;
   }
 
+  const mark = highlightExcerptInParagraph(match, excerpt);
+  if (mark) {
+    mark.scrollIntoView({ behavior: "smooth", block: "center" });
+    void mark.offsetWidth;
+    mark.classList.add("flash-highlight-word");
+    setTimeout(() => unwrapHighlightMark(mark), 1700);
+    return;
+  }
+
+  // Fallback: exact wrap failed (e.g. straddled a partially-selected
+  // element) — still flash the paragraph so the word isn't a total dead
+  // end.
   match.scrollIntoView({ behavior: "smooth", block: "center" });
   match.classList.remove("flash-highlight");
-  // Force a reflow so re-adding the class restarts the animation even
-  // if the same paragraph was just flashed a moment ago.
   void match.offsetWidth;
   match.classList.add("flash-highlight");
   setTimeout(() => match.classList.remove("flash-highlight"), 1700);

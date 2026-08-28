@@ -407,8 +407,11 @@ vocabulary flashcard. You'll be given a word or short phrase, its language, and 
 Respond with ONLY a JSON object (no markdown, no code fences, no explanation) with exactly this
 shape:
 
-{ "examples": [ { "text": string, "translation": string }, { "text": string, "translation": string },
-  { "text": string, "translation": string } ] }
+{ "examples": [
+    { "text": string, "furigana": string or null, "translation": string },
+    { "text": string, "furigana": string or null, "translation": string },
+    { "text": string, "furigana": string or null, "translation": string }
+] }
 
 Write exactly 3 short, natural example sentences IN THE TARGET LANGUAGE, each one actually using the
 word/phrase somewhere in it. Use the word EXACTLY as given — the same form, tense, and conjugation —
@@ -416,12 +419,13 @@ do not change it to the infinitive or to a different tense/person in any of the 
 if that reads a little unusual as a standalone example. Keep each sentence short (roughly 4-10 words)
 and natural, suitable for a beginner/intermediate learner, and vary the context across the three so
 they aren't just minor rewordings of each other. "translation" is a natural English translation of
-that exact sentence. For Japanese, write the sentence normally (kanji where natural) — do not include
-furigana in "text".`;
+that exact sentence. For Japanese, write the sentence normally (kanji where natural) in "text" — do
+NOT include furigana in "text" itself — and separately give the WHOLE sentence's reading, entirely in
+hiragana (convert any katakana too), as "furigana". For Spanish or French, set "furigana" to null.`;
 
 function callClaudeForExampleSentences(word, language, meaning) {
   const userMessage = `Word/phrase: "${word}". Language: ${LANGUAGE_NAMES[language] || language}. English meaning: "${meaning || ""}".`;
-  return callClaudeJSON(GENERATE_EXAMPLES_PROMPT, userMessage, 500);
+  return callClaudeJSON(GENERATE_EXAMPLES_PROMPT, userMessage, 700);
 }
 
 // Used by the Grammar bubble's own "structure card" notes — a learner

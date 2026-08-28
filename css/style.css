@@ -1187,11 +1187,22 @@ button.secondary:hover {
 
 .furigana-annotation {
   font-size: 0.75em;
-  color: #6F635B;
+  /* Was a muted gray (#6F635B) — nearly invisible against the panel's
+     dark red background (#771011). Full-weight cream (matching the
+     surrounding passage text) reads far more clearly here. */
+  color: #ECE6D3;
+  font-weight: 600;
 }
 
 .flash-highlight {
   animation: flash-highlight-fade 1.6s ease-out;
+}
+
+.flash-highlight-word {
+  background: inherit;
+  color: inherit;
+  animation: flash-highlight-fade 1.6s ease-out;
+  border-radius: 3px;
 }
 
 @keyframes flash-highlight-fade {
@@ -1463,6 +1474,17 @@ details.hint summary,
   color: #C0BFB2;
   font-style: italic;
   margin-top: 0.15rem;
+}
+
+.example-furigana {
+  display: none;
+  font-size: 0.8rem;
+  color: #ECE6D3;
+  margin-top: 0.1rem;
+}
+
+.examples-list.show-furigana .example-furigana {
+  display: block;
 }
 
 .word-infinitive {
