@@ -141,11 +141,42 @@ async function explainGrammar(phrase, context) {
     return {
       translation: data.translation,
       furigana: data.furigana || "",
+      dictionaryForm: data.dictionaryForm || "",
+      dictionaryFormEnglish: data.dictionaryFormEnglish || "",
       structure: data.structure || "",
       explanation: data.explanation || "",
     };
   } catch (e) {
     return null;
+  }
+}
+
+// Powers the "Generate 3 examples" box on the Reading bubble's vocab-add
+// panel and word-lookup panel — 3 short sentences that each use the word
+// EXACTLY as given (same conjugation/form, not re-tensed), plus an
+// English translation of each. Returns { examples, error } — examples is
+// null on failure, mirroring the other lookup helpers in this file.
+async function generateExampleSentences(word, language, meaning) {
+  try {
+    const params = new URLSearchParams({ word, language: language || "es", meaning: meaning || "" });
+    const res = await fetch(`${API_BASE}/generate-examples?${params.toString()}`);
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      const reason = (data && data.error) || `Server responded with ${res.status}.`;
+      console.error("generate-examples failed:", reason);
+      return { examples: null, error: reason };
+    }
+    if (!data || !Array.isArray(data.examples) || data.examples.length === 0) {
+      console.error("generate-examples: unexpected response shape", data);
+      return { examples: null, error: "The server didn't return any example sentences." };
+    }
+    return { examples: data.examples, error: null };
+  } catch (e) {
+    console.error("generate-examples: could not reach the server", e);
+    return {
+      examples: null,
+      error: "Couldn't reach the lookup server at localhost:3001 — is `node server.js` running?",
+    };
   }
 }
 
@@ -391,6 +422,7 @@ const Translate = {
   checkConjugation,
   extractTextFromImage,
   explainGrammar,
+  generateExampleSentences,
   lookupKanji,
   extractVocabList,
   checkWritingGrammar,

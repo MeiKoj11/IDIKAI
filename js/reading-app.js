@@ -22,6 +22,11 @@ const READING_FILTER_ALL_VALUE = ""; // "all folders" in the filter dropdown
 
 let currentPassage = null;
 let selectedWord = null; // the word currently shown in the lookup panel
+// AI-generated example sentences currently pending a save — cleared/replaced
+// whenever a lookup panel is reopened for a new word, and attached to the
+// word record only if "Save to vocab"/"Add to theme" is actually clicked.
+let pendingVocabExamples = null;
+let pendingLookupExamples = null;
 // The language context for reading.html (from ?lang=es|ja) — filters the
 // passage list, sets the new-passage default language, and picks the
 // OCR language pack. passage.html doesn't need this: it reads the
@@ -115,6 +120,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const addBtn = document.getElementById("add-looked-up-word");
   if (addBtn) addBtn.addEventListener("click", handleAddLookedUpWord);
+
+  const lookupExamplesBtn = document.getElementById("lookup-generate-examples-btn");
+  if (lookupExamplesBtn) lookupExamplesBtn.addEventListener("click", handleGenerateLookupExamplesClick);
+
+  const vocabExamplesBtn = document.getElementById("vocab-generate-examples-btn");
+  if (vocabExamplesBtn) vocabExamplesBtn.addEventListener("click", handleGenerateVocabExamplesClick);
 
   const deleteBtn = document.getElementById("delete-passage");
   if (deleteBtn) deleteBtn.addEventListener("click", handleDeletePassage);
@@ -720,6 +731,23 @@ async function handleWordClick(span, word) {
   document.getElementById("lookup-grammar").textContent = "";
   document.getElementById("add-looked-up-word").hidden = true;
 
+  // A fresh lookup invalidates any examples generated for whatever word
+  // was shown here before.
+  pendingLookupExamples = null;
+  const examplesBtn = document.getElementById("lookup-generate-examples-btn");
+  const examplesStatus = document.getElementById("lookup-examples-status");
+  const examplesList = document.getElementById("lookup-examples-list");
+  if (examplesBtn) examplesBtn.hidden = true;
+  if (examplesStatus) {
+    examplesStatus.hidden = true;
+    examplesStatus.textContent = "";
+    delete examplesStatus.dataset.immersionKey;
+  }
+  if (examplesList) {
+    examplesList.hidden = true;
+    examplesList.innerHTML = "";
+  }
+
   // Was hardcoded to "es" — harmless while Spanish was the only non-
   // Japanese language, but wrong for any other passage language (e.g.
   // French), so it now reads the passage's own language.
@@ -740,13 +768,47 @@ async function handleWordClick(span, word) {
   finalResultEl.textContent = result.translation;
   document.getElementById("add-looked-up-word").dataset.english = result.translation;
   document.getElementById("add-looked-up-word").hidden = false;
+  if (examplesBtn) examplesBtn.hidden = false;
 
   if (result.conjugationInfo) {
     document.getElementById("lookup-grammar").textContent = formatConjugationInfo(result.conjugationInfo);
     document.getElementById("add-looked-up-word").dataset.grammar = formatConjugationInfo(result.conjugationInfo);
+    document.getElementById("add-looked-up-word").dataset.infinitive = result.conjugationInfo.infinitive || "";
+    document.getElementById("add-looked-up-word").dataset.infinitiveEnglish = result.conjugationInfo.infinitiveEnglish || "";
   } else {
     delete document.getElementById("add-looked-up-word").dataset.grammar;
+    delete document.getElementById("add-looked-up-word").dataset.infinitive;
+    delete document.getElementById("add-looked-up-word").dataset.infinitiveEnglish;
   }
+}
+
+async function handleGenerateLookupExamplesClick() {
+  if (!selectedWord) return;
+  const status = document.getElementById("lookup-examples-status");
+  const list = document.getElementById("lookup-examples-list");
+  const meaning = document.getElementById("add-looked-up-word").dataset.english || "";
+  list.hidden = true;
+  list.innerHTML = "";
+  status.hidden = false;
+  status.textContent = "Generating…";
+  status.dataset.immersionKey = "generatingExamplesStatus";
+
+  const examplesLang = (currentPassage && currentPassage.language) || "es";
+  const { examples, error } = await Translate.generateExampleSentences(selectedWord, examplesLang, meaning);
+
+  if (!examples) {
+    console.error("generate-examples failed:", error);
+    status.textContent = "Couldn't generate examples — try again.";
+    status.dataset.immersionKey = "generateExamplesFailedHint";
+    pendingLookupExamples = null;
+    return;
+  }
+
+  status.hidden = true;
+  status.textContent = "";
+  delete status.dataset.immersionKey;
+  pendingLookupExamples = examples;
+  renderExamplesList(list, examples);
 }
 
 // ---------------------------------------------------------------------
@@ -995,6 +1057,11 @@ async function showGrammarPanel(phrase) {
   const grammarTranslationEl = document.getElementById("grammar-translation");
   grammarTranslationEl.textContent = "Looking up…";
   grammarTranslationEl.dataset.immersionKey = "lookingUpStatus";
+  const dictFormEl = document.getElementById("grammar-dictionary-form");
+  if (dictFormEl) {
+    dictFormEl.hidden = true;
+    dictFormEl.textContent = "";
+  }
   document.getElementById("grammar-structure-text").textContent = "";
   document.getElementById("grammar-hint-text").textContent = "";
   document.getElementById("save-grammar-note").hidden = true;
@@ -1025,6 +1092,16 @@ async function showGrammarPanel(phrase) {
     saveBtn.dataset.structure = result.structure || "";
     saveBtn.dataset.explanation = result.explanation || "";
 
+    // Only filled in when the phrase turned out to be a single inflected
+    // verb (see GRAMMAR_EXPLAIN_PROMPT) — a full phrase/sentence leaves
+    // this null, so the row just stays hidden for those.
+    if (dictFormEl && result.dictionaryForm) {
+      dictFormEl.hidden = false;
+      dictFormEl.textContent = result.dictionaryFormEnglish
+        ? `Dictionary form: ${result.dictionaryForm} (${result.dictionaryFormEnglish})`
+        : `Dictionary form: ${result.dictionaryForm}`;
+    }
+
     // The same phrase can just as easily be a vocab item as a grammar
     // note (a single conjugated word dragged/selected, not just a full
     // sentence pattern) — offering both lets the learner pick whichever
@@ -1033,6 +1110,8 @@ async function showGrammarPanel(phrase) {
       vocabBtn.dataset.word = phrase;
       vocabBtn.dataset.furigana = result.furigana || "";
       vocabBtn.dataset.meaning = result.translation;
+      vocabBtn.dataset.infinitive = result.dictionaryForm || "";
+      vocabBtn.dataset.infinitiveEnglish = result.dictionaryFormEnglish || "";
       vocabBtn.hidden = false;
     }
   }
@@ -1046,6 +1125,7 @@ function handleSaveGrammarPhraseAsVocabClick() {
     word: btn.dataset.word || "",
     furigana: btn.dataset.furigana || "",
     meaning: btn.dataset.meaning || "",
+    infinitive: btn.dataset.infinitive ? `${btn.dataset.infinitive}${btn.dataset.infinitiveEnglish ? ` (${btn.dataset.infinitiveEnglish})` : ""}` : "",
   });
 
   const bottomPanel = document.getElementById("grammar-panel");
@@ -1272,7 +1352,76 @@ function showVocabAddForm(prefill) {
   document.getElementById("vocab-add-word").value = (prefill && prefill.word) || "";
   document.getElementById("vocab-add-furigana").value = (prefill && prefill.furigana) || "";
   document.getElementById("vocab-add-meaning").value = (prefill && prefill.meaning) || "";
+  document.getElementById("vocab-add-infinitive").value = (prefill && prefill.infinitive) || "";
   renderVocabAddThemeOptions();
+
+  // Each time this panel is (re)opened for a word, any example sentences
+  // generated for a PREVIOUS word are stale — clear them out rather than
+  // risk saving the wrong word's examples if the learner forgets to
+  // regenerate before hitting save.
+  pendingVocabExamples = null;
+  const status = document.getElementById("vocab-examples-status");
+  const list = document.getElementById("vocab-examples-list");
+  if (status) {
+    status.hidden = true;
+    status.textContent = "";
+    delete status.dataset.immersionKey;
+  }
+  if (list) {
+    list.hidden = true;
+    list.innerHTML = "";
+  }
+}
+
+async function handleGenerateVocabExamplesClick() {
+  const word = document.getElementById("vocab-add-word").value.trim();
+  const meaning = document.getElementById("vocab-add-meaning").value.trim();
+  if (!word) return;
+
+  const status = document.getElementById("vocab-examples-status");
+  const list = document.getElementById("vocab-examples-list");
+  list.hidden = true;
+  list.innerHTML = "";
+  status.hidden = false;
+  status.textContent = "Generating…";
+  status.dataset.immersionKey = "generatingExamplesStatus";
+
+  const examplesLang = currentPassage ? currentPassage.language : "es";
+  const { examples, error } = await Translate.generateExampleSentences(word, examplesLang, meaning);
+
+  if (!examples) {
+    console.error("generate-examples failed:", error);
+    status.textContent = "Couldn't generate examples — try again.";
+    status.dataset.immersionKey = "generateExamplesFailedHint";
+    pendingVocabExamples = null;
+    return;
+  }
+
+  status.hidden = true;
+  status.textContent = "";
+  delete status.dataset.immersionKey;
+  pendingVocabExamples = examples;
+  renderExamplesList(list, examples);
+}
+
+// Shared by the vocab-add panel and the word-lookup panel — a plain
+// bulleted list, target-language sentence first with its English
+// translation right underneath in smaller, muted text.
+function renderExamplesList(listEl, examples) {
+  listEl.innerHTML = "";
+  examples.forEach((ex) => {
+    const li = document.createElement("li");
+    const textLine = document.createElement("div");
+    textLine.className = "example-text";
+    textLine.textContent = ex.text || "";
+    const translationLine = document.createElement("div");
+    translationLine.className = "example-translation";
+    translationLine.textContent = ex.translation || "";
+    li.appendChild(textLine);
+    li.appendChild(translationLine);
+    listEl.appendChild(li);
+  });
+  listEl.hidden = false;
 }
 
 function renderVocabAddThemeOptions(selectId) {
@@ -1343,6 +1492,7 @@ function handleVocabAddFormSubmit(e) {
   const word = document.getElementById("vocab-add-word").value.trim();
   const furigana = document.getElementById("vocab-add-furigana").value.trim();
   const meaning = document.getElementById("vocab-add-meaning").value.trim();
+  const infinitive = document.getElementById("vocab-add-infinitive").value.trim();
   if (!word || !meaning) return;
 
   const saved = Storage.addWordIfNotDuplicate(themeId, {
@@ -1350,6 +1500,8 @@ function handleVocabAddFormSubmit(e) {
     targetLang: word,
     furigana,
     notes: "",
+    infinitive,
+    exampleSentences: pendingVocabExamples || undefined,
   });
 
   if (saved) {
@@ -1546,6 +1698,8 @@ function handleAddLookedUpWord() {
     targetLang: selectedWord,
     furigana: "",
     notes: grammar,
+    infinitive: addBtn.dataset.infinitive || "",
+    exampleSentences: pendingLookupExamples || undefined,
   });
 
   const resultEl = document.getElementById("lookup-result");

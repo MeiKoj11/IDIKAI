@@ -154,6 +154,15 @@
               <input type="text" id="vocab-add-meaning" required />
             </label>
             <label>
+              <span data-immersion-key="infinitiveLabel">Infinitive / dictionary form (optional)</span>
+              <input type="text" id="vocab-add-infinitive" />
+            </label>
+            <div id="vocab-examples-box">
+              <button type="button" id="vocab-generate-examples-btn" class="secondary" data-immersion-key="generateExamplesButton">✨ Generate 3 examples</button>
+              <p id="vocab-examples-status" class="hint" hidden></p>
+              <ul id="vocab-examples-list" class="examples-list" hidden></ul>
+            </div>
+            <label>
               <span data-immersion-key="themeLabel">Theme</span>
               <div class="select-with-button">
                 <select id="vocab-add-theme-select"></select>
@@ -181,6 +190,11 @@
     <strong id="lookup-word"></strong>
     <span id="lookup-result"></span>
     <span id="lookup-grammar" class="lookup-grammar"></span>
+    <div id="lookup-examples-box">
+      <button type="button" id="lookup-generate-examples-btn" class="secondary" hidden data-immersion-key="generateExamplesButton">✨ Generate 3 examples</button>
+      <p id="lookup-examples-status" class="hint" hidden></p>
+      <ul id="lookup-examples-list" class="examples-list" hidden></ul>
+    </div>
     <select id="add-to-theme-select"></select>
     <button type="button" id="add-to-theme-new-theme-btn" class="secondary" data-immersion-key="newThemeButtonPlus">+ New theme</button>
     <button type="button" id="add-looked-up-word" hidden data-immersion-key="addToThemeButton">Add to theme</button>
@@ -199,6 +213,7 @@
     <strong id="grammar-phrase"></strong>
     <span id="grammar-furigana" class="kanji-furigana"></span>
     <span id="grammar-translation"></span>
+    <p id="grammar-dictionary-form" class="hint" hidden></p>
     <details id="grammar-hint-details">
       <summary data-immersion-key="getAiHintSummary">Get an AI hint</summary>
       <p id="grammar-structure-text" class="grammar-structure"></p>

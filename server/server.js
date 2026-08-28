@@ -353,7 +353,8 @@ understand a phrase or sentence they selected while reading (Spanish, Japanese, 
 which from the text itself). Respond with ONLY a JSON object (no markdown, no code fences, no
 explanation) with exactly this shape:
 
-{ "translation": string, "furigana": string or null, "structure": string, "explanation": string }
+{ "translation": string, "furigana": string or null, "dictionaryForm": string or null,
+  "dictionaryFormEnglish": string or null, "structure": string, "explanation": string }
 
 "translation" is a natural, idiomatic English translation of the phrase.
 
@@ -361,6 +362,16 @@ explanation) with exactly this shape:
 convert any katakana in the reading to hiragana too, and give the reading for the WHOLE phrase (not
 just one word in it). Set to null for Spanish or French phrases, or if the phrase has no kanji and
 is already all-hiragana/katakana, still give its hiragana reading rather than null.
+
+"dictionaryForm" and "dictionaryFormEnglish" are ONLY ever filled in when the phrase is a SINGLE
+WORD (not a multi-word phrase or sentence — a bare space, for Spanish/French, or more than one
+grammatical word, for Japanese, means this is NOT a single word) AND that word is a verb or other
+inflectable word given in a conjugated/inflected form. In that case, "dictionaryForm" is the word's
+dictionary/infinitive/base form written normally (e.g. Spanish "quería" -> "querer", French
+"mangeait" -> "manger", Japanese "扱った" -> "扱う"), and "dictionaryFormEnglish" is a short English
+gloss of that base form (e.g. "to want", "to eat", "to handle"). If the phrase is already in its
+dictionary/base form, is a multi-word phrase or full sentence, or isn't the kind of word that has a
+distinct base form (most nouns, adverbs, etc), set both to null.
 
 "structure" is a SHORT formulaic label naming the main grammatical construction. For Spanish, style
 it like "como si + pluperfect subjunctive" or "ir a + infinitive" or "se + indirect object + verb
@@ -383,6 +394,34 @@ function callClaudeForGrammarExplain(phrase, context) {
     ? `Phrase: "${phrase}"\nFull sentence for context: "${context}"`
     : `Phrase: "${phrase}"`;
   return callClaudeJSON(GRAMMAR_EXPLAIN_PROMPT, userMessage, 300);
+}
+
+// Powers the "Generate 3 examples" box on the vocab-add panel (Reading
+// bubble) — the whole point is to show the word being saved used in a
+// few natural sentences, in EXACTLY the form the learner is saving
+// (whatever conjugation/inflection that is), not some other tense —
+// generating 3 sentences that all quietly switched to the infinitive
+// would defeat the purpose.
+const GENERATE_EXAMPLES_PROMPT = `You are a language tutor writing short example sentences for a
+vocabulary flashcard. You'll be given a word or short phrase, its language, and its English meaning.
+Respond with ONLY a JSON object (no markdown, no code fences, no explanation) with exactly this
+shape:
+
+{ "examples": [ { "text": string, "translation": string }, { "text": string, "translation": string },
+  { "text": string, "translation": string } ] }
+
+Write exactly 3 short, natural example sentences IN THE TARGET LANGUAGE, each one actually using the
+word/phrase somewhere in it. Use the word EXACTLY as given — the same form, tense, and conjugation —
+do not change it to the infinitive or to a different tense/person in any of the three sentences, even
+if that reads a little unusual as a standalone example. Keep each sentence short (roughly 4-10 words)
+and natural, suitable for a beginner/intermediate learner, and vary the context across the three so
+they aren't just minor rewordings of each other. "translation" is a natural English translation of
+that exact sentence. For Japanese, write the sentence normally (kanji where natural) — do not include
+furigana in "text".`;
+
+function callClaudeForExampleSentences(word, language, meaning) {
+  const userMessage = `Word/phrase: "${word}". Language: ${LANGUAGE_NAMES[language] || language}. English meaning: "${meaning || ""}".`;
+  return callClaudeJSON(GENERATE_EXAMPLES_PROMPT, userMessage, 500);
 }
 
 // Used by the Grammar bubble's own "structure card" notes — a learner
@@ -1175,6 +1214,32 @@ const server = http.createServer((req, res) => {
     callClaudeForGrammarExplain(phrase, context)
       .then((result) => {
         console.log("  ->", JSON.stringify(result));
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify(result));
+      })
+      .catch((err) => {
+        console.error(err.message);
+        res.writeHead(500, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: err.message }));
+      });
+    return;
+  }
+
+  if (url.pathname === "/generate-examples" && req.method === "GET") {
+    const word = url.searchParams.get("word");
+    const language = url.searchParams.get("language") || "es";
+    const meaning = url.searchParams.get("meaning") || "";
+
+    if (!word) {
+      res.writeHead(400, { "content-type": "application/json" });
+      res.end(JSON.stringify({ error: "Missing word query param." }));
+      return;
+    }
+
+    console.log(`Generating example sentences for "${word}" (${language})...`);
+
+    callClaudeForExampleSentences(word, language, meaning)
+      .then((result) => {
         res.writeHead(200, { "content-type": "application/json" });
         res.end(JSON.stringify(result));
       })

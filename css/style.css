@@ -1390,6 +1390,52 @@ details.hint summary,
   gap: 0.5rem;
 }
 
+/* AI example-sentence boxes (Reading bubble word/vocab lookup panels) */
+
+#vocab-examples-box,
+#lookup-examples-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.examples-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.examples-list li {
+  padding: 0.4rem 0.6rem;
+  background: #5F0D0E;
+  border-radius: 6px;
+}
+
+.example-text {
+  font-size: 0.9rem;
+}
+
+.example-translation {
+  font-size: 0.78rem;
+  color: #C0BFB2;
+  font-style: italic;
+  margin-top: 0.15rem;
+}
+
+.word-infinitive {
+  font-size: 0.8rem;
+  color: #C0BFB2;
+}
+
+.word-ai-examples {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
 .grammar-structure {
   font-weight: 600;
   font-family: monospace;

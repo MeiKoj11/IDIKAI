@@ -894,11 +894,34 @@ function renderWordList() {
     text.textContent = label;
     main.appendChild(text);
 
+    if (word.infinitive) {
+      const infinitive = document.createElement("span");
+      infinitive.className = "word-infinitive";
+      infinitive.textContent = `dictionary form: ${word.infinitive}`;
+      main.appendChild(infinitive);
+    }
+
     if (word.exampleSentence) {
       const example = document.createElement("span");
       example.className = "word-example";
       example.textContent = `e.g. ${word.exampleSentence}`;
       main.appendChild(example);
+    }
+
+    // AI-generated example sentences (from the Reading bubble's "Generate
+    // 3 examples" box) — kept separate from the single manually-typed
+    // exampleSentence above rather than merging them, since these come as
+    // a matched pair of target-language text + English translation.
+    if (Array.isArray(word.exampleSentences) && word.exampleSentences.length > 0) {
+      const examplesWrap = document.createElement("div");
+      examplesWrap.className = "word-ai-examples";
+      word.exampleSentences.forEach((ex) => {
+        const exLine = document.createElement("span");
+        exLine.className = "word-example";
+        exLine.textContent = ex.translation ? `e.g. ${ex.text} — ${ex.translation}` : `e.g. ${ex.text}`;
+        examplesWrap.appendChild(exLine);
+      });
+      main.appendChild(examplesWrap);
     }
 
     li.appendChild(main);
