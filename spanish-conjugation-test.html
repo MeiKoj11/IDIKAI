@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Spanish tenses</title>
+  <title>Spanish conjugation test</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fahkwang:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -77,34 +77,78 @@
     </div>
   </div>
 
-  <header class="app-header lang-es" id="spanish-tenses-header">
-    <a href="grammar.html?lang=es" class="back-link" data-immersion-key="backToGrammar">&larr; Back to Grammar</a>
-    <h1 data-immersion-key="spanishTensesHeading">Spanish tenses</h1>
+  <header class="app-header lang-es" id="spanish-conjugation-test-header">
+    <a href="spanish-tenses.html" class="back-link" data-immersion-key="backToSpanishTenses">&larr; Back to Spanish tenses</a>
+    <h1 data-immersion-key="conjugationTestHeading">Conjugation test</h1>
   </header>
 
-  <main class="spanish-tenses-main">
-    <div class="spanish-tenses-toolbar">
-      <label class="spanish-tenses-verb-picker">
-        <span data-immersion-key="exampleVerbLabel">Example verb</span>
-        <select id="tenses-verb-select"></select>
-      </label>
-      <a href="spanish-conjugation-test.html" id="tenses-test-btn" class="secondary" data-immersion-key="testMeButton">Test me</a>
-    </div>
-    <p class="hint" data-immersion-key="clickBoxToSeeTableHint">Click any box to see the full table. Click again (or outside it) to shrink it back.</p>
+  <main class="conjugation-test-main">
+    <div class="panel conjugation-test-card">
+      <div id="tenses-test-setup">
+        <button type="button" id="tenses-test-random-btn" class="tenses-test-random-btn" data-immersion-key="randomTestButton">🎲 Random test (every verb, every tense)</button>
+        <p class="tenses-test-or" data-immersion-key="orDesignYourOwn">— or design your own —</p>
 
-    <div id="tenses-grid" class="tenses-grid"></div>
-  </main>
+        <div class="tenses-test-section">
+          <div class="tenses-test-section-head">
+            <span data-immersion-key="verbsLabel">Verbs</span>
+            <div>
+              <button type="button" id="tenses-test-verbs-select-all" class="secondary tiny" data-immersion-key="selectAllButton">Select all</button>
+              <button type="button" id="tenses-test-verbs-clear" class="secondary tiny" data-immersion-key="clearButton">Clear</button>
+            </div>
+          </div>
+          <p class="hint" data-immersion-key="verbsSourceHintEs">Includes the app's default verbs plus any verb you've saved to your own Vocab Bank (only verbs saved by themselves, not ones from a saved phrase).</p>
+          <div id="tenses-test-verb-checkboxes" class="tenses-test-verb-checkboxes"></div>
+        </div>
 
-  <!-- Enlarged single-tense table, brought to front over everything else. -->
-  <div id="tenses-overlay-backdrop" class="tenses-overlay-backdrop" hidden>
-    <div id="tenses-overlay-card" class="tenses-overlay-card panel">
-      <div class="tenses-overlay-head">
-        <h2 id="tenses-overlay-title"></h2>
-        <button type="button" id="tenses-overlay-close" class="secondary" data-immersion-key="btnClose">Close</button>
+        <div class="tenses-test-section">
+          <div class="tenses-test-section-head"><span data-immersion-key="personsLabel">Persons</span></div>
+          <div id="tenses-test-person-checkboxes" class="tenses-test-checkboxes-inline"></div>
+        </div>
+
+        <div class="tenses-test-section">
+          <div class="tenses-test-section-head">
+            <span data-immersion-key="tensesLabel">Tenses</span>
+            <div>
+              <button type="button" id="tenses-test-select-all" class="secondary tiny" data-immersion-key="selectAllButton">Select all</button>
+              <button type="button" id="tenses-test-clear" class="secondary tiny" data-immersion-key="clearButton">Clear</button>
+            </div>
+          </div>
+          <div id="tenses-test-checkboxes" class="tenses-test-checkboxes"></div>
+        </div>
+
+        <div class="tenses-test-section">
+          <div class="tenses-test-section-head"><span data-immersion-key="directionLabel">Direction</span></div>
+          <div class="tenses-test-direction-options">
+            <label><input type="radio" name="tenses-test-direction" value="enToTl" checked /> <span data-immersion-key="directionEnToTlEs">English → Spanish</span></label>
+            <label><input type="radio" name="tenses-test-direction" value="tlToEn" /> <span data-immersion-key="directionTlToEnEs">Spanish → English</span></label>
+            <label><input type="radio" name="tenses-test-direction" value="mixed" /> <span data-immersion-key="directionMixed">Mixed</span></label>
+          </div>
+        </div>
+
+        <div class="tenses-test-setup-actions">
+          <button type="button" id="tenses-test-start-btn" data-immersion-key="startTestButton">Start test</button>
+        </div>
       </div>
-      <table id="tenses-overlay-table" class="tenses-overlay-table"></table>
+
+      <div id="tenses-test-quiz" class="card-practice-panel" hidden>
+        <div class="card-practice-top-row">
+          <span id="tenses-test-score" class="card-practice-score"></span>
+          <button type="button" id="tenses-test-restart-btn" class="secondary tiny" data-immersion-key="backToSetupButton">← Change setup</button>
+        </div>
+        <p id="tenses-test-prompt" class="card-practice-prompt"></p>
+        <button type="button" id="tenses-test-show-infinitive-btn" class="secondary tiny" hidden data-immersion-key="showInfinitiveButton">Show infinitive</button>
+        <p id="tenses-test-infinitive-reveal" class="tenses-test-infinitive-reveal" hidden></p>
+        <label>
+          <input type="text" id="tenses-test-input" autocomplete="off" />
+        </label>
+        <div id="tenses-test-feedback" hidden></div>
+        <div class="card-practice-judge-row">
+          <button type="button" id="tenses-test-check-btn" data-immersion-key="checkButton">Check</button>
+          <button type="button" id="tenses-test-next-btn" hidden data-immersion-key="nextButton">Next</button>
+        </div>
+      </div>
     </div>
-  </div>
+  </main>
 
   <script src="js/topbar.js"></script>
   <script src="js/immersion.js"></script>
@@ -114,6 +158,8 @@
   <script src="js/translate.js"></script>
   <script src="js/spanish-verb-data.js"></script>
   <script src="js/spanish-conjugator.js"></script>
-  <script src="js/spanish-tenses-app.js"></script>
+  <script src="js/english-verb-forms.js"></script>
+  <script src="js/conjugation-test-prompts.js"></script>
+  <script src="js/spanish-conjugation-test-app.js"></script>
 </body>
 </html>

@@ -165,16 +165,21 @@
     return base + "s";
   }
 
-  // Splits a gloss like "to wake up (oneself)" or "to speak, to talk"
-  // into a single base verb + optional particle. Only the FIRST
-  // comma-separated alternative is used; parentheticals are dropped
-  // entirely (they're usually a disambiguating note, not part of the
-  // verb itself).
+  // Splits a gloss like "to wake up (oneself)", "to speak, to talk", or
+  // "to follow / continue" into a single base verb + optional particle.
+  // Only the FIRST comma- or slash-separated alternative is used (verb
+  // data uses both as an "or" between alternate glosses); parentheticals
+  // are dropped entirely (they're usually a disambiguating note, not
+  // part of the verb itself, and any "/" inside one — e.g. "(people /
+  // places)" — is stripped along with it before this split ever runs).
   function parseGloss(gloss) {
     if (!gloss) return { base: "", particle: "" };
-    const firstAlt = gloss.split(",")[0];
-    const noParens = firstAlt.replace(/\([^)]*\)/g, "").trim();
-    const withoutTo = noParens.replace(/^to\s+/i, "").trim();
+    // Strip parentheticals FIRST — a "/" inside one (e.g. "(location /
+    // state)") is a disambiguation note, not an alternate-gloss
+    // separator, so it must be gone before the comma/slash split below.
+    const noParens = gloss.replace(/\([^)]*\)/g, "").trim();
+    const firstAlt = noParens.split(/[,/]/)[0];
+    const withoutTo = firstAlt.replace(/^to\s+/i, "").trim();
     const words = withoutTo.split(/\s+/).filter(Boolean);
     if (!words.length) return { base: "", particle: "" };
     return { base: words[0].toLowerCase(), particle: words.slice(1).join(" ") };

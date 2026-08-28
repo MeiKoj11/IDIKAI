@@ -3376,6 +3376,32 @@ button.secondary.tiny {
   font-size: 0.88rem;
 }
 
+/* spanish-conjugation-test.html — the standalone Conjugation Test page
+   (moved out of a modal on spanish-tenses.html since it grew too large
+   for one). Reuses .card-practice-panel for the quiz itself. */
+
+.conjugation-test-main {
+  max-width: 640px;
+}
+
+.conjugation-test-card {
+  padding: 1.5rem;
+}
+
+.card-practice-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.tenses-test-infinitive-reveal {
+  margin: 0;
+  font-family: monospace;
+  font-size: 0.9rem;
+  color: #C0BFB2;
+}
+
 /* Accounts: login / admin / migrate-data pages — small standalone
    pages with no topbar, just a centered card, same overall palette as
    everywhere else. */
