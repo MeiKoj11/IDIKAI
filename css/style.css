@@ -2494,7 +2494,6 @@ main.writing-entry-layout {
   text-decoration: none;
   font-size: 0.85rem;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
-  transform: translateX(800px);
 }
 
 .welcome-about-link:hover {
