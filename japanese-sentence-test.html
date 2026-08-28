@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Grammar folder</title>
+  <title>Japanese sentence conjugation test</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fahkwang:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -23,9 +23,6 @@
     <button type="button" id="topbar-notifications" class="topbar-notifications" aria-label="Notifications" aria-haspopup="true">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2"></rect><path d="M3 6.5l9 6.5 9-6.5"></path></svg>
     </button>
-    <!-- A quick-glance to-do list — just a small icon here next to
-         Notifications, opening the same panel that used to float over
-         the page as a big red button. -->
     <button type="button" id="hub-todo-toggle" class="topbar-todo" aria-label="To-do list" aria-haspopup="true">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"></rect><path d="M8 12l3 3 5-6"></path></svg>
       <span id="hub-todo-toggle-count" class="hub-todo-toggle-count" hidden></span>
@@ -79,81 +76,90 @@
       </div>
     </div>
   </div>
-  <header class="app-header" id="grammar-theme-header">
-    <a href="grammar.html" class="back-link" id="grammar-theme-back-link" data-immersion-key="backToGrammar">&larr; Back to Grammar</a>
-    <h1 id="grammar-theme-heading">Folder</h1>
+
+  <header class="app-header" id="japanese-sentence-test-header">
+    <a href="japanese-tenses.html" class="back-link" data-immersion-key="backToJapaneseForms">&larr; Back to Japanese verb forms</a>
+    <h1 data-immersion-key="sentenceTestHeading">Sentence conjugation test</h1>
   </header>
-  <main>
-    <section class="panel grammar-notes-section">
-      <a id="add-note-link" href="grammar-add-note.html" class="bubble">
-        <span class="bubble-title" data-immersion-key="addNoteTitle">+ Add note</span>
-        <span class="bubble-sub" data-immersion-key="addNoteSub">Write down a sentence structure you noticed</span>
-      </a>
 
-      <!-- Only shown in Spanish's "Tenses and verb conjugations" folder. -->
-      <a id="spanish-tenses-link" href="spanish-tenses.html" class="bubble" hidden>
-        <span class="bubble-title" data-immersion-key="allSpanishTensesTitle">All Spanish tenses</span>
-        <span class="bubble-sub" data-immersion-key="tensesOverviewSub">Full tense overview + a mixed-tense test mode</span>
-      </a>
+  <main class="conjugation-test-main">
+    <div class="panel conjugation-test-card">
+      <div id="tenses-test-setup">
+        <p class="hint" data-immersion-key="jaSentenceTestIntroHint">Full-sentence practice for the potential/passive/causative/causative-passive forms. Both sentences always spell out who's doing what to whom, so there's no ambiguity about which voice to use. Your answer only needs the verb form conjugated correctly — anything else gets corrected, not marked wrong.</p>
+        <button type="button" id="tenses-test-random-btn" class="tenses-test-random-btn" data-immersion-key="randomTestButton">🎲 Random test (every verb, every form)</button>
+        <p class="tenses-test-or" data-immersion-key="orDesignYourOwn">— or design your own —</p>
 
-      <!-- Only shown in French's "Tenses and verb conjugations" folder. -->
-      <a id="french-tenses-link" href="french-tenses.html" class="bubble" hidden>
-        <span class="bubble-title" data-immersion-key="allFrenchTensesTitle">All French tenses</span>
-        <span class="bubble-sub" data-immersion-key="tensesOverviewSub">Full tense overview + a mixed-tense test mode</span>
-      </a>
-
-      <!-- Only shown in Japanese's "Tenses and verb conjugations" folder. -->
-      <a id="japanese-tenses-link" href="japanese-tenses.html" class="bubble" hidden>
-        <span class="bubble-title" data-immersion-key="allJapaneseFormsTitle">All Japanese verb forms</span>
-        <span class="bubble-sub" data-immersion-key="japaneseFormsOverviewSub">Potential/passive/causative overview + a sentence test mode</span>
-      </a>
-
-      <!-- Only shown for folders tagged with a recognized, practice-able
-           concept (e.g. "Transitive vs Intransitive Verbs") — ordinary
-           hand-made folders never see this, since there's nothing to
-           auto-generate practice from. -->
-      <div id="grammar-practice-cta" class="grammar-practice-cta" hidden>
-        <div class="grammar-practice-cta-text">
-          <p class="grammar-practice-cta-title" data-immersion-key="practiceThisPointTitle">Practice this grammar point</p>
-          <p class="hint" id="grammar-practice-cta-hint"></p>
+        <div class="tenses-test-section">
+          <div class="tenses-test-section-head">
+            <span data-immersion-key="verbsLabel">Verbs</span>
+            <div>
+              <button type="button" id="tenses-test-verbs-select-all" class="secondary tiny" data-immersion-key="selectAllButton">Select all</button>
+              <button type="button" id="tenses-test-verbs-clear" class="secondary tiny" data-immersion-key="clearButton">Clear</button>
+            </div>
+          </div>
+          <p class="hint" data-immersion-key="verbsSourceHintJa">Includes the app's default verbs plus any verb you've saved to your own Vocab Bank (only verbs saved by themselves, not ones from a saved phrase).</p>
+          <div id="tenses-test-verb-checkboxes" class="tenses-test-verb-checkboxes"></div>
         </div>
-        <button type="button" id="grammar-practice-start-btn" class="secondary" data-immersion-key="practiceButton">Practice</button>
-      </div>
 
-      <div id="grammar-practice-panel" class="grammar-practice-panel" hidden>
-        <div class="grammar-practice-header">
-          <span id="grammar-practice-score" class="hint"></span>
-          <button type="button" id="grammar-practice-close-btn" class="secondary" data-immersion-key="closePracticeButton">Close practice</button>
+        <div class="tenses-test-section">
+          <div class="tenses-test-section-head"><span data-immersion-key="formsLabel">Forms</span></div>
+          <div id="tenses-test-form-checkboxes" class="tenses-test-checkboxes-inline"></div>
         </div>
-        <div id="grammar-practice-loading" class="hint" hidden data-immersion-key="generatingPracticePairs">Generating practice pairs…</div>
-        <div id="grammar-practice-card" class="grammar-practice-card" hidden>
-          <p id="grammar-practice-prompt-label" class="grammar-practice-prompt-label"></p>
-          <p id="grammar-practice-given" class="grammar-practice-given"></p>
-          <p id="grammar-practice-given-furigana" class="grammar-practice-given-furigana"></p>
-          <p id="grammar-practice-meaning" class="hint"></p>
-          <label class="grammar-practice-answer-label">
-            <span id="grammar-practice-answer-ask"></span>
-            <input type="text" id="grammar-practice-answer-input" autocomplete="off" />
-          </label>
-          <div id="grammar-practice-feedback" class="grammar-practice-feedback" hidden></div>
-          <div class="detection-actions">
-            <button type="button" id="grammar-practice-check-btn" data-immersion-key="checkButton">Check</button>
-            <button type="button" id="grammar-practice-next-btn" hidden data-immersion-key="nextButton">Next</button>
+
+        <div class="tenses-test-section">
+          <div class="tenses-test-section-head"><span data-immersion-key="directionLabel">Direction</span></div>
+          <div class="tenses-test-direction-options">
+            <label><input type="radio" name="tenses-test-direction" value="enToJa" checked /> <span data-immersion-key="directionEnToJa">English → Japanese</span></label>
+            <label><input type="radio" name="tenses-test-direction" value="jaToEn" /> <span data-immersion-key="directionJaToEn">Japanese → English</span></label>
+            <label><input type="radio" name="tenses-test-direction" value="mixed" /> <span data-immersion-key="directionMixed">Mixed</span></label>
           </div>
         </div>
+
+        <div class="tenses-test-setup-actions">
+          <button type="button" id="tenses-test-start-btn" data-immersion-key="startTestButton">Start test</button>
+        </div>
       </div>
 
-      <ul id="grammar-note-list" class="word-list" style="margin-top: 1.25rem;"></ul>
-    </section>
+      <div id="tenses-test-quiz" class="card-practice-panel" hidden>
+        <div class="card-practice-top-row">
+          <span id="tenses-test-score" class="card-practice-score"></span>
+          <button type="button" id="tenses-test-restart-btn" class="secondary tiny" data-immersion-key="backToSetupButton">← Change setup</button>
+        </div>
+        <p id="sentence-test-loading" class="hint" hidden data-immersion-key="generatingSentenceStatus">Generating a sentence…</p>
+        <p id="sentence-test-prompt-label" class="hint" hidden></p>
+        <p id="sentence-test-prompt" class="card-practice-prompt"></p>
+        <button type="button" id="tenses-test-show-infinitive-btn" class="secondary tiny" hidden data-immersion-key="showDictionaryFormButton">Show dictionary form</button>
+        <p id="tenses-test-infinitive-reveal" class="tenses-test-infinitive-reveal" hidden></p>
+        <p class="hint" data-immersion-key="clickWordToLookUpHint">Click any word in the sentence above to look it up.</p>
+        <label>
+          <input type="text" id="tenses-test-input" class="card-practice-input" autocomplete="off" />
+        </label>
+        <div id="sentence-test-checking" class="hint" hidden data-immersion-key="checkingAnswerStatus">Checking…</div>
+        <div id="tenses-test-feedback" hidden></div>
+        <div class="card-practice-judge-row">
+          <button type="button" id="tenses-test-check-btn" data-immersion-key="checkButton">Check</button>
+          <button type="button" id="tenses-test-next-btn" hidden data-immersion-key="nextButton">Next</button>
+        </div>
+      </div>
+    </div>
   </main>
+
+  <div id="lookup-panel" class="lookup-panel" hidden>
+    <strong id="lookup-word"></strong>
+    <span id="lookup-result"></span>
+    <span id="lookup-grammar" class="lookup-grammar"></span>
+    <select id="add-to-theme-select"></select>
+    <button type="button" id="add-to-theme-new-theme-btn" class="secondary" data-immersion-key="newThemeButtonPlus">+ New theme</button>
+    <button type="button" id="add-looked-up-word" hidden data-immersion-key="addToThemeButton">Add to theme</button>
+  </div>
+
   <script src="js/topbar.js"></script>
   <script src="js/immersion.js"></script>
   <script src="js/app-tabs.js"></script>
   <script src="js/storage.js"></script>
   <script src="js/hub-tasks.js"></script>
   <script src="js/translate.js"></script>
-  <script src="js/grammar-concepts.js"></script>
   <script src="js/ja-conjugator.js"></script>
-  <script src="js/grammar-app.js"></script>
+  <script src="js/japanese-sentence-test-app.js"></script>
 </body>
 </html>

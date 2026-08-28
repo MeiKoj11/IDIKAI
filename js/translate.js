@@ -465,6 +465,57 @@ async function generateConjugationSentence(language, infinitive, english, tenseL
   }
 }
 
+// Japanese counterpart of generateConjugationSentence — different
+// shape (kanji/reading/meaning + one of the 4 special forms, no tense/
+// person) so it's its own function rather than a branch of the ES/FR
+// one. Always returns { japaneseSentence, englishSentence,
+// verbFormJapanese, verbFormEnglish, error }; sentence fields are null
+// on failure. Grading still goes through the shared checkConjugationSentence
+// below — the response shape is deliberately parallel to the ES/FR one
+// (targetSentence -> japaneseSentence, verbFormTarget -> verbFormJapanese)
+// so callers can grade it the same way.
+async function generateJaConjugationSentence(kanji, reading, meaning, formLabel, avoidSentences) {
+  try {
+    const res = await fetch(`${API_BASE}/generate-ja-conjugation-sentence`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ kanji, reading, meaning, formLabel, avoidSentences: avoidSentences || [] }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      const reason = (data && data.error) || `Server responded with ${res.status}.`;
+      console.error("generate-ja-conjugation-sentence failed:", reason);
+      return { japaneseSentence: null, englishSentence: null, verbFormJapanese: null, verbFormEnglish: null, error: reason };
+    }
+    if (!data || typeof data.japaneseSentence !== "string" || typeof data.englishSentence !== "string") {
+      console.error("generate-ja-conjugation-sentence: unexpected response shape", data);
+      return {
+        japaneseSentence: null,
+        englishSentence: null,
+        verbFormJapanese: null,
+        verbFormEnglish: null,
+        error: "The server didn't return a usable result.",
+      };
+    }
+    return {
+      japaneseSentence: data.japaneseSentence,
+      englishSentence: data.englishSentence,
+      verbFormJapanese: data.verbFormJapanese || "",
+      verbFormEnglish: data.verbFormEnglish || "",
+      error: null,
+    };
+  } catch (e) {
+    console.error("generate-ja-conjugation-sentence: could not reach the server", e);
+    return {
+      japaneseSentence: null,
+      englishSentence: null,
+      verbFormJapanese: null,
+      verbFormEnglish: null,
+      error: "Couldn't reach the lookup server at localhost:3001 — is `node server.js` running?",
+    };
+  }
+}
+
 // Grades a sentence-mode answer — verb-strict, everything-else-lenient
 // per the app's design (see server.js's CHECK_CONJUGATION_SENTENCE_PROMPT).
 // Always returns { verbCorrect, corrected, note, error }; verbCorrect is
@@ -512,6 +563,7 @@ const Translate = {
   generateCardPractice,
   generateGrammarPractice,
   generateConjugationSentence,
+  generateJaConjugationSentence,
   checkConjugationSentence,
 };
 

@@ -555,24 +555,30 @@ function callClaudeForGenerateConjugationSentence(language, infinitive, english,
 // asked for ("marking doesnt care about incorrect noun but still
 // corrects incorrect noun, the verb must be correct").
 const CHECK_CONJUGATION_SENTENCE_PROMPT = `You are grading a language learner's sentence-translation
-answer for a conjugation drill (Spanish, French, or English — you'll be told which language they
-answered in). Scoring is ENTIRELY about whether they correctly conjugated one specific target verb —
-everything else about the sentence should be corrected and shown, but must NOT affect whether the
-answer counts as correct. Respond with ONLY a JSON object (no markdown, no code fences, no
+answer for a conjugation drill (Spanish, French, Japanese, or English — you'll be told which language
+they answered in). Scoring is ENTIRELY about whether they correctly conjugated/formed one specific
+target verb — everything else about the sentence should be corrected and shown, but must NOT affect
+whether the answer counts as correct. Respond with ONLY a JSON object (no markdown, no code fences, no
 explanation) with exactly this shape:
 
 { "verbCorrect": boolean, "corrected": string, "note": string or null }
 
 Rules:
-- "verbCorrect" is true only if the learner's sentence contains that verb correctly conjugated for the
-  intended tense/person — a wrong mood/tense/person, or an entirely different verb, is false. Minor
-  accent or spelling slips in the verb itself still count as correct if the intended form is clearly
-  right.
+- "verbCorrect" is true only if the learner's sentence contains that verb correctly conjugated/formed
+  for whatever was asked (tense/person for Spanish/French, or the specific special form — potential/
+  passive/causative/causative-passive — for Japanese) — a wrong form, or an entirely different verb, is
+  false. Minor accent or spelling slips in the verb itself still count as correct if the intended form
+  is clearly right.
+- For Japanese specifically: writing the verb in kanji, in all-hiragana, or in a mix, are all equally
+  acceptable — judge only whether the grammatical form is right, never penalize kanji vs. kana choice.
+  The causative-passive form's common contraction (せられる -> される, e.g. 言わせられる/言わされる) is
+  also equally acceptable either way.
 - The reference sentence is a guide, not infallible ground truth — judge correctness with your own
   best knowledge of the language. If the reference itself contains an error (a wrong preposition,
-  wrong gender agreement, an unnatural calque, etc.), do NOT treat that error as correct just because
-  it matches the reference — flag and fix it in "corrected" like any other mistake, and don't let it
-  affect "verbCorrect" either way (that's about the verb only, per the rule above).
+  wrong gender agreement, an unnatural calque, an ambiguous or mismatched voice/subject, etc.), do NOT
+  treat that error as correct just because it matches the reference — flag and fix it in "corrected"
+  like any other mistake, and don't let it affect "verbCorrect" either way (that's about the verb only,
+  per the rule above).
 - "corrected" is the learner's OWN sentence with only what's actually wrong fixed (verb conjugation if
   wrong, agreement, wrong word choice such as a mistaken noun, spelling, or any other genuine error —
   including the case above where the learner correctly matched a flawed part of the reference) — keep
@@ -588,6 +594,72 @@ Rules:
 function callClaudeForCheckConjugationSentence(answerLanguage, referenceSentence, expectedVerbForm, userAnswer) {
   const userMessage = `Language answered in: ${LANGUAGE_NAMES[answerLanguage] || answerLanguage}.\nReference sentence (a guide, not necessarily error-free — see rules): ${referenceSentence}\nThe verb form that must appear, correctly conjugated: "${expectedVerbForm}"\nLearner's answer: ${userAnswer}`;
   return callClaudeJSON(CHECK_CONJUGATION_SENTENCE_PROMPT, userMessage, 500, GRAMMAR_CHECK_MODEL);
+}
+
+// Japanese sentence-mode generation — deliberately a separate prompt
+// from the Spanish/French one above rather than a shared one with
+// branches, because the shape of the practice is genuinely different:
+// no tense/person grid, just one of four special verb forms (potential/
+// passive/causative/causative-passive) applied to a verb. The
+// causative/passive family also has a failure mode Spanish/French don't:
+// each of those forms involves TWO parties (an agent and someone
+// affected), and the same Japanese sentence can be phrased in English
+// with either party as the grammatical subject ("my mom let me play
+// outside" vs. "I was allowed to play outside by my mom" — same event,
+// different English voice) — a learner needs the sentence itself to
+// make unambiguously clear who's who, not just a technically-valid
+// translation that could be read either way.
+const GENERATE_JA_CONJUGATION_SENTENCE_PROMPT = `You write natural, level-appropriate Japanese
+practice sentences for a language-learning app's conjugation drill, focused on ONE of four special
+verb forms: potential (可能形 — "can do"), passive (受身形 — "something happens to the subject"),
+causative (使役形 — "make/let someone do"), or causative-passive (使役受身形 — "was made to do"). Given
+a verb (kanji, reading, English gloss) and which of the four forms to use, write ONE natural Japanese
+sentence using the verb correctly in that exact form, then give a natural, UNAMBIGUOUS English
+translation of that exact sentence. Respond with ONLY a JSON object (no markdown, no code fences, no
+explanation) with exactly this shape:
+
+{ "japaneseSentence": string, "englishSentence": string, "verbFormJapanese": string, "verbFormEnglish": string }
+
+Rules:
+- Accuracy matters enormously — this becomes the learner's actual study material. A native Japanese
+  speaker must find "japaneseSentence" completely natural, and "englishSentence" must be a faithful,
+  natural, UNAMBIGUOUS translation of it (not stiff word-for-word).
+- CRITICAL for passive, causative, and causative-passive (this does not apply to potential, which only
+  involves one party): these forms involve two parties — an agent (the one causing/allowing/doing the
+  action to another) and someone affected (the one being made to act, or being acted upon). The same
+  underlying event can be phrased in English with EITHER party as the grammatical subject (e.g. "my mom
+  let me play outside" vs. "I was allowed to play outside by my mom" both describe the same event). To
+  avoid this ambiguity:
+  - ALWAYS name or clearly identify BOTH parties explicitly in both sentences — never leave either one
+    implicit or unstated (e.g. always say who the causer/agent is — a parent, teacher, friend, boss,
+    etc. — and who is caused/affected — a specific person, "me", "the students", etc.).
+  - The Japanese sentence's actual grammatical subject determines the voice — write the English
+    translation to clearly reflect THAT SAME voice as its own grammatical subject too, so the two
+    sentences describe the relationship the same unambiguous way (if the Japanese subject is the one
+    being made/allowed to act, phrase the English as "X was made/allowed to do Y by Z" with X as the
+    subject; if the Japanese subject is the one causing/allowing, phrase it as "Z made/let X do Y" with
+    Z as the subject) — never phrase the English so it could plausibly be read either way.
+- "verbFormJapanese" is the exact conjugated verb form as it appears in "japaneseSentence" (kanji form,
+  e.g. "遊ばせてもらった" or "書かれた"). "verbFormEnglish" is the corresponding conjugated verb phrase
+  as it appears in "englishSentence" (e.g. "was allowed to play", "was written").
+- The sentence must clearly and unambiguously use the requested form — don't hedge into a different one
+  or into plain non-conjugated Japanese.
+- Keep the sentence short (roughly 6-16 Japanese characters' worth of content beyond the verb itself)
+  and naturally include 1-2 pieces of vocabulary beyond basic function words so there's something a
+  learner might not already know — but keep it natural, not contrived or a vocabulary showcase.
+- Never reuse a sentence you've already been asked to avoid (a list may be given).
+- Output nothing except the JSON object.`;
+
+// Sentence-mode content becomes the learner's study material, so it's
+// worth the stronger model here (same reasoning as the Spanish/French
+// version) — especially given how easy the voice-ambiguity failure mode
+// above is to get subtly wrong.
+function callClaudeForGenerateJaConjugationSentence(kanji, reading, meaning, formLabel, avoidSentences) {
+  const avoidLines = (avoidSentences || []).length
+    ? `\n\nAvoid reusing (in either language) any of these previous sentences:\n${avoidSentences.map((s) => `- ${s}`).join("\n")}`
+    : "";
+  const userMessage = `Verb: ${kanji} (${reading}) — ${meaning}.\nForm: ${formLabel}.${avoidLines}`;
+  return callClaudeJSON(GENERATE_JA_CONJUGATION_SENTENCE_PROMPT, userMessage, 500, GRAMMAR_CHECK_MODEL);
 }
 
 // Used when saving a Grammar structure card — identifies what specific
@@ -1476,6 +1548,48 @@ const server = http.createServer((req, res) => {
       console.log(`Generating conjugation sentence (${language}): ${infinitive}, ${tenseLabel}, ${personLabel}...`);
 
       callClaudeForGenerateConjugationSentence(language, infinitive, english || "", tenseLabel, personLabel, avoidSentences)
+        .then((result) => {
+          res.writeHead(200, { "content-type": "application/json" });
+          res.end(JSON.stringify(result));
+        })
+        .catch((err) => {
+          console.error(err.message);
+          res.writeHead(500, { "content-type": "application/json" });
+          res.end(JSON.stringify({ error: err.message }));
+        });
+    });
+    return;
+  }
+
+  if (url.pathname === "/generate-ja-conjugation-sentence" && req.method === "POST") {
+    const bodyChunks = [];
+    let bodyBytes = 0;
+    req.on("data", (chunk) => {
+      bodyChunks.push(chunk);
+      bodyBytes += chunk.length;
+      if (bodyBytes > 512 * 1024) req.destroy();
+    });
+    req.on("end", () => {
+      const rawBody = Buffer.concat(bodyChunks).toString("utf8");
+      let parsed;
+      try {
+        parsed = JSON.parse(rawBody);
+      } catch (e) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "Invalid JSON body." }));
+        return;
+      }
+
+      const { kanji, reading, meaning, formLabel, avoidSentences } = parsed;
+      if (!kanji || !reading || !formLabel) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "Missing kanji, reading, or formLabel." }));
+        return;
+      }
+
+      console.log(`Generating JA conjugation sentence: ${kanji} (${reading}), ${formLabel}...`);
+
+      callClaudeForGenerateJaConjugationSentence(kanji, reading, meaning || "", formLabel, avoidSentences)
         .then((result) => {
           res.writeHead(200, { "content-type": "application/json" });
           res.end(JSON.stringify(result));

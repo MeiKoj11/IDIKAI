@@ -210,6 +210,11 @@ function initGrammarThemePage() {
     frenchTensesLink.hidden = !(themeLang === "fr" && (theme.name || "").toLowerCase() === "tenses and verb conjugations");
   }
 
+  const japaneseTensesLink = document.getElementById("japanese-tenses-link");
+  if (japaneseTensesLink) {
+    japaneseTensesLink.hidden = !(themeLang === "ja" && (theme.name || "").toLowerCase() === "tenses and verb conjugations");
+  }
+
   renderGrammarNoteList(theme.id);
   initGrammarPracticeCTA(theme);
 }
