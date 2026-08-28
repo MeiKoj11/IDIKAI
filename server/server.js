@@ -282,6 +282,23 @@ function callClaudeJSON(systemPrompt, userMessage, maxTokens, model) {
   });
 }
 
+// Shared retry-at-larger-budget wrapper for short structured-JSON calls on
+// GRAMMAR_CHECK_MODEL. See callClaudeForWritingGrammarCheck below for the
+// full explanation: this model's adaptive thinking (on by default) burns
+// an unpredictable chunk of max_tokens on reasoning before the real answer
+// even starts, so a fixed budget can't promise enough headroom for every
+// request — this retries once at a bigger budget specifically when the
+// first attempt was cut off, rather than just picking one bigger static
+// number and hoping it's always enough.
+async function callClaudeJSONWithRetry(systemPrompt, userMessage, baseTokens, retryTokens, model) {
+  try {
+    return await callClaudeJSON(systemPrompt, userMessage, baseTokens, model);
+  } catch (err) {
+    if (!(err instanceof Error) || !/cut off before it finished/.test(err.message)) throw err;
+    return callClaudeJSON(systemPrompt, userMessage, retryTokens, model);
+  }
+}
+
 function callClaude(word, fromLang, toLang) {
   const userMessage = `Translate "${word}" from ${LANGUAGE_NAMES[fromLang] || fromLang} to ${LANGUAGE_NAMES[toLang] || toLang}.`;
   return callClaudeJSON(SYSTEM_PROMPT, userMessage, 200);
@@ -545,7 +562,7 @@ function callClaudeForGenerateConjugationSentence(language, infinitive, english,
     ? `\n\nAvoid reusing (in either language) any of these previous sentences:\n${avoidSentences.map((s) => `- ${s}`).join("\n")}`
     : "";
   const userMessage = `Language: ${LANGUAGE_NAMES[language] || language}.\nVerb: "${infinitive}" (${english}).\nTense: ${tenseLabel}.\nPerson: ${personLabel}.${avoidLines}`;
-  return callClaudeJSON(GENERATE_CONJUGATION_SENTENCE_PROMPT, userMessage, 500, GRAMMAR_CHECK_MODEL);
+  return callClaudeJSONWithRetry(GENERATE_CONJUGATION_SENTENCE_PROMPT, userMessage, 2000, 4000, GRAMMAR_CHECK_MODEL);
 }
 
 // Grades a learner's typed answer for sentence-mode: the conjugated
@@ -593,7 +610,7 @@ Rules:
 
 function callClaudeForCheckConjugationSentence(answerLanguage, referenceSentence, expectedVerbForm, userAnswer) {
   const userMessage = `Language answered in: ${LANGUAGE_NAMES[answerLanguage] || answerLanguage}.\nReference sentence (a guide, not necessarily error-free — see rules): ${referenceSentence}\nThe verb form that must appear, correctly conjugated: "${expectedVerbForm}"\nLearner's answer: ${userAnswer}`;
-  return callClaudeJSON(CHECK_CONJUGATION_SENTENCE_PROMPT, userMessage, 500, GRAMMAR_CHECK_MODEL);
+  return callClaudeJSONWithRetry(CHECK_CONJUGATION_SENTENCE_PROMPT, userMessage, 2000, 4000, GRAMMAR_CHECK_MODEL);
 }
 
 // Japanese sentence-mode generation — deliberately a separate prompt
@@ -659,7 +676,7 @@ function callClaudeForGenerateJaConjugationSentence(kanji, reading, meaning, for
     ? `\n\nAvoid reusing (in either language) any of these previous sentences:\n${avoidSentences.map((s) => `- ${s}`).join("\n")}`
     : "";
   const userMessage = `Verb: ${kanji} (${reading}) — ${meaning}.\nForm: ${formLabel}.${avoidLines}`;
-  return callClaudeJSON(GENERATE_JA_CONJUGATION_SENTENCE_PROMPT, userMessage, 500, GRAMMAR_CHECK_MODEL);
+  return callClaudeJSONWithRetry(GENERATE_JA_CONJUGATION_SENTENCE_PROMPT, userMessage, 2000, 4000, GRAMMAR_CHECK_MODEL);
 }
 
 // Used when saving a Grammar structure card — identifies what specific
