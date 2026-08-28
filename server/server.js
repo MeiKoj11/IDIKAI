@@ -516,6 +516,13 @@ fences, no explanation) with exactly this shape:
 Rules:
 - "englishSentence" and "targetSentence" must be faithful translations of each other, both naturally
   phrased (not stiff word-for-word translation).
+- Accuracy matters enormously — this is what a real learner will study as correct, so it must actually
+  be correct. Before answering, double-check every word that isn't the target verb, especially small
+  words that are easy to mistranslate literally: prepositions ("from" is "desde", not "hasta", which
+  means "until/as far as"; "for" can be "para" or "por" depending on meaning; etc.), gender/number
+  agreement on every article and adjective, and any idiom that doesn't translate word-for-word. A
+  native speaker of the target language must find the sentence completely natural and correct with no
+  hesitation.
 - "verbFormEnglish" is the exact conjugated verb phrase as it appears in "englishSentence" (e.g.
   "would have given"). "verbFormTarget" is the exact conjugated verb form as it appears in
   "targetSentence" (e.g. "habría dado").
@@ -528,12 +535,17 @@ Rules:
 - Never reuse a sentence you've already been asked to avoid (a list may be given).
 - Output nothing except the JSON object.`;
 
+// Sentence-mode content becomes the learner's study material, so it's
+// worth the extra cost/latency of the stronger model here rather than
+// the fast/cheap MODEL used for routine single-word lookups — a wrong
+// preposition or agreement slip in a generated "reference" sentence
+// teaches the mistake as if it were correct.
 function callClaudeForGenerateConjugationSentence(language, infinitive, english, tenseLabel, personLabel, avoidSentences) {
   const avoidLines = (avoidSentences || []).length
     ? `\n\nAvoid reusing (in either language) any of these previous sentences:\n${avoidSentences.map((s) => `- ${s}`).join("\n")}`
     : "";
   const userMessage = `Language: ${LANGUAGE_NAMES[language] || language}.\nVerb: "${infinitive}" (${english}).\nTense: ${tenseLabel}.\nPerson: ${personLabel}.${avoidLines}`;
-  return callClaudeJSON(GENERATE_CONJUGATION_SENTENCE_PROMPT, userMessage, 500);
+  return callClaudeJSON(GENERATE_CONJUGATION_SENTENCE_PROMPT, userMessage, 500, GRAMMAR_CHECK_MODEL);
 }
 
 // Grades a learner's typed answer for sentence-mode: the conjugated
@@ -556,11 +568,17 @@ Rules:
   intended tense/person — a wrong mood/tense/person, or an entirely different verb, is false. Minor
   accent or spelling slips in the verb itself still count as correct if the intended form is clearly
   right.
+- The reference sentence is a guide, not infallible ground truth — judge correctness with your own
+  best knowledge of the language. If the reference itself contains an error (a wrong preposition,
+  wrong gender agreement, an unnatural calque, etc.), do NOT treat that error as correct just because
+  it matches the reference — flag and fix it in "corrected" like any other mistake, and don't let it
+  affect "verbCorrect" either way (that's about the verb only, per the rule above).
 - "corrected" is the learner's OWN sentence with only what's actually wrong fixed (verb conjugation if
-  wrong, agreement, wrong word choice such as a mistaken noun, spelling) — keep their own wording and
-  structure wherever it's valid rather than substituting the reference sentence. If their sentence was
-  already fully correct, "corrected" should be identical to what they typed (trivial capitalization/
-  punctuation cleanup aside).
+  wrong, agreement, wrong word choice such as a mistaken noun, spelling, or any other genuine error —
+  including the case above where the learner correctly matched a flawed part of the reference) — keep
+  their own wording and structure wherever it's valid rather than substituting the reference sentence.
+  If their sentence was already fully correct, "corrected" should be identical to what they typed
+  (trivial capitalization/punctuation cleanup aside).
 - "note" is ONE short, encouraging sentence in plain teaching language pointing out anything that was
   off (the verb, or anything else that got corrected) — or null if the answer needed no correction at
   all.
@@ -568,8 +586,8 @@ Rules:
   languages.`;
 
 function callClaudeForCheckConjugationSentence(answerLanguage, referenceSentence, expectedVerbForm, userAnswer) {
-  const userMessage = `Language answered in: ${LANGUAGE_NAMES[answerLanguage] || answerLanguage}.\nReference (fully correct) sentence: ${referenceSentence}\nThe verb form that must appear, correctly conjugated: "${expectedVerbForm}"\nLearner's answer: ${userAnswer}`;
-  return callClaudeJSON(CHECK_CONJUGATION_SENTENCE_PROMPT, userMessage, 500);
+  const userMessage = `Language answered in: ${LANGUAGE_NAMES[answerLanguage] || answerLanguage}.\nReference sentence (a guide, not necessarily error-free — see rules): ${referenceSentence}\nThe verb form that must appear, correctly conjugated: "${expectedVerbForm}"\nLearner's answer: ${userAnswer}`;
+  return callClaudeJSON(CHECK_CONJUGATION_SENTENCE_PROMPT, userMessage, 500, GRAMMAR_CHECK_MODEL);
 }
 
 // Used when saving a Grammar structure card — identifies what specific
