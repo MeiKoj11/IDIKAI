@@ -2482,6 +2482,90 @@ main.writing-entry-layout {
   color: rgba(236, 230, 211, 0.55);
 }
 
+.welcome-about-link {
+  position: absolute;
+  right: 1.25rem;
+  top: 1.5rem;
+  display: inline-block;
+  padding: 0.55rem 1.3rem;
+  border: 1px solid rgba(236, 230, 211, 0.6);
+  border-radius: 999px;
+  color: #ECE6D3;
+  text-decoration: none;
+  font-size: 0.85rem;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.welcome-about-link:hover {
+  background: #ECE6D3;
+  color: #221712;
+  border-color: #ECE6D3;
+}
+
+.about-body {
+  margin: 0;
+  min-height: 100vh;
+  background: #771011;
+  color: #ECE6D3;
+  font-family: "Nunito", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+}
+
+.about-main {
+  position: relative;
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 3rem;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.about-back-link {
+  display: inline-block;
+  margin-bottom: 2.5rem;
+  padding: 0.55rem 1.3rem;
+  border: 1px solid rgba(236, 230, 211, 0.6);
+  border-radius: 999px;
+  color: #ECE6D3;
+  text-decoration: none;
+  font-size: 0.85rem;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.about-back-link:hover {
+  background: #ECE6D3;
+  color: #771011;
+  border-color: #ECE6D3;
+}
+
+.about-heading {
+  font-family: "Fahkwang", "Nunito", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  font-size: 2.2rem;
+  font-weight: 600;
+  margin: 0 0 1.75rem;
+  color: #ECE6D3;
+}
+
+.about-paragraph {
+  font-size: 1.05rem;
+  line-height: 1.7;
+  margin: 0 0 1.4rem;
+  color: #ECE6D3;
+}
+
+@media (max-width: 640px) {
+  .about-main {
+    padding: 2rem 1.5rem;
+  }
+
+  .about-heading {
+    font-size: 1.7rem;
+  }
+
+  .about-paragraph {
+    font-size: 0.98rem;
+  }
+}
+
 .welcome-start-link {
   position: absolute;
   right: 1.25rem;
