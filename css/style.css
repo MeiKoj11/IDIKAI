@@ -706,6 +706,28 @@ button.secondary:hover {
   background: #8B3435;
 }
 
+/* <a class="secondary"> is used a handful of places as a button-styled
+   link (e.g. spanish-tenses.html's "Test me"/"Sentence test") — the
+   button.secondary rules above only target real <button> elements, so
+   without this an <a class="secondary"> rendered as a plain default
+   blue underlined link instead of matching its button counterpart. */
+a.secondary {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  border: 1px solid #221712;
+  background: #771011;
+  color: #ECE6D3;
+  text-decoration: none;
+  font-size: 0.9rem;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+a.secondary:hover {
+  background: #8B3435;
+}
+
 /* Lists */
 
 .word-list {
@@ -1729,7 +1751,13 @@ details.hint summary,
 
 .card-practice-input {
   width: 100%;
+  box-sizing: border-box;
   resize: vertical;
+  padding: 0.65rem 0.85rem;
+  font-size: 1rem;
+  font-family: inherit;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.35);
 }
 
 .card-practice-answer {
@@ -3123,6 +3151,12 @@ details[open] > .hub-todo-group-summary::before {
 .spanish-tenses-verb-picker select {
   padding: 0.45rem;
   min-width: 220px;
+}
+
+.spanish-tenses-test-links {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .tenses-grid {
