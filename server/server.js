@@ -349,13 +349,18 @@ function callClaudeForConjugationCheck(infinitive, tense, person, expected, user
 // gets pasted into the saved note automatically. The learner writes the
 // pattern/notes themselves.
 const GRAMMAR_EXPLAIN_PROMPT = `You are a language tutor helping an English-speaking learner
-understand a phrase or sentence they selected while reading (Spanish or Japanese — detect which
-from the text itself). Respond with ONLY a JSON object (no markdown, no code fences, no
+understand a phrase or sentence they selected while reading (Spanish, Japanese, or French — detect
+which from the text itself). Respond with ONLY a JSON object (no markdown, no code fences, no
 explanation) with exactly this shape:
 
-{ "translation": string, "structure": string, "explanation": string }
+{ "translation": string, "furigana": string or null, "structure": string, "explanation": string }
 
 "translation" is a natural, idiomatic English translation of the phrase.
+
+"furigana" is ONLY ever the hiragana reading of the phrase, and ONLY when the phrase is Japanese —
+convert any katakana in the reading to hiragana too, and give the reading for the WHOLE phrase (not
+just one word in it). Set to null for Spanish or French phrases, or if the phrase has no kanji and
+is already all-hiragana/katakana, still give its hiragana reading rather than null.
 
 "structure" is a SHORT formulaic label naming the main grammatical construction. For Spanish, style
 it like "como si + pluperfect subjunctive" or "ir a + infinitive" or "se + indirect object + verb

@@ -131,6 +131,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const saveGrammarBtn = document.getElementById("save-grammar-note");
   if (saveGrammarBtn) saveGrammarBtn.addEventListener("click", handleSaveGrammarNoteClick);
 
+  const saveGrammarPhraseAsVocabBtn = document.getElementById("save-grammar-phrase-as-vocab");
+  if (saveGrammarPhraseAsVocabBtn) saveGrammarPhraseAsVocabBtn.addEventListener("click", handleSaveGrammarPhraseAsVocabClick);
+
   const toggleBtn = document.getElementById("toggle-grammar-panel");
   if (toggleBtn) toggleBtn.addEventListener("click", toggleGrammarSidePanel);
 
@@ -988,12 +991,15 @@ async function showGrammarPanel(phrase) {
   panel.hidden = false;
 
   document.getElementById("grammar-phrase").textContent = phrase;
+  document.getElementById("grammar-furigana").textContent = "";
   const grammarTranslationEl = document.getElementById("grammar-translation");
   grammarTranslationEl.textContent = "Looking up…";
   grammarTranslationEl.dataset.immersionKey = "lookingUpStatus";
   document.getElementById("grammar-structure-text").textContent = "";
   document.getElementById("grammar-hint-text").textContent = "";
   document.getElementById("save-grammar-note").hidden = true;
+  const vocabBtn = document.getElementById("save-grammar-phrase-as-vocab");
+  if (vocabBtn) vocabBtn.hidden = true;
 
   const context = currentPassage ? currentPassage.text : "";
   const result = await Translate.explainGrammar(phrase, context);
@@ -1012,13 +1018,38 @@ async function showGrammarPanel(phrase) {
     const successTranslationEl = document.getElementById("grammar-translation");
     delete successTranslationEl.dataset.immersionKey;
     successTranslationEl.textContent = result.translation;
+    document.getElementById("grammar-furigana").textContent = result.furigana || "";
     document.getElementById("grammar-structure-text").textContent = result.structure || "";
     document.getElementById("grammar-hint-text").textContent = result.explanation || "";
     saveBtn.dataset.translation = result.translation;
     saveBtn.dataset.structure = result.structure || "";
     saveBtn.dataset.explanation = result.explanation || "";
+
+    // The same phrase can just as easily be a vocab item as a grammar
+    // note (a single conjugated word dragged/selected, not just a full
+    // sentence pattern) — offering both lets the learner pick whichever
+    // actually fits instead of forcing everything through "grammar note".
+    if (vocabBtn) {
+      vocabBtn.dataset.word = phrase;
+      vocabBtn.dataset.furigana = result.furigana || "";
+      vocabBtn.dataset.meaning = result.translation;
+      vocabBtn.hidden = false;
+    }
   }
   saveBtn.hidden = false;
+}
+
+function handleSaveGrammarPhraseAsVocabClick() {
+  const btn = document.getElementById("save-grammar-phrase-as-vocab");
+  openGrammarSidePanel("vocab");
+  showVocabAddForm({
+    word: btn.dataset.word || "",
+    furigana: btn.dataset.furigana || "",
+    meaning: btn.dataset.meaning || "",
+  });
+
+  const bottomPanel = document.getElementById("grammar-panel");
+  if (bottomPanel) bottomPanel.hidden = true;
 }
 
 // Opens the in-page grammar notes panel with a form pre-filled from the
@@ -1249,7 +1280,8 @@ function renderVocabAddThemeOptions(selectId) {
   if (!select) return;
   select.innerHTML = "";
 
-  const themes = Storage.getThemes().filter((t) => t.language === "ja");
+  const vocabAddLang = currentPassage ? currentPassage.language : "es";
+  const themes = Storage.getThemes().filter((t) => t.language === vocabAddLang);
   themes.forEach((theme) => {
     const opt = document.createElement("option");
     opt.value = theme.id;
@@ -1275,13 +1307,14 @@ function renderVocabAddThemeOptions(selectId) {
 // select's "change" event.
 function createVocabAddTheme() {
   const name = prompt("Name for the new theme:");
-  const existingThemes = Storage.getThemes().filter((t) => t.language === "ja");
+  const vocabAddLang = currentPassage ? currentPassage.language : "es";
+  const existingThemes = Storage.getThemes().filter((t) => t.language === vocabAddLang);
   if (!name || !name.trim()) {
     renderVocabAddThemeOptions(existingThemes.length ? existingThemes[0].id : null);
     return;
   }
 
-  const theme = Storage.addTheme(name.trim(), "ja");
+  const theme = Storage.addTheme(name.trim(), vocabAddLang);
   renderVocabAddThemeOptions(theme.id);
 }
 
@@ -1296,12 +1329,13 @@ function handleVocabAddFormSubmit(e) {
   let themeId = themeSelect.value;
 
   if (!themeId || themeId === NEW_THEME_VALUE) {
-    // Same cold-start case as the grammar folder select: if no Japanese
-    // themes exist yet, "+ Create new theme…" is the only, pre-selected
-    // option, so its change event never fires — handle it here instead.
+    // Same cold-start case as the grammar folder select: if no themes in
+    // this passage's language exist yet, "+ Create new theme…" is the
+    // only, pre-selected option, so its change event never fires — handle
+    // it here instead.
     const name = prompt("Name for the new theme:");
     if (!name || !name.trim()) return;
-    const theme = Storage.addTheme(name.trim(), "ja");
+    const theme = Storage.addTheme(name.trim(), currentPassage ? currentPassage.language : "es");
     renderVocabAddThemeOptions(theme.id);
     themeId = theme.id;
   }

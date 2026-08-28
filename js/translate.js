@@ -140,6 +140,7 @@ async function explainGrammar(phrase, context) {
     if (!data || !data.translation) return null;
     return {
       translation: data.translation,
+      furigana: data.furigana || "",
       structure: data.structure || "",
       explanation: data.explanation || "",
     };
