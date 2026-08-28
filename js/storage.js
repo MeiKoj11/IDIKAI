@@ -590,18 +590,10 @@ function fixStalePassiveExplanation() {
   if (changed) writeJSON(STORAGE_KEYS.grammarNotes, notes);
 }
 
-function ensureDefaultConjugationCards(language) {
-  if (language !== "ja") return; // this feature is Japanese-specific
-  fixStalePassiveExplanation();
-
-  const seeded = readJSON(STORAGE_KEYS.conjugationCardsSeeded, []);
-  if (seeded.includes(language)) return;
-
-  ensureDefaultGrammarThemes(language); // guarantees the target folder exists
-  const themes = getGrammarThemes(language);
-  const folder = themes.find((t) => (t.name || "").toLowerCase() === "tenses and verb conjugations");
-  if (!folder) return; // shouldn't happen, but don't crash if it somehow does
-
+// Adds any of the four conjugation-pattern cards not already present in
+// a "Tenses and verb conjugations" folder — shared by the one-time seed
+// below and by the unconditional backfill fix that follows it.
+function addMissingConjugationCards(folder) {
   const existingForms = new Set(
     getGrammarNotes(folder.id)
       .map((n) => n.conjugationForm)
@@ -622,6 +614,41 @@ function ensureDefaultConjugationCards(language) {
       grammarLabelNote: "",
     });
   });
+}
+
+// One-time content fix, same idea as fixStalePassiveExplanation above:
+// an account that first loaded this feature before a later form was
+// added to CONJUGATION_STARTER_CARDS (e.g. causative-passive), or that
+// had a card removed afterward, would otherwise be stuck missing it
+// forever — the conjugationCardsSeeded gate below skips re-running
+// entirely once it's been set once, regardless of which specific cards
+// actually exist. This runs unconditionally, independent of that gate,
+// and only touches a folder that already has at least one conjugation
+// card seeded (a brand-new account with none yet is left to the normal
+// seed path below instead, so this can't race ahead of it).
+function backfillMissingConjugationCards(language) {
+  if (language !== "ja") return;
+  const themes = getGrammarThemes(language);
+  const folder = themes.find((t) => (t.name || "").toLowerCase() === "tenses and verb conjugations");
+  if (!folder) return;
+  if (!getGrammarNotes(folder.id).some((n) => n.conjugationForm)) return;
+  addMissingConjugationCards(folder);
+}
+
+function ensureDefaultConjugationCards(language) {
+  if (language !== "ja") return; // this feature is Japanese-specific
+  fixStalePassiveExplanation();
+  backfillMissingConjugationCards(language);
+
+  const seeded = readJSON(STORAGE_KEYS.conjugationCardsSeeded, []);
+  if (seeded.includes(language)) return;
+
+  ensureDefaultGrammarThemes(language); // guarantees the target folder exists
+  const themes = getGrammarThemes(language);
+  const folder = themes.find((t) => (t.name || "").toLowerCase() === "tenses and verb conjugations");
+  if (!folder) return; // shouldn't happen, but don't crash if it somehow does
+
+  addMissingConjugationCards(folder);
 
   seeded.push(language);
   writeJSON(STORAGE_KEYS.conjugationCardsSeeded, seeded);
