@@ -465,6 +465,50 @@ async function generateConjugationSentence(language, infinitive, english, tenseL
   }
 }
 
+// Batch version of generateConjugationSentence — generates a whole
+// test's worth of sentences (one per item in `items`) in ONE request,
+// so the sentence test can show a single "loading your test" screen up
+// front instead of a short wait before every question. Always returns
+// { sentences, error }; `sentences` is an array (one entry per input
+// item, in order, same shape as generateConjugationSentence's return
+// value minus the error field) or null on failure.
+async function generateConjugationSentencesBatch(language, items, avoidSentences) {
+  try {
+    const res = await fetch(`${API_BASE}/generate-conjugation-sentences-batch`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ language, items, avoidSentences: avoidSentences || [] }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      const reason = (data && data.error) || `Server responded with ${res.status}.`;
+      console.error("generate-conjugation-sentences-batch failed:", reason);
+      return { sentences: null, error: reason };
+    }
+    if (!data || !Array.isArray(data.sentences) || data.sentences.length !== items.length) {
+      console.error("generate-conjugation-sentences-batch: unexpected response shape", data);
+      return { sentences: null, error: "The server didn't return a usable result." };
+    }
+    const bad = data.sentences.find((s) => !s || typeof s.englishSentence !== "string" || typeof s.targetSentence !== "string");
+    if (bad) {
+      console.error("generate-conjugation-sentences-batch: malformed item in response", bad);
+      return { sentences: null, error: "The server didn't return a usable result." };
+    }
+    return {
+      sentences: data.sentences.map((s) => ({
+        englishSentence: s.englishSentence,
+        targetSentence: s.targetSentence,
+        verbFormEnglish: s.verbFormEnglish || "",
+        verbFormTarget: s.verbFormTarget || "",
+      })),
+      error: null,
+    };
+  } catch (e) {
+    console.error("generate-conjugation-sentences-batch: could not reach the server", e);
+    return { sentences: null, error: "Couldn't reach the lookup server at localhost:3001 — is `node server.js` running?" };
+  }
+}
+
 // Japanese counterpart of generateConjugationSentence — different
 // shape (kanji/reading/meaning + one of the 4 special forms, no tense/
 // person) so it's its own function rather than a branch of the ES/FR
@@ -516,6 +560,47 @@ async function generateJaConjugationSentence(kanji, reading, meaning, formLabel,
   }
 }
 
+// Batch version of generateJaConjugationSentence — see
+// generateConjugationSentencesBatch above for why. Always returns
+// { sentences, error }; `sentences` is an array (one entry per input
+// item, in order) or null on failure.
+async function generateJaConjugationSentencesBatch(items, avoidSentences) {
+  try {
+    const res = await fetch(`${API_BASE}/generate-ja-conjugation-sentences-batch`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ items, avoidSentences: avoidSentences || [] }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      const reason = (data && data.error) || `Server responded with ${res.status}.`;
+      console.error("generate-ja-conjugation-sentences-batch failed:", reason);
+      return { sentences: null, error: reason };
+    }
+    if (!data || !Array.isArray(data.sentences) || data.sentences.length !== items.length) {
+      console.error("generate-ja-conjugation-sentences-batch: unexpected response shape", data);
+      return { sentences: null, error: "The server didn't return a usable result." };
+    }
+    const bad = data.sentences.find((s) => !s || typeof s.japaneseSentence !== "string" || typeof s.englishSentence !== "string");
+    if (bad) {
+      console.error("generate-ja-conjugation-sentences-batch: malformed item in response", bad);
+      return { sentences: null, error: "The server didn't return a usable result." };
+    }
+    return {
+      sentences: data.sentences.map((s) => ({
+        japaneseSentence: s.japaneseSentence,
+        englishSentence: s.englishSentence,
+        verbFormJapanese: s.verbFormJapanese || "",
+        verbFormEnglish: s.verbFormEnglish || "",
+      })),
+      error: null,
+    };
+  } catch (e) {
+    console.error("generate-ja-conjugation-sentences-batch: could not reach the server", e);
+    return { sentences: null, error: "Couldn't reach the lookup server at localhost:3001 — is `node server.js` running?" };
+  }
+}
+
 // Grades a sentence-mode answer — verb-strict, everything-else-lenient
 // per the app's design (see server.js's CHECK_CONJUGATION_SENTENCE_PROMPT).
 // Always returns { verbCorrect, corrected, note, error }; verbCorrect is
@@ -563,7 +648,9 @@ const Translate = {
   generateCardPractice,
   generateGrammarPractice,
   generateConjugationSentence,
+  generateConjugationSentencesBatch,
   generateJaConjugationSentence,
+  generateJaConjugationSentencesBatch,
   checkConjugationSentence,
 };
 

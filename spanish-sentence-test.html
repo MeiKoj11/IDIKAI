@@ -131,25 +131,44 @@
         </div>
       </div>
 
+      <div id="tenses-test-loading-screen" class="card-practice-panel" hidden>
+        <div class="tenses-test-loading-spinner" aria-hidden="true"></div>
+        <p class="hint" data-immersion-key="loadingTestHint">Loading your test — generating 20 sentences at once so there's no waiting between questions. This can take a little while up front.</p>
+        <p id="tenses-test-loading-error" class="card-practice-answer card-practice-wrong" hidden></p>
+        <div class="tenses-test-setup-actions">
+          <button type="button" id="tenses-test-loading-retry-btn" hidden data-immersion-key="tryAgainButton">Try again</button>
+          <button type="button" id="tenses-test-loading-cancel-btn" class="secondary" data-immersion-key="backToSetupButton">← Change setup</button>
+        </div>
+      </div>
+
       <div id="tenses-test-quiz" class="card-practice-panel" hidden>
         <div class="card-practice-top-row">
           <span id="tenses-test-score" class="card-practice-score"></span>
           <button type="button" id="tenses-test-restart-btn" class="secondary tiny" data-immersion-key="backToSetupButton">← Change setup</button>
         </div>
-        <p id="sentence-test-loading" class="hint" hidden data-immersion-key="generatingSentenceStatus">Generating a sentence…</p>
-        <p id="sentence-test-prompt-label" class="hint" hidden></p>
-        <p id="sentence-test-prompt" class="card-practice-prompt"></p>
-        <button type="button" id="tenses-test-show-infinitive-btn" class="secondary tiny" hidden data-immersion-key="showInfinitiveButton">Show infinitive</button>
-        <p id="tenses-test-infinitive-reveal" class="tenses-test-infinitive-reveal" hidden></p>
-        <p class="hint" data-immersion-key="clickWordToLookUpHint">Click any word in the sentence above to look it up.</p>
-        <label>
-          <input type="text" id="tenses-test-input" class="card-practice-input" autocomplete="off" />
-        </label>
-        <div id="sentence-test-checking" class="hint" hidden data-immersion-key="checkingAnswerStatus">Checking…</div>
-        <div id="tenses-test-feedback" hidden></div>
-        <div class="card-practice-judge-row">
-          <button type="button" id="tenses-test-check-btn" data-immersion-key="checkButton">Check</button>
-          <button type="button" id="tenses-test-next-btn" hidden data-immersion-key="nextButton">Next</button>
+
+        <div id="tenses-test-question-area">
+          <p id="sentence-test-prompt-label" class="hint" hidden></p>
+          <p id="sentence-test-prompt" class="card-practice-prompt"></p>
+          <button type="button" id="tenses-test-show-infinitive-btn" class="secondary tiny" hidden data-immersion-key="showInfinitiveButton">Show infinitive</button>
+          <p id="tenses-test-infinitive-reveal" class="tenses-test-infinitive-reveal" hidden></p>
+          <p class="hint" data-immersion-key="clickWordToLookUpHint">Click any word in the sentence above to look it up.</p>
+          <label>
+            <input type="text" id="tenses-test-input" class="card-practice-input" autocomplete="off" />
+          </label>
+          <div id="sentence-test-checking" class="hint" hidden data-immersion-key="checkingAnswerStatus">Checking…</div>
+          <div id="tenses-test-feedback" hidden></div>
+          <div class="card-practice-judge-row">
+            <button type="button" id="tenses-test-check-btn" data-immersion-key="checkButton">Check</button>
+            <button type="button" id="tenses-test-next-btn" hidden data-immersion-key="nextButton">Next</button>
+          </div>
+        </div>
+
+        <div id="tenses-test-complete" hidden>
+          <p id="tenses-test-complete-score" class="card-practice-prompt"></p>
+          <div class="tenses-test-setup-actions">
+            <button type="button" id="tenses-test-new-batch-btn" data-immersion-key="startAnotherBatchButton">Start another 20</button>
+          </div>
         </div>
       </div>
     </div>

@@ -123,10 +123,21 @@ function pickWeightedRandomVerb(verbs) {
 }
 
 // ---------------------------------------------------------------------
-// Session / question generation
+// Session / question generation — questions come in one batch of
+// SENTENCE_TEST_BATCH_SIZE, generated in a SINGLE AI round-trip up
+// front (rather than one round-trip per question), so there's one
+// longer wait at the very start instead of a short wait before every
+// question. It's also meaningfully cheaper: the prompt and Opus's
+// per-request thinking overhead are only paid once for the whole batch
+// instead of once per question. Once loaded, advancing between
+// questions is instant (just moving a pointer through the queue) —
+// only grading a typed answer still makes its own network call, since
+// it depends on what the learner actually typed.
 // ---------------------------------------------------------------------
 
-let sentenceTestSession = null; // { config, correct, total, current, recentSentences }
+const SENTENCE_TEST_BATCH_SIZE = 20;
+
+let sentenceTestSession = null; // { config, correct, total, queue, queueIndex, current, recentSentences }
 
 function pickQuestionSpec(config, guard) {
   const safeGuard = guard || 0;
@@ -139,13 +150,26 @@ function pickQuestionSpec(config, guard) {
   return { form, verb, direction };
 }
 
+// Builds up to `count` question specs from the config — all decided
+// synchronously before the one batch AI call that actually writes the
+// sentences for them.
+function buildQuestionSpecs(config, count) {
+  const specs = [];
+  for (let i = 0; i < count; i++) {
+    const spec = pickQuestionSpec(config);
+    if (!spec) break;
+    specs.push(spec);
+  }
+  return specs;
+}
+
 function startTensesTestWithConfig(config) {
   if (!config.verbs.length || !config.forms.length) return;
-  sentenceTestSession = { config, correct: 0, total: 0, current: null, recentSentences: [] };
+  sentenceTestSession = { config, correct: 0, total: 0, queue: [], queueIndex: -1, current: null, recentSentences: [] };
   document.getElementById("tenses-test-setup").hidden = true;
-  document.getElementById("tenses-test-quiz").hidden = false;
+  document.getElementById("tenses-test-quiz").hidden = true;
   document.getElementById("lookup-panel").hidden = true;
-  nextSentenceTestQuestion();
+  loadSentenceTestBatch(sentenceTestSession);
 }
 
 function startTensesTest() {
@@ -164,69 +188,108 @@ function startRandomTensesTest() {
   });
 }
 
-async function nextSentenceTestQuestion() {
-  if (!sentenceTestSession) return;
-  const session = sentenceTestSession;
-  const spec = pickQuestionSpec(session.config);
+// Fetches a fresh batch of SENTENCE_TEST_BATCH_SIZE sentences in ONE
+// request and appends them to the session's queue — shows the
+// dedicated "loading your test" screen while it's in flight, since this
+// call can take noticeably longer than the old per-question one.
+async function loadSentenceTestBatch(session) {
+  if (sentenceTestSession !== session) return;
 
-  const loadingEl = document.getElementById("sentence-test-loading");
-  const promptLabelEl = document.getElementById("sentence-test-prompt-label");
-  const promptEl = document.getElementById("sentence-test-prompt");
-  const revealBtn = document.getElementById("tenses-test-show-infinitive-btn");
-  const revealEl = document.getElementById("tenses-test-infinitive-reveal");
-  const input = document.getElementById("tenses-test-input");
-  const checkBtn = document.getElementById("tenses-test-check-btn");
-  const nextBtn = document.getElementById("tenses-test-next-btn");
-  const feedback = document.getElementById("tenses-test-feedback");
+  const loadingScreen = document.getElementById("tenses-test-loading-screen");
+  const errorEl = document.getElementById("tenses-test-loading-error");
+  const retryBtn = document.getElementById("tenses-test-loading-retry-btn");
 
-  document.getElementById("lookup-panel").hidden = true;
+  document.getElementById("tenses-test-quiz").hidden = true;
+  loadingScreen.hidden = false;
+  errorEl.hidden = true;
+  retryBtn.hidden = true;
 
-  if (!spec) {
-    promptLabelEl.hidden = true;
-    promptEl.textContent = "Couldn't build a question from this selection — try picking more verbs/forms.";
-    revealBtn.hidden = true;
-    revealEl.hidden = true;
-    checkBtn.hidden = true;
-    nextBtn.hidden = true;
+  const specs = buildQuestionSpecs(session.config, SENTENCE_TEST_BATCH_SIZE);
+  if (!specs.length) {
+    errorEl.textContent = "Couldn't build any questions from this selection — try picking more verbs/forms.";
+    errorEl.hidden = false;
     return;
   }
 
-  loadingEl.hidden = false;
-  promptLabelEl.hidden = true;
-  promptEl.textContent = "";
-  revealBtn.hidden = true;
-  revealEl.hidden = true;
-  feedback.hidden = true;
-  checkBtn.hidden = true;
-  nextBtn.hidden = true;
-  input.value = "";
-  input.disabled = true;
+  const items = specs.map((spec) => ({
+    kanji: spec.verb.kanji,
+    reading: spec.verb.reading,
+    meaning: spec.verb.meaning,
+    formLabel: JaConjugator.FORM_LABELS[spec.form] || spec.form,
+  }));
 
-  const formLabel = JaConjugator.FORM_LABELS[spec.form] || spec.form;
-  const result = await Translate.generateJaConjugationSentence(
-    spec.verb.kanji,
-    spec.verb.reading,
-    spec.verb.meaning,
-    formLabel,
-    session.recentSentences
+  const result = await Translate.generateJaConjugationSentencesBatch(items, session.recentSentences);
+
+  // The learner may have hit "Change setup" while this call was in
+  // flight — bail rather than rendering into a session that's gone.
+  if (sentenceTestSession !== session) return;
+
+  if (result.error || !result.sentences) {
+    errorEl.textContent = `Couldn't generate your test (${result.error || "unexpected response"}).`;
+    errorEl.hidden = false;
+    retryBtn.hidden = false;
+    return;
+  }
+
+  const newQuestions = specs.map((spec, i) => Object.assign({}, spec, result.sentences[i]));
+  session.queue = session.queue.concat(newQuestions);
+  session.recentSentences = session.recentSentences.concat(
+    result.sentences.flatMap((s) => [s.japaneseSentence, s.englishSentence])
   );
+  if (session.recentSentences.length > 80) {
+    session.recentSentences.splice(0, session.recentSentences.length - 80);
+  }
 
-  if (sentenceTestSession !== session) return; // backed out to setup while this was in flight
-  loadingEl.hidden = true;
+  loadingScreen.hidden = true;
+  document.getElementById("tenses-test-quiz").hidden = false;
+  document.getElementById("tenses-test-complete").hidden = true;
+  document.getElementById("tenses-test-question-area").hidden = false;
 
-  if (result.error || !result.japaneseSentence || !result.englishSentence) {
-    promptEl.textContent = `Couldn't generate a sentence (${result.error || "unexpected response"}) — try Next again.`;
-    nextBtn.hidden = false;
+  advanceToNextQuestion();
+}
+
+function retryLoadSentenceTestBatch() {
+  if (sentenceTestSession) loadSentenceTestBatch(sentenceTestSession);
+}
+
+// Starts a fresh batch of SENTENCE_TEST_BATCH_SIZE once the current one
+// runs out — score keeps accumulating across batches within the same
+// session rather than resetting, same as the old test just kept going
+// forever one question at a time.
+function startAnotherSentenceTestBatch() {
+  const session = sentenceTestSession;
+  if (!session) return;
+  session.queue = [];
+  session.queueIndex = -1;
+  session.current = null;
+  loadSentenceTestBatch(session);
+}
+
+// Advances through the pre-fetched queue — no network call, since every
+// question in the current batch was already generated up front. Shows
+// a completion screen once the queue runs out.
+function advanceToNextQuestion() {
+  const session = sentenceTestSession;
+  if (!session) return;
+  session.queueIndex += 1;
+
+  if (session.queueIndex >= session.queue.length) {
+    showSentenceTestBatchComplete();
     return;
   }
 
-  session.current = Object.assign({}, spec, result);
-  session.recentSentences.push(result.japaneseSentence, result.englishSentence);
-  if (session.recentSentences.length > 12) {
-    session.recentSentences.splice(0, session.recentSentences.length - 12);
-  }
-
+  session.current = session.queue[session.queueIndex];
+  document.getElementById("lookup-panel").hidden = true;
   renderSentenceTestQuestion();
+}
+
+function showSentenceTestBatchComplete() {
+  const session = sentenceTestSession;
+  if (!session) return;
+  document.getElementById("tenses-test-question-area").hidden = true;
+  document.getElementById("lookup-panel").hidden = true;
+  document.getElementById("tenses-test-complete-score").textContent = `Test complete — Score: ${session.correct} / ${session.total}`;
+  document.getElementById("tenses-test-complete").hidden = false;
 }
 
 function renderSentenceTestQuestion() {
@@ -396,6 +459,7 @@ async function checkSentenceTestAnswer() {
 function backToSetup() {
   document.getElementById("tenses-test-setup").hidden = false;
   document.getElementById("tenses-test-quiz").hidden = true;
+  document.getElementById("tenses-test-loading-screen").hidden = true;
   document.getElementById("lookup-panel").hidden = true;
   sentenceTestSession = null;
 }
@@ -567,13 +631,16 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("tenses-test-random-btn").addEventListener("click", startRandomTensesTest);
   document.getElementById("tenses-test-start-btn").addEventListener("click", startTensesTest);
   document.getElementById("tenses-test-restart-btn").addEventListener("click", backToSetup);
+  document.getElementById("tenses-test-loading-cancel-btn").addEventListener("click", backToSetup);
+  document.getElementById("tenses-test-loading-retry-btn").addEventListener("click", retryLoadSentenceTestBatch);
+  document.getElementById("tenses-test-new-batch-btn").addEventListener("click", startAnotherSentenceTestBatch);
   document.getElementById("tenses-test-show-infinitive-btn").addEventListener("click", showDictionaryFormReveal);
   document.getElementById("tenses-test-check-btn").addEventListener("click", checkSentenceTestAnswer);
-  document.getElementById("tenses-test-next-btn").addEventListener("click", nextSentenceTestQuestion);
+  document.getElementById("tenses-test-next-btn").addEventListener("click", advanceToNextQuestion);
   document.getElementById("tenses-test-input").addEventListener("keydown", (e) => {
     if (e.key !== "Enter") return;
     if (!document.getElementById("tenses-test-check-btn").hidden) checkSentenceTestAnswer();
-    else if (!document.getElementById("tenses-test-next-btn").hidden) nextSentenceTestQuestion();
+    else if (!document.getElementById("tenses-test-next-btn").hidden) advanceToNextQuestion();
   });
 
   const themeSelect = document.getElementById("add-to-theme-select");

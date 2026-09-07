@@ -3436,6 +3436,42 @@ button.secondary.tiny {
   color: #C0BFB2;
 }
 
+/* Sentence test's "loading your whole test" screen (batch generation —
+   one longer wait up front instead of a short wait before every
+   question) and the end-of-batch completion state. */
+
+#tenses-test-loading-screen {
+  text-align: center;
+}
+
+#tenses-test-loading-screen .tenses-test-setup-actions {
+  justify-content: center;
+}
+
+.tenses-test-loading-spinner {
+  width: 38px;
+  height: 38px;
+  margin: 1.5rem auto 1rem;
+  border: 4px solid rgba(255, 255, 255, 0.15);
+  border-top-color: #ECE6D3;
+  border-radius: 50%;
+  animation: tenses-test-spin 0.9s linear infinite;
+}
+
+@keyframes tenses-test-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+#tenses-test-complete {
+  text-align: center;
+}
+
+#tenses-test-complete .tenses-test-setup-actions {
+  justify-content: center;
+}
+
 /* Accounts: login / admin / migrate-data pages — small standalone
    pages with no topbar, just a centered card, same overall palette as
    everywhere else. */

@@ -565,6 +565,63 @@ function callClaudeForGenerateConjugationSentence(language, infinitive, english,
   return callClaudeJSONWithRetry(GENERATE_CONJUGATION_SENTENCE_PROMPT, userMessage, 2000, 4000, GRAMMAR_CHECK_MODEL);
 }
 
+// Batch version of the above — powers the sentence test's "load a whole
+// test up front" mode (20 questions generated in ONE request instead of
+// one request per question), so there's a single longer wait at the
+// start rather than a short wait before every question, AND meaningfully
+// cheaper: the (fairly long) system prompt and Opus's per-request
+// thinking overhead are only paid once for the whole batch instead of
+// once per question. Same prompt content as the single version, just
+// restated to take/return a list.
+const GENERATE_CONJUGATION_SENTENCES_BATCH_PROMPT = `You write natural, level-appropriate practice
+sentences for a language-learning app's conjugation drill (Spanish or French — you'll be told which).
+You'll be given a numbered list of items, each specifying a verb (infinitive + English gloss), a
+specific tense, and a specific grammatical person. For EACH item, write ONE natural sentence —
+declarative, a question, or negative, vary it across the list — that uses that verb correctly
+conjugated for that exact tense/person, then give the correct, natural translation of that exact
+sentence in the other language. Respond with ONLY a JSON object (no markdown, no code fences, no
+explanation) with exactly this shape:
+
+{ "sentences": [ { "englishSentence": string, "targetSentence": string, "verbFormEnglish": string, "verbFormTarget": string }, ... ] }
+
+Rules:
+- Return exactly one output object per input item, IN THE SAME ORDER as the input list — the Nth
+  output object must answer the Nth input item.
+- "englishSentence" and "targetSentence" must be faithful translations of each other, both naturally
+  phrased (not stiff word-for-word translation).
+- Accuracy matters enormously — this is what a real learner will study as correct, so it must actually
+  be correct. Before answering, double-check every word that isn't the target verb, especially small
+  words that are easy to mistranslate literally: prepositions ("from" is "desde", not "hasta", which
+  means "until/as far as"; "for" can be "para" or "por" depending on meaning; etc.), gender/number
+  agreement on every article and adjective, and any idiom that doesn't translate word-for-word. A
+  native speaker of the target language must find each sentence completely natural and correct with
+  no hesitation.
+- "verbFormEnglish" is the exact conjugated verb phrase as it appears in "englishSentence" (e.g.
+  "would have given"). "verbFormTarget" is the exact conjugated verb form as it appears in
+  "targetSentence" (e.g. "habría dado").
+- Each sentence must clearly and unambiguously use its requested tense/person — don't hedge into a
+  different one.
+- Keep each sentence short (roughly 5-12 words) and naturally include 1-2 pieces of vocabulary beyond
+  basic function words (a concrete noun, adjective, or adverb) so there's something a learner might
+  not already know — but keep it natural, not contrived or a vocabulary showcase.
+- Avoid idioms or phrasing that doesn't translate directly between the two languages.
+- Vary sentence structure, subject matter, and phrasing across the list — no two sentences in this
+  batch should feel like copies of each other with just the verb swapped, even when several items
+  share the same verb/tense/person.
+- Never reuse a sentence you've already been asked to avoid (a list may be given).
+- Output nothing except the JSON object.`;
+
+function callClaudeForGenerateConjugationSentencesBatch(language, items, avoidSentences) {
+  const avoidLines = (avoidSentences || []).length
+    ? `\n\nAvoid reusing (in either language) any of these previous sentences:\n${avoidSentences.map((s) => `- ${s}`).join("\n")}`
+    : "";
+  const itemLines = items
+    .map((item, i) => `${i + 1}. Verb: "${item.infinitive}" (${item.english || ""}). Tense: ${item.tenseLabel}. Person: ${item.personLabel}.`)
+    .join("\n");
+  const userMessage = `Language: ${LANGUAGE_NAMES[language] || language}.\n\nItems:\n${itemLines}${avoidLines}`;
+  return callClaudeJSONWithRetry(GENERATE_CONJUGATION_SENTENCES_BATCH_PROMPT, userMessage, 12000, 24000, GRAMMAR_CHECK_MODEL);
+}
+
 // Grades a learner's typed answer for sentence-mode: the conjugated
 // verb form must be correct for the answer to count, but everything
 // else (a wrong noun, minor word choice, spelling) gets corrected in
@@ -677,6 +734,70 @@ function callClaudeForGenerateJaConjugationSentence(kanji, reading, meaning, for
     : "";
   const userMessage = `Verb: ${kanji} (${reading}) — ${meaning}.\nForm: ${formLabel}.${avoidLines}`;
   return callClaudeJSONWithRetry(GENERATE_JA_CONJUGATION_SENTENCE_PROMPT, userMessage, 2000, 4000, GRAMMAR_CHECK_MODEL);
+}
+
+// Batch version of the above — see GENERATE_CONJUGATION_SENTENCES_BATCH_PROMPT
+// for why (one longer wait up front instead of one short wait per
+// question, and cheaper since the prompt + thinking overhead is only
+// paid once for the whole batch). Same voice-disambiguation rules as the
+// single version, restated for a list.
+const GENERATE_JA_CONJUGATION_SENTENCES_BATCH_PROMPT = `You write natural, level-appropriate Japanese
+practice sentences for a language-learning app's conjugation drill, each one focused on ONE of four
+special verb forms: potential (可能形 — "can do"), passive (受身形 — "something happens to the
+subject"), causative (使役形 — "make/let someone do"), or causative-passive (使役受身形 — "was made to
+do"). You'll be given a numbered list of items, each specifying a verb (kanji, reading, English gloss)
+and which of the four forms to use. For EACH item, write ONE natural Japanese sentence using that verb
+correctly in that exact form, then give a natural, UNAMBIGUOUS English translation of that exact
+sentence. Respond with ONLY a JSON object (no markdown, no code fences, no explanation) with exactly
+this shape:
+
+{ "sentences": [ { "japaneseSentence": string, "englishSentence": string, "verbFormJapanese": string, "verbFormEnglish": string }, ... ] }
+
+Rules:
+- Return exactly one output object per input item, IN THE SAME ORDER as the input list — the Nth
+  output object must answer the Nth input item.
+- Accuracy matters enormously — this becomes the learner's actual study material. A native Japanese
+  speaker must find each "japaneseSentence" completely natural, and each "englishSentence" must be a
+  faithful, natural, UNAMBIGUOUS translation of it (not stiff word-for-word).
+- CRITICAL for passive, causative, and causative-passive items (this does not apply to potential,
+  which only involves one party): these forms involve two parties — an agent (the one causing/
+  allowing/doing the action to another) and someone affected (the one being made to act, or being
+  acted upon). The same underlying event can be phrased in English with EITHER party as the
+  grammatical subject (e.g. "my mom let me play outside" vs. "I was allowed to play outside by my
+  mom" both describe the same event). To avoid this ambiguity, for every such item:
+  - ALWAYS name or clearly identify BOTH parties explicitly in both sentences — never leave either
+    one implicit or unstated (e.g. always say who the causer/agent is — a parent, teacher, friend,
+    boss, etc. — and who is caused/affected — a specific person, "me", "the students", etc.).
+  - The Japanese sentence's actual grammatical subject determines the voice — write the English
+    translation to clearly reflect THAT SAME voice as its own grammatical subject too, so the two
+    sentences describe the relationship the same unambiguous way (if the Japanese subject is the one
+    being made/allowed to act, phrase the English as "X was made/allowed to do Y by Z" with X as the
+    subject; if the Japanese subject is the one causing/allowing, phrase it as "Z made/let X do Y"
+    with Z as the subject) — never phrase the English so it could plausibly be read either way.
+- "verbFormJapanese" is the exact conjugated verb form as it appears in "japaneseSentence" (kanji
+  form, e.g. "遊ばせてもらった" or "書かれた"). "verbFormEnglish" is the corresponding conjugated verb
+  phrase as it appears in "englishSentence" (e.g. "was allowed to play", "was written").
+- Each sentence must clearly and unambiguously use its requested form — don't hedge into a different
+  one or into plain non-conjugated Japanese.
+- Keep each sentence short (roughly 6-16 Japanese characters' worth of content beyond the verb
+  itself) and naturally include 1-2 pieces of vocabulary beyond basic function words so there's
+  something a learner might not already know — but keep it natural, not contrived or a vocabulary
+  showcase.
+- Vary sentence structure, scenario, and phrasing across the list — no two sentences in this batch
+  should feel like copies of each other with just the verb swapped, even when several items share
+  the same verb/form.
+- Never reuse a sentence you've already been asked to avoid (a list may be given).
+- Output nothing except the JSON object.`;
+
+function callClaudeForGenerateJaConjugationSentencesBatch(items, avoidSentences) {
+  const avoidLines = (avoidSentences || []).length
+    ? `\n\nAvoid reusing (in either language) any of these previous sentences:\n${avoidSentences.map((s) => `- ${s}`).join("\n")}`
+    : "";
+  const itemLines = items
+    .map((item, i) => `${i + 1}. Verb: ${item.kanji} (${item.reading}) — ${item.meaning || ""}. Form: ${item.formLabel}.`)
+    .join("\n");
+  const userMessage = `Items:\n${itemLines}${avoidLines}`;
+  return callClaudeJSONWithRetry(GENERATE_JA_CONJUGATION_SENTENCES_BATCH_PROMPT, userMessage, 12000, 24000, GRAMMAR_CHECK_MODEL);
 }
 
 // Used when saving a Grammar structure card — identifies what specific
@@ -1607,6 +1728,115 @@ const server = http.createServer((req, res) => {
       console.log(`Generating JA conjugation sentence: ${kanji} (${reading}), ${formLabel}...`);
 
       callClaudeForGenerateJaConjugationSentence(kanji, reading, meaning || "", formLabel, avoidSentences)
+        .then((result) => {
+          res.writeHead(200, { "content-type": "application/json" });
+          res.end(JSON.stringify(result));
+        })
+        .catch((err) => {
+          console.error(err.message);
+          res.writeHead(500, { "content-type": "application/json" });
+          res.end(JSON.stringify({ error: err.message }));
+        });
+    });
+    return;
+  }
+
+  if (url.pathname === "/generate-conjugation-sentences-batch" && req.method === "POST") {
+    const bodyChunks = [];
+    let bodyBytes = 0;
+    req.on("data", (chunk) => {
+      bodyChunks.push(chunk);
+      bodyBytes += chunk.length;
+      // A whole test's worth of items (up to 30) plus a short avoid-list
+      // — still small text, generous headroom same as the other POST
+      // endpoints.
+      if (bodyBytes > 512 * 1024) req.destroy();
+    });
+    req.on("end", () => {
+      const rawBody = Buffer.concat(bodyChunks).toString("utf8");
+      let parsed;
+      try {
+        parsed = JSON.parse(rawBody);
+      } catch (e) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "Invalid JSON body." }));
+        return;
+      }
+
+      const { language, items, avoidSentences } = parsed;
+      if (!language || !Array.isArray(items) || !items.length) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "Missing language or a non-empty items array." }));
+        return;
+      }
+      if (items.length > 30) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "Too many items in one batch (max 30)." }));
+        return;
+      }
+      const badItem = items.find((item) => !item || !item.infinitive || !item.tenseLabel || !item.personLabel);
+      if (badItem) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "Every item needs infinitive, tenseLabel, and personLabel." }));
+        return;
+      }
+
+      console.log(`Generating a batch of ${items.length} conjugation sentences (${language})...`);
+
+      callClaudeForGenerateConjugationSentencesBatch(language, items, avoidSentences)
+        .then((result) => {
+          res.writeHead(200, { "content-type": "application/json" });
+          res.end(JSON.stringify(result));
+        })
+        .catch((err) => {
+          console.error(err.message);
+          res.writeHead(500, { "content-type": "application/json" });
+          res.end(JSON.stringify({ error: err.message }));
+        });
+    });
+    return;
+  }
+
+  if (url.pathname === "/generate-ja-conjugation-sentences-batch" && req.method === "POST") {
+    const bodyChunks = [];
+    let bodyBytes = 0;
+    req.on("data", (chunk) => {
+      bodyChunks.push(chunk);
+      bodyBytes += chunk.length;
+      if (bodyBytes > 512 * 1024) req.destroy();
+    });
+    req.on("end", () => {
+      const rawBody = Buffer.concat(bodyChunks).toString("utf8");
+      let parsed;
+      try {
+        parsed = JSON.parse(rawBody);
+      } catch (e) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "Invalid JSON body." }));
+        return;
+      }
+
+      const { items, avoidSentences } = parsed;
+      if (!Array.isArray(items) || !items.length) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "Missing a non-empty items array." }));
+        return;
+      }
+      if (items.length > 30) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "Too many items in one batch (max 30)." }));
+        return;
+      }
+      const badItem = items.find((item) => !item || !item.kanji || !item.reading || !item.formLabel);
+      if (badItem) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "Every item needs kanji, reading, and formLabel." }));
+        return;
+      }
+
+      console.log(`Generating a batch of ${items.length} Japanese conjugation sentences...`);
+
+      callClaudeForGenerateJaConjugationSentencesBatch(items, avoidSentences)
         .then((result) => {
           res.writeHead(200, { "content-type": "application/json" });
           res.end(JSON.stringify(result));
