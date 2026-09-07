@@ -136,28 +136,12 @@
           <button type="button" id="tenses-test-restart-btn" class="secondary tiny" data-immersion-key="backToSetupButton">← Change setup</button>
         </div>
 
-        <div id="tenses-test-question-area">
-          <p id="sentence-test-prompt-label" class="hint" hidden></p>
-          <p id="sentence-test-prompt" class="card-practice-prompt"></p>
-          <button type="button" id="tenses-test-show-infinitive-btn" class="secondary tiny" hidden data-immersion-key="showDictionaryFormButton">Show dictionary form</button>
-          <p id="tenses-test-infinitive-reveal" class="tenses-test-infinitive-reveal" hidden></p>
-          <p class="hint" data-immersion-key="clickWordToLookUpHint">Click any word in the sentence above to look it up.</p>
-          <label>
-            <input type="text" id="tenses-test-input" class="card-practice-input" autocomplete="off" />
-          </label>
-          <div id="sentence-test-checking" class="hint" hidden data-immersion-key="checkingAnswerStatus">Checking…</div>
-          <div id="tenses-test-feedback" hidden></div>
-          <div class="card-practice-judge-row">
-            <button type="button" id="tenses-test-check-btn" data-immersion-key="checkButton">Check</button>
-            <button type="button" id="tenses-test-next-btn" hidden data-immersion-key="nextButton">Next</button>
-          </div>
-        </div>
+        <p class="hint" data-immersion-key="clickWordToLookUpHint">Click any word in a sentence to look it up.</p>
 
-        <div id="tenses-test-complete" hidden>
-          <p id="tenses-test-complete-score" class="card-practice-prompt"></p>
-          <div class="tenses-test-setup-actions">
-            <button type="button" id="tenses-test-new-batch-btn" data-immersion-key="startAnotherBatchButton">Start another 20</button>
-          </div>
+        <div id="tenses-test-question-list" class="tenses-test-question-list"></div>
+
+        <div class="tenses-test-setup-actions">
+          <button type="button" id="tenses-test-new-batch-btn" data-immersion-key="loadMoreQuestionsButton">Load 20 more questions</button>
         </div>
       </div>
     </div>

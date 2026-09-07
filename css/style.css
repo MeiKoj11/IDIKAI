@@ -3472,6 +3472,36 @@ button.secondary.tiny {
   justify-content: center;
 }
 
+/* Sentence test's question list — all fetched questions shown at once
+   as a scrollable page (rather than one at a time), each grading
+   itself independently. */
+
+.tenses-test-question-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  margin: 1rem 0;
+}
+
+.tenses-test-question-card {
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.tenses-test-question-card:first-child {
+  padding-top: 0;
+  border-top: none;
+}
+
+.tenses-test-question-number {
+  margin: 0 0 0.3rem;
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  color: #C0BFB2;
+  text-transform: uppercase;
+}
+
 /* Accounts: login / admin / migrate-data pages — small standalone
    pages with no topbar, just a centered card, same overall palette as
    everywhere else. */
