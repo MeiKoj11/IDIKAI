@@ -424,21 +424,16 @@ function buildQuestionCard(session, index) {
   judgeRow.appendChild(crossBtn);
   reviewSection.appendChild(judgeRow);
 
-  // Only shown once the learner crosses their own answer — plain box
-  // for now, no formatting/persistence decided yet.
-  const noteWrap = document.createElement("div");
-  noteWrap.className = "tenses-test-note-wrap";
-  noteWrap.hidden = true;
-  const noteLabel = document.createElement("p");
-  noteLabel.className = "hint";
-  noteLabel.textContent = "Note to yourself (optional):";
-  noteWrap.appendChild(noteLabel);
-  const noteTextarea = document.createElement("textarea");
-  noteTextarea.className = "card-practice-input tenses-test-note-input";
-  noteTextarea.rows = 2;
-  noteTextarea.placeholder = "What went wrong, in your own words…";
-  noteWrap.appendChild(noteTextarea);
-  reviewSection.appendChild(noteWrap);
+  // Only shown once the learner crosses their own answer — the words in
+  // both sentences above become clickable so the specific mistake(s)
+  // can be flagged and saved to the Grammar Bank's "Mistakes" folder
+  // (see renderReviewSentences/handleMistakeWordClick), rather than one
+  // big free-text box.
+  const mistakeHint = document.createElement("p");
+  mistakeHint.className = "hint tenses-test-mistake-hint";
+  mistakeHint.textContent = "Click the specific word(s) that were wrong, above, to flag and save a note.";
+  mistakeHint.hidden = true;
+  reviewSection.appendChild(mistakeHint);
 
   card.appendChild(reviewSection);
 
@@ -447,7 +442,7 @@ function buildQuestionCard(session, index) {
 
   return {
     card,
-    refs: { textarea, answerSection, reviewSection, userAnswerEl, correctAnswerEl, tickBtn, crossBtn, noteWrap, noteTextarea },
+    refs: { textarea, answerSection, reviewSection, userAnswerEl, correctAnswerEl, tickBtn, crossBtn, mistakeHint },
   };
 }
 
@@ -478,6 +473,56 @@ function renderClickableSentence(container, sentence, lang) {
   });
 }
 
+// Same tokenizing/word-span approach as renderClickableSentence, but for
+// a question marked wrong: clicking a word flags it (blue) and opens
+// the mistake-note panel instead of the vocab lookup panel — see
+// handleMistakeWordClick. `side` is "user" (the learner's own typed
+// answer) or "accurate" (the answer key), just carried along so a saved
+// mistake note can record which sentence the flagged word came from.
+function renderMistakeClickableSentence(container, sentence, lang, session, index, side) {
+  container.innerHTML = "";
+  tokenizeSentence(sentence).forEach((token) => {
+    const core = stripPunctuation(token);
+    if (!token || !core) {
+      container.appendChild(document.createTextNode(token));
+      return;
+    }
+    const span = document.createElement("span");
+    span.className = "clickable-word mistake-clickable-word";
+    span.textContent = token;
+    span.dataset.word = core;
+    span.addEventListener("click", () => handleMistakeWordClick(span, core, session, index, side));
+    container.appendChild(span);
+  });
+}
+
+// Renders both stacked sentences in a review card, switching mode based
+// on how the question is currently self-marked: ordinary vocab-lookup
+// words when correct/unmarked, mistake-flagging words (both sentences)
+// once crossed. Re-run whenever the mark flips between wrong/not-wrong
+// (see markQuestionAnswer) so the right click behavior is always live.
+function renderReviewSentences(session, index) {
+  const q = session.queue[index];
+  const refs = session.cardRefs[index];
+  const wrong = q.marked === false;
+
+  refs.userAnswerEl.innerHTML = "";
+  if (!q.answer) {
+    refs.userAnswerEl.textContent = "(no answer)";
+  } else if (wrong) {
+    renderMistakeClickableSentence(refs.userAnswerEl, q.answer, "es", session, index, "user");
+  } else {
+    refs.userAnswerEl.textContent = q.answer;
+  }
+
+  refs.correctAnswerEl.innerHTML = "";
+  if (wrong) {
+    renderMistakeClickableSentence(refs.correctAnswerEl, q.translation.targetSentence, "es", session, index, "accurate");
+  } else {
+    renderClickableSentence(refs.correctAnswerEl, q.translation.targetSentence, "es");
+  }
+}
+
 // Before Submit there's nothing to score yet; after Submit it reflects
 // however many questions the learner has self-marked so far.
 function updateSentenceTestScore() {
@@ -500,14 +545,20 @@ function updateSentenceTestScore() {
 // Self-marking click handler — no AI involved. Re-clicking either
 // button re-marks the question (toggle-safe, since the score is always
 // recomputed from session.queue rather than tracked incrementally).
+// Only re-renders the sentences (which resets any unsaved word flags)
+// when wrong-vs-not-wrong actually changes, so clicking the same button
+// twice in a row is a no-op rather than clobbering flagged words.
 function markQuestionAnswer(session, index, isCorrect) {
   if (sentenceTestSession !== session) return;
   const q = session.queue[index];
   const refs = session.cardRefs[index];
+  const wasWrong = q.marked === false;
   q.marked = isCorrect;
   refs.tickBtn.classList.toggle("selected", isCorrect === true);
   refs.crossBtn.classList.toggle("selected", isCorrect === false);
-  refs.noteWrap.hidden = isCorrect !== false;
+  const nowWrong = isCorrect === false;
+  refs.mistakeHint.hidden = !nowWrong;
+  if (nowWrong !== wasWrong) renderReviewSentences(session, index);
   updateSentenceTestScore();
 }
 
@@ -556,16 +607,22 @@ async function submitSentenceTest() {
     q.translation = translations[i];
     const refs = session.cardRefs[i];
     refs.answerSection.hidden = true;
-    refs.userAnswerEl.textContent = q.answer || "(no answer)";
-    renderClickableSentence(refs.correctAnswerEl, q.translation.targetSentence, "es");
+    renderReviewSentences(session, i);
     refs.reviewSection.hidden = false;
   });
+
+  const saveBtn = document.getElementById("tenses-test-save-btn");
+  saveBtn.hidden = false;
+  saveBtn.disabled = false;
+  const saveStatus = document.getElementById("tenses-test-save-status");
+  saveStatus.hidden = true;
 
   updateSentenceTestScore();
 }
 
 function backToSetup() {
   document.getElementById("tenses-test-setup").hidden = false;
+  document.getElementById("tenses-test-saved-detail").hidden = true;
   document.getElementById("tenses-test-quiz").hidden = true;
   document.getElementById("tenses-test-loading-screen").hidden = true;
   document.getElementById("tenses-test-question-list").innerHTML = "";
@@ -574,8 +631,239 @@ function backToSetup() {
   submitBtn.hidden = false;
   submitBtn.disabled = false;
   submitBtn.textContent = submitBtn.dataset.defaultLabel || submitBtn.textContent;
+  const saveBtn = document.getElementById("tenses-test-save-btn");
+  saveBtn.hidden = true;
+  saveBtn.disabled = false;
+  document.getElementById("tenses-test-save-status").hidden = true;
   document.getElementById("lookup-panel").hidden = true;
+  closeMistakePanel();
   sentenceTestSession = null;
+  renderSavedTestsList();
+}
+
+// ---------------------------------------------------------------------
+// Mistakes: click-a-word self-marking review, wrong-marked questions
+// only. Flagging a word (blue) and saving stores a lightweight note in
+// the Grammar Bank's "Mistakes" folder (created the first time it's
+// needed) — reuses the same free-form grammar-note shape the original
+// single-sentence notes use (sentence/translation/pattern/tags/notes),
+// so it gets the existing note card's expand/collapse, Edit, Delete,
+// and "+ Personal note" editing for free with no new UI to build there.
+// ---------------------------------------------------------------------
+
+const MISTAKES_FOLDER_NAME = "Mistakes";
+let activeMistakeWord = null; // { span, word, session, index, side }
+
+function findOrCreateMistakesFolder(language) {
+  const themes = Storage.getGrammarThemes(language);
+  const existing = themes.find((t) => (t.name || "").trim().toLowerCase() === MISTAKES_FOLDER_NAME.toLowerCase());
+  if (existing) return existing;
+  return Storage.addGrammarTheme(MISTAKES_FOLDER_NAME, language);
+}
+
+function handleMistakeWordClick(span, word, session, index, side) {
+  if (sentenceTestSession !== session) return;
+
+  // Clicking the word whose panel is already open just closes it again
+  // (the blue flag stays — click it again to reopen/edit/save/remove).
+  if (activeMistakeWord && activeMistakeWord.span === span) {
+    closeMistakePanel();
+    return;
+  }
+
+  span.classList.add("mistake-word-flagged");
+  activeMistakeWord = { span, word, session, index, side };
+
+  const panel = document.getElementById("mistake-panel");
+  panel.hidden = false;
+  document.getElementById("mistake-panel-word").textContent = word;
+  document.getElementById("mistake-panel-note").value = span.dataset.mistakeNote || "";
+}
+
+function closeMistakePanel() {
+  activeMistakeWord = null;
+  const panel = document.getElementById("mistake-panel");
+  if (panel) panel.hidden = true;
+}
+
+function handleMistakePanelSave() {
+  if (!activeMistakeWord) return;
+  const { span, word, session, index, side } = activeMistakeWord;
+  if (sentenceTestSession !== session) return;
+
+  const q = session.queue[index];
+  const note = document.getElementById("mistake-panel-note").value.trim();
+  span.dataset.mistakeNote = note;
+
+  const folder = findOrCreateMistakesFolder("es");
+  const tenseLabel = SpanishConjugator.ALL_TENSE_LABELS[q.tense] || q.tense;
+  const saved = Storage.addGrammarNote({
+    themeId: folder.id,
+    sentence: word,
+    translation: q.translation ? `Accurate: ${q.translation.targetSentence}` : "",
+    pattern: `English: ${q.englishSentence}\nYour answer: ${q.answer || "(no answer)"}`,
+    notes: note,
+    tags: [tenseLabel, side === "user" ? "Your answer" : "Accurate answer"],
+  });
+
+  span.dataset.mistakeNoteId = saved.id;
+  span.classList.add("mistake-word-saved");
+  closeMistakePanel();
+}
+
+function handleMistakePanelRemove() {
+  if (!activeMistakeWord) return;
+  const { span } = activeMistakeWord;
+  if (span.dataset.mistakeNoteId) {
+    Storage.deleteGrammarNote(span.dataset.mistakeNoteId);
+    delete span.dataset.mistakeNoteId;
+  }
+  span.classList.remove("mistake-word-flagged", "mistake-word-saved");
+  delete span.dataset.mistakeNote;
+  closeMistakePanel();
+}
+
+// ---------------------------------------------------------------------
+// Save test — entirely optional (see the "Save this test" button, only
+// shown once submitted). A saved test is read-only: the question,
+// the learner's own typed answer, the accurate translation, and
+// whatever tick/cross the learner gave it, plus the overall score.
+// ---------------------------------------------------------------------
+
+function handleSaveTest() {
+  const session = sentenceTestSession;
+  if (!session || !session.submitted) return;
+
+  const marked = session.queue.filter((q) => q.marked === true || q.marked === false);
+  const correct = marked.filter((q) => q.marked === true).length;
+
+  Storage.addSavedSentenceTest({
+    language: "es",
+    total: session.queue.length,
+    correct,
+    questions: session.queue.map((q) => ({
+      englishSentence: q.englishSentence,
+      userAnswer: q.answer,
+      targetSentence: q.translation ? q.translation.targetSentence : "",
+      marked: q.marked,
+    })),
+  });
+
+  const saveBtn = document.getElementById("tenses-test-save-btn");
+  saveBtn.disabled = true;
+  const statusEl = document.getElementById("tenses-test-save-status");
+  statusEl.textContent = "Saved.";
+  statusEl.hidden = false;
+}
+
+function renderSavedTestsList() {
+  const section = document.getElementById("tenses-test-saved-section");
+  const list = document.getElementById("tenses-test-saved-list");
+  if (!section || !list) return;
+
+  const tests = Storage.getSavedSentenceTests("es")
+    .slice()
+    .sort((a, b) => b.createdAt - a.createdAt);
+  list.innerHTML = "";
+  section.hidden = tests.length === 0;
+
+  tests.forEach((test) => {
+    const li = document.createElement("li");
+    li.className = "tenses-test-saved-item";
+
+    const dateStr = new Date(test.createdAt).toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+
+    const openBtn = document.createElement("button");
+    openBtn.type = "button";
+    openBtn.className = "secondary";
+    openBtn.textContent = `${dateStr} — ${test.correct} / ${test.total}`;
+    openBtn.addEventListener("click", () => viewSavedTest(test.id));
+    li.appendChild(openBtn);
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.type = "button";
+    deleteBtn.className = "secondary tiny";
+    deleteBtn.textContent = "Delete";
+    deleteBtn.addEventListener("click", () => {
+      if (!confirm("Delete this saved test? This can't be undone.")) return;
+      Storage.deleteSavedSentenceTest(test.id);
+      renderSavedTestsList();
+    });
+    li.appendChild(deleteBtn);
+
+    list.appendChild(li);
+  });
+}
+
+// Read-only review of a saved test: just the question, the learner's
+// own answer, the accurate translation, and their tick/cross — no word
+// lookups, no re-marking, nothing to edit.
+function viewSavedTest(testId) {
+  const test = Storage.getSavedSentenceTest(testId);
+  if (!test) return;
+
+  document.getElementById("tenses-test-setup").hidden = true;
+  document.getElementById("tenses-test-saved-detail").hidden = false;
+  document.getElementById("tenses-test-saved-detail-score").textContent = `Score: ${test.correct} / ${test.total}`;
+
+  const list = document.getElementById("tenses-test-saved-detail-list");
+  list.innerHTML = "";
+
+  test.questions.forEach((q, i) => {
+    const card = document.createElement("div");
+    card.className = "tenses-test-question-card";
+
+    const number = document.createElement("p");
+    number.className = "tenses-test-question-number";
+    number.textContent = `Question ${i + 1}`;
+    card.appendChild(number);
+
+    const promptLabel = document.createElement("p");
+    promptLabel.className = "hint";
+    promptLabel.textContent = "Translate to Spanish:";
+    card.appendChild(promptLabel);
+
+    const promptEl = document.createElement("p");
+    promptEl.className = "card-practice-prompt";
+    promptEl.textContent = q.englishSentence;
+    card.appendChild(promptEl);
+
+    const userLabel = document.createElement("p");
+    userLabel.className = "hint";
+    userLabel.textContent = "Your answer:";
+    card.appendChild(userLabel);
+    const userEl = document.createElement("p");
+    userEl.className = "card-practice-answer";
+    userEl.textContent = q.userAnswer || "(no answer)";
+    card.appendChild(userEl);
+
+    const correctLabel = document.createElement("p");
+    correctLabel.className = "hint";
+    correctLabel.textContent = "Accurate translation:";
+    card.appendChild(correctLabel);
+    const correctEl = document.createElement("p");
+    correctEl.className = "card-practice-answer";
+    correctEl.textContent = q.targetSentence;
+    card.appendChild(correctEl);
+
+    const markEl = document.createElement("p");
+    markEl.className =
+      "tenses-test-saved-mark " +
+      (q.marked === true ? "tenses-test-saved-mark-correct" : q.marked === false ? "tenses-test-saved-mark-wrong" : "");
+    markEl.textContent = q.marked === true ? "✓ Correct" : q.marked === false ? "✗ Wrong" : "— Not marked";
+    card.appendChild(markEl);
+
+    list.appendChild(card);
+  });
+}
+
+function backFromSavedDetail() {
+  document.getElementById("tenses-test-saved-detail").hidden = true;
+  document.getElementById("tenses-test-setup").hidden = false;
 }
 
 // ---------------------------------------------------------------------
@@ -652,12 +940,18 @@ function handleAddLookedUpSentenceWord() {
     notes: "",
   });
 
+  // Always confirm with the Spanish word (targetLang) — this is a
+  // Spanish vocab theme, so that's the word that actually matters here.
+  // Showing "english" instead (the word as originally clicked, when the
+  // click was on an English prompt word) made it look like the save had
+  // reverted to English, even though the correct Spanish word was what
+  // actually got stored.
   const resultEl = document.getElementById("lookup-result");
   if (saved) {
-    resultEl.textContent = `${english} — added.`;
+    resultEl.textContent = `${targetLang} (${english}) — added.`;
     addBtn.hidden = true;
   } else {
-    resultEl.textContent = `${english} — already in your deck.`;
+    resultEl.textContent = `${targetLang} (${english}) — already in your deck.`;
   }
 }
 
@@ -729,6 +1023,16 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("tenses-test-loading-cancel-btn").addEventListener("click", backToSetup);
   document.getElementById("tenses-test-loading-retry-btn").addEventListener("click", retryLoadSentenceTestBatch);
   if (submitBtn) submitBtn.addEventListener("click", submitSentenceTest);
+
+  const saveBtn = document.getElementById("tenses-test-save-btn");
+  if (saveBtn) saveBtn.addEventListener("click", handleSaveTest);
+  const savedDetailBackBtn = document.getElementById("tenses-test-saved-detail-back-btn");
+  if (savedDetailBackBtn) savedDetailBackBtn.addEventListener("click", backFromSavedDetail);
+  const mistakeSaveBtn = document.getElementById("mistake-panel-save-btn");
+  if (mistakeSaveBtn) mistakeSaveBtn.addEventListener("click", handleMistakePanelSave);
+  const mistakeRemoveBtn = document.getElementById("mistake-panel-remove-btn");
+  if (mistakeRemoveBtn) mistakeRemoveBtn.addEventListener("click", handleMistakePanelRemove);
+  renderSavedTestsList();
 
   const themeSelect = document.getElementById("add-to-theme-select");
   if (themeSelect) themeSelect.addEventListener("change", handleSentenceThemeSelectChange);

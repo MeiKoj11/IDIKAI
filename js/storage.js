@@ -118,6 +118,7 @@ const STORAGE_KEYS = {
   hubTaskFolders: "hub.taskFolders",
   hubReminders: "hub.reminders",
   hubNotesText: "hub.notesText",
+  sentenceTestSaved: "sentenceTest.saved",
 };
 
 function readJSON(key, fallback) {
@@ -935,6 +936,36 @@ function deletePersonalNote(noteId) {
   writeJSON(STORAGE_KEYS.personalNotes, notes);
 }
 
+// ---- Saved sentence tests ----
+// A completed, self-marked sentence-test run the learner chose to keep
+// (saving is always optional — see spanish-sentence-test-app.js's
+// "Save test" button). Read-only once saved: just the question list
+// (English prompt, the learner's own typed answer, the accurate
+// translation) plus however each question was self-marked, so it can
+// be reopened later as a simple review — no re-grading, no editing.
+
+function getSavedSentenceTests(language) {
+  const tests = readJSON(STORAGE_KEYS.sentenceTestSaved, []);
+  return language ? tests.filter((t) => t.language === language) : tests;
+}
+
+function getSavedSentenceTest(testId) {
+  return getSavedSentenceTests().find((t) => t.id === testId) || null;
+}
+
+function addSavedSentenceTest(test) {
+  const tests = readJSON(STORAGE_KEYS.sentenceTestSaved, []);
+  const record = { id: uid(), createdAt: Date.now(), ...test };
+  tests.push(record);
+  writeJSON(STORAGE_KEYS.sentenceTestSaved, tests);
+  return record;
+}
+
+function deleteSavedSentenceTest(testId) {
+  const tests = readJSON(STORAGE_KEYS.sentenceTestSaved, []).filter((t) => t.id !== testId);
+  writeJSON(STORAGE_KEYS.sentenceTestSaved, tests);
+}
+
 // ---- Hub to-do widget ----
 // A small task list that lives directly on a language's hub page (not
 // tucked inside a bubble) — quick things like "finish reading" or "do
@@ -1088,6 +1119,10 @@ const Storage = {
   addGrammarNote,
   updateGrammarNote,
   deleteGrammarNote,
+  getSavedSentenceTests,
+  getSavedSentenceTest,
+  addSavedSentenceTest,
+  deleteSavedSentenceTest,
   getSpeakingEntries,
   getSpeakingEntry,
   addSpeakingEntry,

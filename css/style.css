@@ -1413,6 +1413,7 @@ a.secondary:hover {
   background: #5F0D0E;
   padding: 0.5rem 0.75rem;
   border-radius: 6px;
+  white-space: pre-wrap;
 }
 
 .delete-note-btn {
@@ -3536,6 +3537,68 @@ button.secondary.tiny {
 
 .tenses-test-note-wrap {
   margin-top: 0.4rem;
+}
+
+.tenses-test-mistake-hint {
+  margin-top: 0.4rem;
+}
+
+/* Mistake word flagging (crossed questions only) — clicking a word in
+   either stacked sentence colors it blue and opens #mistake-panel at
+   the bottom to save it (plus an optional note) to the Grammar Bank's
+   "Mistakes" folder. A saved word gets a thin green ring added on top
+   of the blue fill, so flagged-but-unsaved and saved are both visible
+   at a glance. */
+
+.mistake-clickable-word.mistake-word-flagged {
+  background: #2A4D6E;
+  color: #ECE6D3;
+}
+
+.mistake-clickable-word.mistake-word-flagged:hover {
+  background: #35618A;
+  color: #ECE6D3;
+}
+
+.mistake-clickable-word.mistake-word-saved {
+  box-shadow: inset 0 0 0 2px #4F9A5A;
+}
+
+.mistake-panel-note {
+  flex: 1 1 100%;
+  min-width: 200px;
+  margin: 0;
+}
+
+/* Saved-tests list on the setup screen, and the read-only detail view
+   opened from it. */
+
+.tenses-test-saved-list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.tenses-test-saved-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tenses-test-saved-mark {
+  margin: 0.3rem 0 0;
+  font-weight: 700;
+}
+
+.tenses-test-saved-mark-correct {
+  color: #4F9A5A;
+}
+
+.tenses-test-saved-mark-wrong {
+  color: #D9534F;
 }
 
 /* Accounts: login / admin / migrate-data pages — small standalone
