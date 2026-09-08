@@ -514,12 +514,12 @@ async function generateConjugationSentencesBatch(language, items, avoidSentences
 // cheap model, so the whole test can appear almost immediately. Always
 // returns { sentences, error }; `sentences` is an array of
 // { englishSentence } (one per input item, in order) or null on failure.
-async function generateEnglishPracticeSentencesBatch(items, avoidSentences) {
+async function generateEnglishPracticeSentencesBatch(language, items, avoidSentences) {
   try {
     const res = await fetch(`${API_BASE}/generate-english-practice-sentences-batch`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ items, avoidSentences: avoidSentences || [] }),
+      body: JSON.stringify({ language, items, avoidSentences: avoidSentences || [] }),
     });
     const data = await res.json().catch(() => null);
     if (!res.ok) {
@@ -550,12 +550,12 @@ async function generateEnglishPracticeSentencesBatch(items, avoidSentences) {
 // against after Submit. Always returns { translations, error };
 // `translations` is an array of { targetSentence, verbFormTarget } (one
 // per input item, in order) or null on failure.
-async function translatePracticeSentencesBatch(items) {
+async function translatePracticeSentencesBatch(language, items) {
   try {
     const res = await fetch(`${API_BASE}/translate-practice-sentences-batch`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ items }),
+      body: JSON.stringify({ language, items }),
     });
     const data = await res.json().catch(() => null);
     if (!res.ok) {

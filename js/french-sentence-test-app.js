@@ -1,19 +1,21 @@
 /*
-  spanish-sentence-test-app.js
+  french-sentence-test-app.js
   ------------------------------
-  spanish-sentence-test.html — "sentence mode" Conjugation Test. This is
-  a SELF-MARKING test, not an AI-graded one: the learner picks a verb
+  french-sentence-test.html — "sentence mode" Conjugation Test. Direct
+  port of spanish-sentence-test-app.js — see that file for the fuller
+  design rationale; this one is functionally identical, just pointed at
+  FrenchConjugator/"fr" instead of SpanishConjugator/"es". This is a
+  SELF-MARKING test, not an AI-graded one: the learner picks a verb
   pool (most-common and/or their own saved-theme verbs) and a tense
   selection, gets a whole page of English prompt sentences up front
   (written by a fast model), types every answer with nothing checked
   along the way, then hits Submit once. Submitting reveals, per
   question, the learner's own typed answer stacked directly above an
-  accurate Spanish translation (written by the strong model in the
+  accurate French translation (written by the strong model in the
   background while the learner was typing) — the learner ticks or
-  crosses their own answer, and crossing opens a plain note box. Any
-  word in a displayed sentence can still be clicked to look it up and
-  add it straight to the Vocab Bank, reusing the same lookup-panel
-  pattern Reading uses.
+  crosses their own answer. Any word in a displayed sentence can still
+  be clicked to look it up and add it straight to the Vocab Bank,
+  reusing the same lookup-panel pattern Reading uses.
 */
 
 // ---------------------------------------------------------------------
@@ -22,39 +24,38 @@
 
 const TENSES_GRID_GROUPS = [
   {
-    mood: "Indicative",
+    mood: "Indicatif",
     rows: [
-      { label: "Past", tenses: ["imperfect", "preterite", "pluperfect"] },
-      { label: "Present", tenses: ["present", "presentPerfect"] },
+      { label: "Past", tenses: ["imperfect", "passeCompose", "pluperfect"] },
+      { label: "Present", tenses: ["present"] },
       { label: "Future", tenses: ["future", "futurePerfect"] },
-      { label: "Conditional", tenses: ["conditional", "conditionalPerfect"] },
     ],
   },
   {
-    mood: "Subjunctive",
-    rows: [
-      { label: "Past", tenses: ["subjImperfect", "subjPluperfect"] },
-      { label: "Present", tenses: ["subjPresent", "subjPresentPerfect"] },
-      { label: "Future", tenses: ["subjFuture"] },
-    ],
+    mood: "Conditionnel",
+    rows: [{ label: "Conditionnel", tenses: ["conditionalPresent", "conditionalPast"] }],
   },
   {
-    mood: "Imperative",
-    rows: [{ label: "Commands", tenses: ["imperativeAffirmative", "imperativeNegative"] }],
+    mood: "Subjonctif",
+    rows: [{ label: "Subjonctif", tenses: ["subjPresent", "subjPast"] }],
+  },
+  {
+    mood: "Impératif",
+    rows: [{ label: "Commands", tenses: ["imperativePresent"] }],
   },
 ];
 
 function personsForTense(tense) {
-  return SpanishConjugator.IMPERATIVE_TENSE_KEYS.includes(tense)
-    ? SpanishConjugator.IMPERATIVE_PERSON_KEYS
-    : SpanishConjugator.PERSON_KEYS;
+  return FrenchConjugator.IMPERATIVE_TENSE_KEYS.includes(tense)
+    ? FrenchConjugator.IMPERATIVE_PERSON_KEYS
+    : FrenchConjugator.PERSON_KEYS;
 }
 
 function populateTestThemeCheckboxes() {
   const wrap = document.getElementById("tenses-test-theme-checkboxes");
   if (!wrap) return;
   wrap.innerHTML = "";
-  const themes = Storage.getThemes().filter((t) => t.language === "es");
+  const themes = Storage.getThemes().filter((t) => t.language === "fr");
   themes.forEach((theme) => {
     const label = document.createElement("label");
     label.className = "tenses-test-checkbox";
@@ -68,15 +69,15 @@ function populateTestThemeCheckboxes() {
 }
 
 // Verbs saved in one theme — only words the dictionary lookup tagged as
-// a regular ar/er/ir verb (same "safely conjugatable" gate the quick
+// a regular er/ir/re verb (same "safely conjugatable" gate the quick
 // Conjugation Test's own vocab pool uses), deduplicated by infinitive.
 function verbsFromTheme(themeId) {
-  const savedWords = typeof Storage !== "undefined" && Storage.getVerbWords ? Storage.getVerbWords("es") : [];
+  const savedWords = typeof Storage !== "undefined" && Storage.getVerbWords ? Storage.getVerbWords("fr") : [];
   const seen = new Set();
   const verbs = [];
   savedWords.forEach((w) => {
     if (w.themeId !== themeId) return;
-    if (w.verbType !== "ar" && w.verbType !== "er" && w.verbType !== "ir") return;
+    if (w.verbType !== "er" && w.verbType !== "ir" && w.verbType !== "re") return;
     const infinitive = (w.targetLang || "").trim().toLowerCase();
     if (!infinitive || seen.has(infinitive)) return;
     seen.add(infinitive);
@@ -98,7 +99,7 @@ function selectedVerbPool() {
 
   const commonCheckbox = document.getElementById("tenses-test-common-verbs-checkbox");
   if (commonCheckbox && commonCheckbox.checked) {
-    SpanishConjugator.VERBS.forEach(addVerb);
+    FrenchConjugator.VERBS.forEach(addVerb);
   }
 
   const wrap = document.getElementById("tenses-test-theme-checkboxes");
@@ -138,7 +139,7 @@ function populateTestCheckboxes() {
         input.value = tense;
         input.checked = true;
         label.appendChild(input);
-        label.appendChild(document.createTextNode(SpanishConjugator.ALL_TENSE_LABELS[tense] || tense));
+        label.appendChild(document.createTextNode(FrenchConjugator.ALL_TENSE_LABELS[tense] || tense));
         groupWrap.appendChild(label);
       });
     });
@@ -152,11 +153,13 @@ function selectedTestTenses() {
   return Array.from(wrap.querySelectorAll("input[type=checkbox]:checked")).map((i) => i.value);
 }
 
-// Every person can come up; yo/tú just show up a bit more often. Always
+// Every person can come up; je/tu just show up a bit more often. Always
 // used now (persons are no longer individually selectable) since a
 // natural weighted spread reads better than strict uniform randomness.
-const TEST_PERSON_WEIGHTS = { yo: 0.24, tu: 0.24, el: 0.15, nosotros: 0.13, vosotros: 0.11, ellos: 0.13 };
-const TEST_IMPERATIVE_PERSON_WEIGHTS = { tu: 0.32, el: 0.22, nosotros: 0.16, vosotros: 0.12, ellos: 0.18 };
+// French imperative only inflects for tu/nous/vous (no je/il/ils
+// commands), matching FrenchConjugator.IMPERATIVE_PERSON_KEYS.
+const TEST_PERSON_WEIGHTS = { je: 0.24, tu: 0.24, il: 0.15, nous: 0.13, vous: 0.11, ils: 0.13 };
+const TEST_IMPERATIVE_PERSON_WEIGHTS = { tu: 0.4, nous: 0.3, vous: 0.3 };
 
 function weightedPick(weights) {
   const entries = Object.entries(weights);
@@ -173,7 +176,7 @@ function pickTestPerson(tense, persons, weighted) {
   const validPersons = persons.filter((p) => personsForTense(tense).includes(p));
   if (!validPersons.length) return null;
   if (!weighted) return validPersons[Math.floor(Math.random() * validPersons.length)];
-  const fullWeights = SpanishConjugator.IMPERATIVE_TENSE_KEYS.includes(tense) ? TEST_IMPERATIVE_PERSON_WEIGHTS : TEST_PERSON_WEIGHTS;
+  const fullWeights = FrenchConjugator.IMPERATIVE_TENSE_KEYS.includes(tense) ? TEST_IMPERATIVE_PERSON_WEIGHTS : TEST_PERSON_WEIGHTS;
   const weights = {};
   validPersons.forEach((p) => {
     if (fullWeights[p]) weights[p] = fullWeights[p];
@@ -187,7 +190,7 @@ function pickTestPerson(tense, persons, weighted) {
 // 1. A FAST model writes all N English prompt sentences in one request;
 //    they're shown immediately as plain answer boxes, nothing checked.
 // 2. In the background, the ACCURATE model translates those exact same
-//    N English sentences into Spanish — the answer key — while the
+//    N English sentences into French — the answer key — while the
 //    learner is still reading/typing, so it's very likely ready by the
 //    time they hit Submit.
 // 3. Submit reveals every question in review mode at once: the
@@ -201,7 +204,7 @@ function pickQuestionSpec(config, guard) {
   const safeGuard = guard || 0;
   if (safeGuard > 40) return null;
   const tense = config.tenses[Math.floor(Math.random() * config.tenses.length)];
-  const person = pickTestPerson(tense, SpanishConjugator.PERSON_KEYS, true);
+  const person = pickTestPerson(tense, FrenchConjugator.PERSON_KEYS, true);
   if (!person) return pickQuestionSpec(config, safeGuard + 1);
   const verb = config.verbs[Math.floor(Math.random() * config.verbs.length)];
   return { tense, person, verb };
@@ -271,11 +274,11 @@ async function loadSentenceTestBatch(session) {
   const items = specs.map((spec) => ({
     infinitive: spec.verb.infinitive,
     english: spec.verb.english,
-    tenseLabel: SpanishConjugator.ALL_TENSE_LABELS[spec.tense] || spec.tense,
-    personLabel: SpanishConjugator.PERSON_LABELS[spec.person] || spec.person,
+    tenseLabel: FrenchConjugator.ALL_TENSE_LABELS[spec.tense] || spec.tense,
+    personLabel: FrenchConjugator.PERSON_LABELS[spec.person] || spec.person,
   }));
 
-  const result = await Translate.generateEnglishPracticeSentencesBatch("es", items, session.recentSentences);
+  const result = await Translate.generateEnglishPracticeSentencesBatch("fr", items, session.recentSentences);
   if (sentenceTestSession !== session) return;
 
   if (result.error || !result.sentences) {
@@ -313,7 +316,7 @@ async function loadSentenceTestBatch(session) {
 // stashes the in-flight promise on the session so Submit can await the
 // SAME request rather than firing a duplicate one.
 function fetchTranslations(session, translateItems) {
-  const promise = Translate.translatePracticeSentencesBatch("es", translateItems).then((result) => {
+  const promise = Translate.translatePracticeSentencesBatch("fr", translateItems).then((result) => {
     if (sentenceTestSession === session && result.translations) {
       session.translations = result.translations;
     }
@@ -356,7 +359,7 @@ function buildQuestionCard(session, index) {
 
   const promptLabel = document.createElement("p");
   promptLabel.className = "hint";
-  promptLabel.textContent = "Translate to Spanish:";
+  promptLabel.textContent = "Translate to French:";
   card.appendChild(promptLabel);
 
   const promptEl = document.createElement("p");
@@ -385,7 +388,7 @@ function buildQuestionCard(session, index) {
   const textarea = document.createElement("textarea");
   textarea.className = "card-practice-input";
   textarea.rows = 2;
-  textarea.placeholder = "Type your Spanish translation…";
+  textarea.placeholder = "Type your French translation…";
   answerSection.appendChild(textarea);
   card.appendChild(answerSection);
 
@@ -428,9 +431,9 @@ function buildQuestionCard(session, index) {
 
   // Only shown once the learner crosses their own answer — the words in
   // both sentences above become clickable so the specific mistake(s)
-  // can be flagged and saved to the Grammar Bank's "Mistakes" folder
-  // (see renderReviewSentences/handleMistakeWordClick), rather than one
-  // big free-text box.
+  // can be flagged and saved to the Grammar Bank's Tenses folder (see
+  // renderReviewSentences/handleMistakeWordClick), rather than one big
+  // free-text box.
   const mistakeHint = document.createElement("p");
   mistakeHint.className = "hint tenses-test-mistake-hint";
   mistakeHint.textContent = "Click the specific word(s) that were wrong, above, to flag and save a note.";
@@ -449,8 +452,8 @@ function buildQuestionCard(session, index) {
 }
 
 // Splits on whitespace (keeping it, like reading-app.js's tokenizer) and
-// strips leading/trailing punctuation per token so "clave." looks up
-// "clave" — \p{L} is any Unicode letter, so accented letters count.
+// strips leading/trailing punctuation per token so "clé." looks up
+// "clé" — \p{L} is any Unicode letter, so accented letters count.
 function tokenizeSentence(text) {
   return (text || "").split(/(\s+)/);
 }
@@ -512,16 +515,16 @@ function renderReviewSentences(session, index) {
   if (!q.answer) {
     refs.userAnswerEl.textContent = "(no answer)";
   } else if (wrong) {
-    renderMistakeClickableSentence(refs.userAnswerEl, q.answer, "es", session, index, "user");
+    renderMistakeClickableSentence(refs.userAnswerEl, q.answer, "fr", session, index, "user");
   } else {
     refs.userAnswerEl.textContent = q.answer;
   }
 
   refs.correctAnswerEl.innerHTML = "";
   if (wrong) {
-    renderMistakeClickableSentence(refs.correctAnswerEl, q.translation.targetSentence, "es", session, index, "accurate");
+    renderMistakeClickableSentence(refs.correctAnswerEl, q.translation.targetSentence, "fr", session, index, "accurate");
   } else {
-    renderClickableSentence(refs.correctAnswerEl, q.translation.targetSentence, "es");
+    renderClickableSentence(refs.correctAnswerEl, q.translation.targetSentence, "fr");
   }
 }
 
@@ -654,7 +657,7 @@ function backToSetup() {
 // reuses the same free-form grammar-note shape the original
 // single-sentence notes use (sentence/translation/pattern/tags/notes),
 // so it gets the existing note card's expand/collapse, Edit, Delete,
-// and "+ Personal note" editing for free with no new UI to build there.
+// and "+ Personal note" editing for free with no new UI to build here.
 //
 // The same panel also offers a second, separate save: when the mistake
 // was purely a conjugation ending (not a vocab/tense-choice error), the
@@ -716,9 +719,9 @@ function handleMistakePanelSave() {
   const note = document.getElementById("mistake-panel-note").value.trim();
   span.dataset.mistakeNote = note;
 
-  const folder = findTensesFolder("es");
+  const folder = findTensesFolder("fr");
   if (!folder) return; // shouldn't happen, but don't crash if it somehow does
-  const tenseLabel = SpanishConjugator.ALL_TENSE_LABELS[q.tense] || q.tense;
+  const tenseLabel = FrenchConjugator.ALL_TENSE_LABELS[q.tense] || q.tense;
   const saved = Storage.addGrammarNote({
     themeId: folder.id,
     sentence: word,
@@ -766,12 +769,12 @@ function handleMistakePanelSaveConjugation() {
   }
 
   Storage.addConjugationMistake({
-    language: "es",
+    language: "fr",
     targetForm,
     translation,
     infinitive: q.verb.infinitive,
-    tenseLabel: SpanishConjugator.ALL_TENSE_LABELS[q.tense] || q.tense,
-    personLabel: SpanishConjugator.PERSON_LABELS[q.person] || q.person,
+    tenseLabel: FrenchConjugator.ALL_TENSE_LABELS[q.tense] || q.tense,
+    personLabel: FrenchConjugator.PERSON_LABELS[q.person] || q.person,
   });
 
   statusEl.textContent = "Saved to Retest quiz.";
@@ -794,7 +797,7 @@ function handleSaveTest() {
   const correct = marked.filter((q) => q.marked === true).length;
 
   Storage.addSavedSentenceTest({
-    language: "es",
+    language: "fr",
     total: session.queue.length,
     correct,
     questions: session.queue.map((q) => ({
@@ -817,7 +820,7 @@ function renderSavedTestsList() {
   const list = document.getElementById("tenses-test-saved-list");
   if (!section || !list) return;
 
-  const tests = Storage.getSavedSentenceTests("es")
+  const tests = Storage.getSavedSentenceTests("fr")
     .slice()
     .sort((a, b) => b.createdAt - a.createdAt);
   list.innerHTML = "";
@@ -880,7 +883,7 @@ function viewSavedTest(testId) {
 
     const promptLabel = document.createElement("p");
     promptLabel.className = "hint";
-    promptLabel.textContent = "Translate to Spanish:";
+    promptLabel.textContent = "Translate to French:";
     card.appendChild(promptLabel);
 
     const promptEl = document.createElement("p");
@@ -938,7 +941,7 @@ function renderRetestSection() {
   const section = document.getElementById("tenses-test-retest-section");
   const countEl = document.getElementById("tenses-test-retest-count");
   if (!section) return;
-  const mistakes = Storage.getConjugationMistakes("es");
+  const mistakes = Storage.getConjugationMistakes("fr");
   section.hidden = mistakes.length === 0;
   if (countEl) {
     countEl.textContent = `${mistakes.length} saved mistake${mistakes.length === 1 ? "" : "s"} to retest.`;
@@ -956,7 +959,7 @@ function shuffleArray(arr) {
 }
 
 function startRetest() {
-  const mistakes = Storage.getConjugationMistakes("es");
+  const mistakes = Storage.getConjugationMistakes("fr");
   if (!mistakes.length) return;
   retestSession = { queue: shuffleArray(mistakes.slice()), current: null };
 
@@ -1034,7 +1037,7 @@ function populateVocabDrawerThemeOptions(selectId) {
   if (!select) return;
   select.innerHTML = "";
 
-  const themes = Storage.getThemes().filter((t) => t.language === "es");
+  const themes = Storage.getThemes().filter((t) => t.language === "fr");
   themes.forEach((theme) => {
     const opt = document.createElement("option");
     opt.value = theme.id;
@@ -1057,12 +1060,12 @@ function populateVocabDrawerThemeOptions(selectId) {
 
 function createVocabDrawerTheme() {
   const name = prompt("Name for the new theme:");
-  const existingThemes = Storage.getThemes().filter((t) => t.language === "es");
+  const existingThemes = Storage.getThemes().filter((t) => t.language === "fr");
   if (!name || !name.trim()) {
     populateVocabDrawerThemeOptions(existingThemes.length ? existingThemes[0].id : null);
     return;
   }
-  const theme = Storage.addTheme(name.trim(), "es");
+  const theme = Storage.addTheme(name.trim(), "fr");
   populateVocabDrawerThemeOptions(theme.id);
 }
 
@@ -1073,14 +1076,14 @@ function handleVocabDrawerThemeSelectChange(e) {
 
 function handleVocabDrawerSave() {
   const englishInput = document.getElementById("vocab-drawer-english");
-  const spanishInput = document.getElementById("vocab-drawer-spanish");
+  const frenchInput = document.getElementById("vocab-drawer-french");
   const select = document.getElementById("vocab-drawer-theme-select");
   const statusEl = document.getElementById("vocab-drawer-status");
 
   const english = englishInput.value.trim();
-  const targetLang = spanishInput.value.trim();
+  const targetLang = frenchInput.value.trim();
   if (!english || !targetLang) {
-    statusEl.textContent = "Fill in both English and Spanish.";
+    statusEl.textContent = "Fill in both English and French.";
     statusEl.hidden = false;
     return;
   }
@@ -1089,7 +1092,7 @@ function handleVocabDrawerSave() {
   if (!themeId || themeId === NEW_THEME_VALUE) {
     const name = prompt("Name for the new theme:");
     if (!name || !name.trim()) return;
-    const theme = Storage.addTheme(name.trim(), "es");
+    const theme = Storage.addTheme(name.trim(), "fr");
     populateVocabDrawerThemeOptions(theme.id);
     themeId = theme.id;
   }
@@ -1099,7 +1102,7 @@ function handleVocabDrawerSave() {
   statusEl.hidden = false;
   if (saved) {
     englishInput.value = "";
-    spanishInput.value = "";
+    frenchInput.value = "";
     englishInput.focus();
   }
 }
@@ -1107,7 +1110,7 @@ function handleVocabDrawerSave() {
 // ---------------------------------------------------------------------
 // Word-click lookup + Add-to-Vocab — mirrors reading-app.js's
 // .lookup-panel pattern. A clicked word is either the English prompt
-// (pre-submit) or the accurate Spanish translation (post-submit), so
+// (pre-submit) or the accurate French translation (post-submit), so
 // the lookup direction and which field becomes "targetLang" vs
 // "english" when saving depend on which language the word was in.
 // ---------------------------------------------------------------------
@@ -1120,7 +1123,7 @@ function renderSentenceThemeOptions(selectId) {
   if (!select) return;
   select.innerHTML = "";
 
-  const themes = Storage.getThemes().filter((t) => t.language === "es");
+  const themes = Storage.getThemes().filter((t) => t.language === "fr");
   themes.forEach((theme) => {
     const opt = document.createElement("option");
     opt.value = theme.id;
@@ -1143,12 +1146,12 @@ function renderSentenceThemeOptions(selectId) {
 
 function createSentenceLookupTheme() {
   const name = prompt("Name for the new theme:");
-  const existingThemes = Storage.getThemes().filter((t) => t.language === "es");
+  const existingThemes = Storage.getThemes().filter((t) => t.language === "fr");
   if (!name || !name.trim()) {
     renderSentenceThemeOptions(existingThemes.length ? existingThemes[0].id : null);
     return;
   }
-  const theme = Storage.addTheme(name.trim(), "es");
+  const theme = Storage.addTheme(name.trim(), "fr");
   renderSentenceThemeOptions(theme.id);
 }
 
@@ -1163,7 +1166,7 @@ function handleAddLookedUpSentenceWord() {
   if (!themeId || themeId === NEW_THEME_VALUE) {
     const name = prompt("Name for the new theme:");
     if (!name || !name.trim()) return;
-    const theme = Storage.addTheme(name.trim(), "es");
+    const theme = Storage.addTheme(name.trim(), "fr");
     renderSentenceThemeOptions(theme.id);
     themeId = theme.id;
   }
@@ -1178,12 +1181,8 @@ function handleAddLookedUpSentenceWord() {
     notes: "",
   });
 
-  // Always confirm with the Spanish word (targetLang) — this is a
-  // Spanish vocab theme, so that's the word that actually matters here.
-  // Showing "english" instead (the word as originally clicked, when the
-  // click was on an English prompt word) made it look like the save had
-  // reverted to English, even though the correct Spanish word was what
-  // actually got stored.
+  // Always confirm with the French word (targetLang) — this is a
+  // French vocab theme, so that's the word that actually matters here.
   const resultEl = document.getElementById("lookup-result");
   if (saved) {
     resultEl.textContent = `${targetLang} (${english}) — added.`;
@@ -1194,8 +1193,8 @@ function handleAddLookedUpSentenceWord() {
 }
 
 // `lang` is whichever language the clicked word actually appeared in
-// ("es" or "en") — the sentence shown can be either, depending on
-// whether the card is still pre-submit (English) or in review (Spanish).
+// ("fr" or "en") — the sentence shown can be either, depending on
+// whether the card is still pre-submit (English) or in review (French).
 async function handleSentenceWordClick(span, word, lang) {
   document.querySelectorAll(".clickable-word.selected").forEach((el) => el.classList.remove("selected"));
   span.classList.add("selected");
@@ -1210,7 +1209,7 @@ async function handleSentenceWordClick(span, word, lang) {
   document.getElementById("add-looked-up-word").hidden = true;
   renderSentenceThemeOptions();
 
-  const toLang = lang === "en" ? "es" : "en";
+  const toLang = lang === "en" ? "fr" : "en";
   const result = await Translate.lookupTranslation(word, lang, toLang);
   if (selectedSentenceWord !== word) return; // a different word was clicked meanwhile
   if (!result || !result.translation) {
@@ -1221,7 +1220,7 @@ async function handleSentenceWordClick(span, word, lang) {
   resultEl.textContent = result.translation;
   const addBtn = document.getElementById("add-looked-up-word");
   addBtn.hidden = false;
-  if (lang === "es") {
+  if (lang === "fr") {
     addBtn.dataset.targetLang = word;
     addBtn.dataset.english = result.translation;
   } else {
@@ -1234,14 +1233,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const setup = document.getElementById("tenses-test-setup");
   if (!setup || !document.getElementById("tenses-test-question-list")) return; // not this page
 
-  const lang = "es"; // Spanish-only page
+  const lang = "fr"; // French-only page
   initTopbar(lang);
   if (typeof initHubTasks === "function") initHubTasks(lang);
   initAppTabs({
     section: "grammar",
     language: lang,
-    label: "Spanish sentence test",
-    href: "spanish-sentence-test.html",
+    label: "French sentence test",
+    href: "french-sentence-test.html",
   });
 
   populateTestCheckboxes();

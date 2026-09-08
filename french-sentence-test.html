@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>French sentence conjugation test</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fahkwang:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="app-topbar" class="app-topbar">
+    <button type="button" id="topbar-hamburger" class="topbar-hamburger" aria-label="Menu" aria-haspopup="true">
+      <span></span><span></span><span></span>
+    </button>
+    <span id="topbar-lang-label" class="topbar-lang-label"></span>
+    <div id="topbar-menu" class="topbar-menu" hidden>
+      <div class="topbar-menu-heading" data-immersion-key="changeLanguageHeading">Change language</div>
+      <button type="button" class="topbar-lang-option" data-lang="es" data-immersion-key="langNameEs">Spanish</button>
+      <button type="button" class="topbar-lang-option" data-lang="ja" data-immersion-key="langNameJa">Japanese</button>
+      <button type="button" class="topbar-lang-option" data-lang="fr" data-immersion-key="langNameFr">French</button>
+    </div>
+    <button type="button" id="topbar-notifications" class="topbar-notifications" aria-label="Notifications" aria-haspopup="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2"></rect><path d="M3 6.5l9 6.5 9-6.5"></path></svg>
+    </button>
+    <button type="button" id="hub-todo-toggle" class="topbar-todo" aria-label="To-do list" aria-haspopup="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"></rect><path d="M8 12l3 3 5-6"></path></svg>
+      <span id="hub-todo-toggle-count" class="hub-todo-toggle-count" hidden></span>
+    </button>
+    <a href="welcome.html" id="topbar-home" class="topbar-home" aria-label="Language home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"></path><path d="M5 10v10h14V10"></path></svg>
+    </a>
+    <div id="topbar-notifications-menu" class="topbar-menu topbar-notifications-menu" hidden>
+      <div class="topbar-menu-heading" data-immersion-key="notificationsHeading">Notifications</div>
+      <p class="topbar-notifications-empty" data-immersion-key="notificationsEmpty">Coming soon — once a teacher connection exists, updates will show up here.</p>
+    </div>
+    <div id="hub-todo-panel" class="hub-todo-panel" hidden>
+      <div id="hub-todo-header" class="hub-todo-header">
+        <span class="hub-todo-title" data-immersion-key="todoTitle">To-do list</span>
+        <button type="button" id="hub-todo-close" class="hub-todo-close" aria-label="Close">×</button>
+      </div>
+      <form id="hub-todo-add-form" class="hub-todo-add-form">
+        <input type="text" id="hub-todo-add-input" placeholder="Add a task…" autocomplete="off" data-immersion-key="todoAddPlaceholder" />
+        <select id="hub-todo-folder-select" class="hub-todo-folder-select" aria-label="Folder">
+          <option value="" data-immersion-key="todoNoFolder">No folder</option>
+        </select>
+        <button type="submit" data-immersion-key="todoAddButton">Add</button>
+      </form>
+      <div id="hub-todo-groups" class="hub-todo-groups"></div>
+      <label class="hub-todo-show-completed">
+        <input type="checkbox" id="hub-todo-show-completed" />
+        <span data-immersion-key="todoShowCompleted">Show completed</span>
+      </label>
+    </div>
+  </div>
+  <div id="app-tab-strip" class="app-tab-strip">
+    <div id="app-tab-strip-tabs" class="app-tab-strip-tabs"></div>
+    <div class="app-tab-strip-add">
+      <button type="button" id="app-tab-plus" class="tab-bar-plus-btn" title="Open another section in a new tab">+</button>
+      <div id="app-tab-picker-panel" class="app-tab-picker-panel" hidden>
+        <select id="app-tab-section-select">
+          <option value="" disabled selected data-immersion-key="tabPickerSectionPlaceholder">Which section?</option>
+          <option value="vocab" data-immersion-key="sectionVocab">Vocab Bank</option>
+          <option value="grammar" data-immersion-key="sectionGrammar">Grammar</option>
+          <option value="writing" data-immersion-key="sectionWriting">Writing</option>
+          <option value="speaking" data-immersion-key="sectionSpeaking">Speaking</option>
+          <option value="reading" data-immersion-key="sectionReading">Reading</option>
+          <option value="personal-hub" data-immersion-key="sectionPersonalHub">Personal Hub</option>
+          <option value="listening" data-immersion-key="sectionListening">Listening</option>
+        </select>
+        <select id="app-tab-unit-select" hidden>
+          <option value="" disabled selected data-immersion-key="tabPickerUnitPlaceholder">Which one?</option>
+        </select>
+        <button type="button" id="app-tab-open-btn" class="secondary" hidden data-immersion-key="tabPickerOpen">Open</button>
+        <button type="button" id="app-tab-picker-cancel" class="secondary" data-immersion-key="tabPickerCancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <header class="app-header lang-fr" id="french-sentence-test-header">
+    <a href="french-tenses.html" class="back-link" data-immersion-key="backToFrenchTenses">&larr; Back to French tenses</a>
+    <h1 data-immersion-key="sentenceTestHeading">Sentence conjugation test</h1>
+  </header>
+
+  <main class="conjugation-test-main">
+    <div class="panel conjugation-test-card">
+      <div id="tenses-test-setup">
+        <p class="hint" data-immersion-key="sentenceTestIntroHint">Full-sentence translation practice. You write out all your answers first, then mark them yourself against the accurate translation — the AI writes the questions and the answer key, but doesn't grade you.</p>
+
+        <div class="tenses-test-section">
+          <div class="tenses-test-section-head"><span data-immersion-key="questionCountLabel">Number of questions</span></div>
+          <div class="tenses-test-direction-options">
+            <label><input type="radio" name="tenses-test-question-count" value="10" /> <span data-immersion-key="questionCount10">10 questions</span></label>
+            <label><input type="radio" name="tenses-test-question-count" value="20" checked /> <span data-immersion-key="questionCount20">20 questions</span></label>
+          </div>
+        </div>
+
+        <div class="tenses-test-section">
+          <div class="tenses-test-section-head"><span data-immersion-key="verbsLabel">Verbs</span></div>
+          <label class="tenses-test-checkbox">
+            <input type="checkbox" id="tenses-test-common-verbs-checkbox" checked />
+            <span data-immersion-key="commonVerbsCheckbox">Most commonly used verbs</span>
+          </label>
+          <p class="hint" data-immersion-key="themeVerbsHintFr">Or pull verbs from your own saved Vocab Bank themes (only the verbs saved in each theme are used):</p>
+          <div id="tenses-test-theme-checkboxes" class="tenses-test-verb-checkboxes"></div>
+        </div>
+
+        <div class="tenses-test-section">
+          <div class="tenses-test-section-head">
+            <span data-immersion-key="tensesLabel">Tenses</span>
+            <div>
+              <button type="button" id="tenses-test-select-all" class="secondary tiny" data-immersion-key="selectAllButton">Select all</button>
+              <button type="button" id="tenses-test-clear" class="secondary tiny" data-immersion-key="clearButton">Clear</button>
+            </div>
+          </div>
+          <div id="tenses-test-checkboxes" class="tenses-test-checkboxes"></div>
+        </div>
+
+        <div class="tenses-test-setup-actions">
+          <button type="button" id="tenses-test-start-btn" data-immersion-key="startTestButton">Start test</button>
+        </div>
+
+        <div id="tenses-test-saved-section" class="tenses-test-section" hidden>
+          <div class="tenses-test-section-head"><span data-immersion-key="savedTestsLabel">Your saved tests</span></div>
+          <ul id="tenses-test-saved-list" class="tenses-test-saved-list"></ul>
+        </div>
+
+        <div id="tenses-test-retest-section" class="tenses-test-section" hidden>
+          <div class="tenses-test-section-head"><span data-immersion-key="retestMistakesLabel">Retest your mistakes</span></div>
+          <p id="tenses-test-retest-count" class="hint"></p>
+          <button type="button" id="tenses-test-retest-start-btn" data-immersion-key="startRetestButton">Retest your mistakes</button>
+        </div>
+      </div>
+
+      <div id="tenses-test-saved-detail" class="card-practice-panel" hidden>
+        <div class="card-practice-top-row">
+          <span id="tenses-test-saved-detail-score" class="card-practice-score"></span>
+          <button type="button" id="tenses-test-saved-detail-back-btn" class="secondary tiny" data-immersion-key="backToSetupButton">← Change setup</button>
+        </div>
+        <div id="tenses-test-saved-detail-list" class="tenses-test-question-list"></div>
+      </div>
+
+      <div id="tenses-test-retest-quiz" class="card-practice-panel" hidden>
+        <div class="card-practice-top-row">
+          <span id="tenses-test-retest-score" class="hint" data-immersion-key="retestEnToFrHint">English → French</span>
+          <button type="button" id="tenses-test-retest-back-btn" class="secondary tiny" data-immersion-key="backToSetupButton">← Change setup</button>
+        </div>
+
+        <div id="tenses-test-retest-card" hidden>
+          <p class="hint" data-immersion-key="translateToFrenchLabel">Translate to French:</p>
+          <p id="tenses-test-retest-prompt" class="card-practice-prompt"></p>
+          <button type="button" id="tenses-test-retest-show-btn" data-immersion-key="showAnswerButton">Show answer</button>
+          <p id="tenses-test-retest-answer" class="card-practice-answer" hidden></p>
+          <div id="tenses-test-retest-buttons" class="card-practice-judge-row" hidden>
+            <button type="button" id="tenses-test-retest-got-it-btn" data-immersion-key="gotItRightButton">Got it right</button>
+            <button type="button" id="tenses-test-retest-again-btn" class="secondary" data-immersion-key="reviewAgainButton">Got it wrong — review again</button>
+          </div>
+        </div>
+
+        <div id="tenses-test-retest-done" class="tenses-test-setup-actions" hidden>
+          <p class="hint" data-immersion-key="retestDoneHint">You've gone through all your saved mistakes! Any you got right are cleared from this list.</p>
+        </div>
+      </div>
+
+      <div id="tenses-test-loading-screen" class="card-practice-panel" hidden>
+        <div class="tenses-test-loading-spinner" aria-hidden="true"></div>
+        <p class="hint" data-immersion-key="loadingTestHint">Loading your test — writing your practice sentences now. The accurate answer key keeps preparing in the background while you work.</p>
+        <p id="tenses-test-loading-error" class="card-practice-answer card-practice-wrong" hidden></p>
+        <div class="tenses-test-setup-actions">
+          <button type="button" id="tenses-test-loading-retry-btn" hidden data-immersion-key="tryAgainButton">Try again</button>
+          <button type="button" id="tenses-test-loading-cancel-btn" class="secondary" data-immersion-key="backToSetupButton">← Change setup</button>
+        </div>
+      </div>
+
+      <div id="tenses-test-quiz" class="card-practice-panel" hidden>
+        <div class="card-practice-top-row">
+          <span id="tenses-test-score" class="card-practice-score"></span>
+          <button type="button" id="tenses-test-restart-btn" class="secondary tiny" data-immersion-key="backToSetupButton">← Change setup</button>
+        </div>
+
+        <p class="hint" data-immersion-key="clickWordToLookUpHint">Click any word in a sentence to look it up.</p>
+
+        <div id="tenses-test-question-list" class="tenses-test-question-list"></div>
+
+        <p id="tenses-test-submit-error" class="card-practice-answer card-practice-wrong" hidden></p>
+
+        <div class="tenses-test-setup-actions">
+          <button type="button" id="tenses-test-submit-btn" data-immersion-key="submitTestButton">Submit answers</button>
+          <button type="button" id="tenses-test-save-btn" class="secondary" hidden data-immersion-key="saveTestButton">Save this test</button>
+          <span id="tenses-test-save-status" class="hint" hidden></span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="lookup-panel" class="lookup-panel" hidden>
+    <strong id="lookup-word"></strong>
+    <span id="lookup-result"></span>
+    <span id="lookup-grammar" class="lookup-grammar"></span>
+    <select id="add-to-theme-select"></select>
+    <button type="button" id="add-to-theme-new-theme-btn" class="secondary" data-immersion-key="newThemeButtonPlus">+ New theme</button>
+    <button type="button" id="add-looked-up-word" hidden data-immersion-key="addToThemeButton">Add to theme</button>
+  </div>
+
+  <div id="mistake-panel" class="lookup-panel" hidden>
+    <strong id="mistake-panel-word"></strong>
+    <textarea id="mistake-panel-note" class="card-practice-input mistake-panel-note" rows="2" placeholder="What went wrong, in your own words…" data-immersion-key="mistakeNotePlaceholder"></textarea>
+    <button type="button" id="mistake-panel-save-btn" data-immersion-key="saveToMistakesButton">Save to Mistakes</button>
+    <button type="button" id="mistake-panel-remove-btn" class="secondary" data-immersion-key="removeFlagButton">Remove flag</button>
+
+    <div class="mistake-panel-conjugation">
+      <span class="mistake-panel-conjugation-label" data-immersion-key="conjugationErrorLabel">Conjugation error</span>
+      <label class="mistake-panel-conjugation-field">
+        <span data-immersion-key="correctFormInFrLabel">Correct form in French</span>
+        <input type="text" id="mistake-panel-correct-form" autocomplete="off" />
+      </label>
+      <label class="mistake-panel-conjugation-field">
+        <span data-immersion-key="translationLabel">Translation</span>
+        <input type="text" id="mistake-panel-translation" autocomplete="off" />
+      </label>
+      <button type="button" id="mistake-panel-save-conjugation-btn" data-immersion-key="saveToRetestButton">Save to Retest quiz</button>
+      <span id="mistake-panel-conjugation-status" class="hint" hidden></span>
+    </div>
+  </div>
+
+  <button type="button" id="vocab-drawer-toggle" class="vocab-drawer-toggle" data-immersion-key="addVocabDrawerToggle">+ Add vocab</button>
+  <div id="vocab-drawer" class="vocab-drawer" hidden>
+    <div class="vocab-drawer-header">
+      <span data-immersion-key="addVocabDrawerHeading">Add a word</span>
+      <button type="button" id="vocab-drawer-close-btn" class="secondary tiny" aria-label="Close">×</button>
+    </div>
+    <label class="vocab-drawer-field">
+      <span data-immersion-key="englishLabel">English</span>
+      <input type="text" id="vocab-drawer-english" autocomplete="off" />
+    </label>
+    <label class="vocab-drawer-field">
+      <span data-immersion-key="frenchLabel">French</span>
+      <input type="text" id="vocab-drawer-french" autocomplete="off" />
+    </label>
+    <label class="vocab-drawer-field">
+      <span data-immersion-key="themeLabel">Theme</span>
+      <select id="vocab-drawer-theme-select"></select>
+    </label>
+    <button type="button" id="vocab-drawer-new-theme-btn" class="secondary tiny" data-immersion-key="newThemeButtonPlus">+ New theme</button>
+    <button type="button" id="vocab-drawer-save-btn" data-immersion-key="saveWordButton">Save word</button>
+    <p id="vocab-drawer-status" class="hint" hidden></p>
+  </div>
+
+  <script src="js/topbar.js"></script>
+  <script src="js/immersion.js"></script>
+  <script src="js/app-tabs.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/hub-tasks.js"></script>
+  <script src="js/translate.js"></script>
+  <script src="js/french-verb-data.js"></script>
+  <script src="js/french-conjugator.js"></script>
+  <script src="js/french-sentence-test-app.js"></script>
+</body>
+</html>

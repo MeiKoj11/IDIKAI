@@ -645,12 +645,18 @@ function callClaudeForGenerateConjugationSentencesBatch(language, items, avoidSe
 //      they hit Submit it's very likely already finished.
 // ---------------------------------------------------------------------
 
-const GENERATE_ENGLISH_PRACTICE_SENTENCES_BATCH_PROMPT = `You write natural, level-appropriate
-English practice sentences for a Spanish learner's conjugation drill. You'll be given a numbered list
-of items, each specifying a verb (English gloss), a Spanish tense, and a grammatical person. For EACH
+// Parameterized by language name (was Spanish-only) so the self-marking
+// sentence-test flow works for any target language that uses this
+// English-draft/foreign-language-translate split — currently Spanish
+// and French; the prompt text itself is otherwise unchanged.
+function buildGenerateEnglishPracticeSentencesBatchPrompt(languageName) {
+  return `You write natural, level-appropriate
+English practice sentences for a ${languageName} learner's conjugation drill. You'll be given a numbered list
+of items, each specifying a verb (English gloss), a ${languageName} tense, and a grammatical person. For EACH
 item, write ONE natural ENGLISH sentence — declarative, a question, or negative, vary it across the
-list — that would call for that exact tense/person if translated into Spanish (e.g. for the Spanish
-preterite + "nosotros", write an English sentence describing something "we" completed in the past).
+list — that would call for that exact tense/person if translated into ${languageName} (e.g. for the ${languageName}
+preterite + "nosotros"/"nous", write an English sentence describing something completed in the past by
+that subject).
 Respond with ONLY a JSON object (no markdown, no code fences, no explanation) with exactly this shape:
 
 { "sentences": [ { "englishSentence": string }, ... ] }
@@ -658,16 +664,18 @@ Respond with ONLY a JSON object (no markdown, no code fences, no explanation) wi
 Rules:
 - Return exactly one output object per input item, IN THE SAME ORDER as the input list.
 - Each sentence must be natural, grammatically correct English that clearly calls for the specified
-  Spanish tense/person when translated — don't hedge into an ambiguous tense.
+  ${languageName} tense/person when translated — don't hedge into an ambiguous tense.
 - Keep each sentence short (roughly 5-12 words) and naturally include 1-2 pieces of vocabulary beyond
   basic function words so there's something worth practicing, but keep it natural, not contrived.
 - Vary sentence structure, subject matter, and phrasing across the list — no two sentences in this
   batch should feel like copies of each other with just the verb swapped.
-- This pass only writes English — do not include any Spanish in your response.
+- This pass only writes English — do not include any ${languageName} in your response.
 - Never reuse a sentence you've already been asked to avoid (a list may be given).
 - Output nothing except the JSON object.`;
+}
 
-function callClaudeForGenerateEnglishPracticeSentencesBatch(items, avoidSentences) {
+function callClaudeForGenerateEnglishPracticeSentencesBatch(language, items, avoidSentences) {
+  const languageName = LANGUAGE_NAMES[language] || language;
   const avoidLines = (avoidSentences || []).length
     ? `\n\nAvoid reusing any of these previous sentences:\n${avoidSentences.map((s) => `- ${s}`).join("\n")}`
     : "";
@@ -677,15 +685,16 @@ function callClaudeForGenerateEnglishPracticeSentencesBatch(items, avoidSentence
   const userMessage = `Items:\n${itemLines}${avoidLines}`;
   // Deliberately the fast/cheap MODEL, not GRAMMAR_CHECK_MODEL — see the
   // block comment above for why this specific pass doesn't need it.
-  return callClaudeJSON(GENERATE_ENGLISH_PRACTICE_SENTENCES_BATCH_PROMPT, userMessage, 3000, MODEL);
+  return callClaudeJSON(buildGenerateEnglishPracticeSentencesBatchPrompt(languageName), userMessage, 3000, MODEL);
 }
 
-const TRANSLATE_PRACTICE_SENTENCES_BATCH_PROMPT = `You translate English practice sentences into
-Spanish for a language learner's conjugation drill, with complete accuracy — this is the answer key
+function buildTranslatePracticeSentencesBatchPrompt(languageName) {
+  return `You translate English practice sentences into
+${languageName} for a language learner's conjugation drill, with complete accuracy — this is the answer key
 the learner will use to grade their own attempt against, so it must be correct. You'll be given a
 numbered list of items, each with an English sentence plus the specific verb (infinitive + English
-gloss), Spanish tense, and grammatical person that the translation must use. For EACH item, translate
-the English sentence into ONE natural Spanish sentence using that exact verb correctly conjugated for
+gloss), ${languageName} tense, and grammatical person that the translation must use. For EACH item, translate
+the English sentence into ONE natural ${languageName} sentence using that exact verb correctly conjugated for
 that exact tense/person. Respond with ONLY a JSON object (no markdown, no code fences, no explanation)
 with exactly this shape:
 
@@ -694,19 +703,22 @@ with exactly this shape:
 Rules:
 - Return exactly one output object per input item, IN THE SAME ORDER as the input list.
 - "targetSentence" must be a faithful, natural translation of the given English sentence (not stiff
-  word-for-word) — keep the same meaning, just written the way a native Spanish speaker actually would.
+  word-for-word) — keep the same meaning, just written the way a native ${languageName} speaker actually would.
 - Accuracy matters enormously — this is what a real learner will grade their own answer against, so it
   must actually be correct. Double-check every word that isn't the target verb, especially small words
-  that are easy to mistranslate literally: prepositions ("from" is "desde", not "hasta", which means
-  "until/as far as"; "for" can be "para" or "por" depending on meaning; etc.), gender/number agreement
-  on every article and adjective, and any idiom that doesn't translate word-for-word. A native Spanish
-  speaker must find the sentence completely natural and correct with no hesitation.
+  that are easy to mistranslate literally: prepositions (e.g. Spanish "from" is "desde", not "hasta",
+  which means "until/as far as"; French "in/at" is "à" vs "dans" depending on meaning; etc.),
+  gender/number agreement on every article and adjective, and any idiom that doesn't translate
+  word-for-word. A native ${languageName} speaker must find the sentence completely natural and correct
+  with no hesitation.
 - "verbFormTarget" is the exact conjugated verb form as it appears in "targetSentence" (e.g. "habría
-  dado"), correctly conjugated for the given tense/person — this must match exactly what was asked for,
-  regardless of how the English sentence happened to be phrased.
+  dado" or "aurait donné"), correctly conjugated for the given tense/person — this must match exactly
+  what was asked for, regardless of how the English sentence happened to be phrased.
 - Output nothing except the JSON object.`;
+}
 
-function callClaudeForTranslatePracticeSentencesBatch(items) {
+function callClaudeForTranslatePracticeSentencesBatch(language, items) {
+  const languageName = LANGUAGE_NAMES[language] || language;
   const itemLines = items
     .map(
       (item, i) =>
@@ -716,7 +728,7 @@ function callClaudeForTranslatePracticeSentencesBatch(items) {
   const userMessage = `Items:\n${itemLines}`;
   // The strong model, same as every other sentence-mode generation call
   // — this is the pass where translation accuracy actually matters.
-  return callClaudeJSONWithRetry(TRANSLATE_PRACTICE_SENTENCES_BATCH_PROMPT, userMessage, 12000, 24000, GRAMMAR_CHECK_MODEL);
+  return callClaudeJSONWithRetry(buildTranslatePracticeSentencesBatchPrompt(languageName), userMessage, 12000, 24000, GRAMMAR_CHECK_MODEL);
 }
 
 // Grades a learner's typed answer for sentence-mode: the conjugated
@@ -1914,6 +1926,7 @@ const server = http.createServer((req, res) => {
       }
 
       const { items, avoidSentences } = parsed;
+      const language = parsed.language || "es";
       if (!Array.isArray(items) || !items.length) {
         res.writeHead(400, { "content-type": "application/json" });
         res.end(JSON.stringify({ error: "Missing a non-empty items array." }));
@@ -1931,9 +1944,9 @@ const server = http.createServer((req, res) => {
         return;
       }
 
-      console.log(`Generating a batch of ${items.length} English practice sentences...`);
+      console.log(`Generating a batch of ${items.length} English practice sentences (${language})...`);
 
-      callClaudeForGenerateEnglishPracticeSentencesBatch(items, avoidSentences)
+      callClaudeForGenerateEnglishPracticeSentencesBatch(language, items, avoidSentences)
         .then((result) => {
           res.writeHead(200, { "content-type": "application/json" });
           res.end(JSON.stringify(result));
@@ -1967,6 +1980,7 @@ const server = http.createServer((req, res) => {
       }
 
       const { items } = parsed;
+      const language = parsed.language || "es";
       if (!Array.isArray(items) || !items.length) {
         res.writeHead(400, { "content-type": "application/json" });
         res.end(JSON.stringify({ error: "Missing a non-empty items array." }));
@@ -1986,9 +2000,9 @@ const server = http.createServer((req, res) => {
         return;
       }
 
-      console.log(`Translating a batch of ${items.length} practice sentences to Spanish...`);
+      console.log(`Translating a batch of ${items.length} practice sentences to ${LANGUAGE_NAMES[language] || language}...`);
 
-      callClaudeForTranslatePracticeSentencesBatch(items)
+      callClaudeForTranslatePracticeSentencesBatch(language, items)
         .then((result) => {
           res.writeHead(200, { "content-type": "application/json" });
           res.end(JSON.stringify(result));
