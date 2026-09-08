@@ -324,7 +324,10 @@ function buildQuestionCard(session, index) {
   card.appendChild(revealEl);
 
   revealBtn.addEventListener("click", () => {
-    revealEl.textContent = `${q.verb.kanji} (${q.verb.reading}) — ${q.verb.meaning} — ${JaConjugator.FORM_LABELS[q.form].split(" —")[0]}`;
+    // Deliberately verb-only, no form label — matches Spanish/French's
+    // reveal (infinitive + meaning, no tense/person either), so this
+    // doesn't hand the learner the answer's grammatical form.
+    revealEl.textContent = `${q.verb.kanji} (${q.verb.reading}) — ${q.verb.meaning}`;
     revealEl.hidden = false;
   });
 
@@ -642,10 +645,19 @@ function backToSetup() {
 
 let activeMistakeWord = null; // { span, word, session, index, side }
 
-function findTensesFolder(language) {
+// A dedicated "Mistakes" folder, separate from the built-in "Tenses and
+// verb conjugations" folder (which otherwise ends up a mix of the
+// always-present conjugation structure cards and one-off mistake
+// notes). Created lazily on the first mistake save rather than seeded
+// up front — ensureDefaultGrammarThemes only seeds once per language,
+// so a language that's already been opened before this folder existed
+// wouldn't get it retroactively if it were added to that seed list.
+function findOrCreateMistakesFolder(language) {
   Storage.ensureDefaultGrammarThemes(language);
   const themes = Storage.getGrammarThemes(language);
-  return themes.find((t) => (t.name || "").trim().toLowerCase() === "tenses and verb conjugations") || null;
+  const existing = themes.find((t) => (t.name || "").trim().toLowerCase() === "mistakes");
+  if (existing) return existing;
+  return Storage.addGrammarTheme("Mistakes", language);
 }
 
 function handleMistakeWordClick(span, word, session, index, side) {
@@ -684,7 +696,7 @@ function handleMistakePanelSave() {
   const note = document.getElementById("mistake-panel-note").value.trim();
   span.dataset.mistakeNote = note;
 
-  const folder = findTensesFolder("ja");
+  const folder = findOrCreateMistakesFolder("ja");
   if (!folder) return;
   const formLabel = (JaConjugator.FORM_LABELS[q.form] || q.form).split(" —")[0];
   const saved = Storage.addGrammarNote({
@@ -1199,7 +1211,12 @@ async function handleEnglishWordClick(span, word) {
     return;
   }
 
-  document.getElementById("lookup-result").textContent = result.translation;
+  // Show the furigana reading alongside the Japanese translation — it
+  // was already being fetched and saved to the vocab word, just never
+  // actually displayed here.
+  document.getElementById("lookup-result").textContent = result.furigana
+    ? `${result.translation}（${result.furigana}）`
+    : result.translation;
   const addBtn = document.getElementById("add-looked-up-word");
   addBtn.hidden = false;
   addBtn.dataset.targetLang = result.translation;

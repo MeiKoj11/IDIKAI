@@ -669,14 +669,19 @@ function backToSetup() {
 
 let activeMistakeWord = null; // { span, word, session, index, side }
 
-// The Tenses folder always exists once ensureDefaultGrammarThemes has
-// run for this language (grammar.html's list page does this on load;
-// call it here too since a learner may never have opened Grammar Bank
-// yet when they save their first mistake from a sentence test).
-function findTensesFolder(language) {
+// A dedicated "Mistakes" folder, separate from the built-in "Tenses and
+// verb conjugations" folder (which otherwise ends up a mix of the
+// always-present conjugation structure cards and one-off mistake
+// notes). Created lazily on the first mistake save rather than seeded
+// up front — ensureDefaultGrammarThemes only seeds once per language,
+// so a language that's already been opened before this folder existed
+// wouldn't get it retroactively if it were added to that seed list.
+function findOrCreateMistakesFolder(language) {
   Storage.ensureDefaultGrammarThemes(language);
   const themes = Storage.getGrammarThemes(language);
-  return themes.find((t) => (t.name || "").trim().toLowerCase() === "tenses and verb conjugations") || null;
+  const existing = themes.find((t) => (t.name || "").trim().toLowerCase() === "mistakes");
+  if (existing) return existing;
+  return Storage.addGrammarTheme("Mistakes", language);
 }
 
 function handleMistakeWordClick(span, word, session, index, side) {
@@ -719,7 +724,7 @@ function handleMistakePanelSave() {
   const note = document.getElementById("mistake-panel-note").value.trim();
   span.dataset.mistakeNote = note;
 
-  const folder = findTensesFolder("fr");
+  const folder = findOrCreateMistakesFolder("fr");
   if (!folder) return; // shouldn't happen, but don't crash if it somehow does
   const tenseLabel = FrenchConjugator.ALL_TENSE_LABELS[q.tense] || q.tense;
   const saved = Storage.addGrammarNote({

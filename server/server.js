@@ -672,6 +672,12 @@ Respond with ONLY a JSON object (no markdown, no code fences, no explanation) wi
 
 Rules:
 - Return exactly one output object per input item, IN THE SAME ORDER as the input list.
+- CRITICAL: the sentence must actually use the EXACT verb given for that item — its literal meaning,
+  not a related, opposite, or more-convenient-sounding substitute (e.g. if the verb is "to forget",
+  the sentence must be about forgetting, not "memorize", "remember", or "study" just because those
+  read more naturally in the scenario you picked). If the requested verb+form combination makes for an
+  unusual-sounding sentence, write an unusual-but-correct sentence rather than quietly swapping in a
+  different verb — accuracy to the given verb matters more than how natural the scenario feels.
 - Each sentence must be natural, grammatically correct English that clearly calls for the specified
   form when translated — don't hedge into an ambiguous tense or voice.
 - Keep each sentence short (roughly 5-12 words) and naturally include 1-2 pieces of vocabulary beyond
