@@ -622,6 +622,103 @@ function callClaudeForGenerateConjugationSentencesBatch(language, items, avoidSe
   return callClaudeJSONWithRetry(GENERATE_CONJUGATION_SENTENCES_BATCH_PROMPT, userMessage, 12000, 24000, GRAMMAR_CHECK_MODEL);
 }
 
+// ---------------------------------------------------------------------
+// "Self-marking" sentence test mode — a deliberately less-AI-assisted
+// redesign of the sentence test: the AI no longer grades the learner's
+// answer at all (that judgment call is now the learner's own, by
+// design — see the self-marking review step on the frontend). Instead,
+// generation splits into two independent passes so the whole test can
+// appear almost immediately while accuracy is still fully preserved
+// where it actually matters:
+//   1. A FAST/cheap model writes just the English prompt sentences —
+//      writing a sentence in its own native language carries very
+//      little accuracy risk (nothing is being translated yet), so
+//      speed can be prioritized here without the "hasta vs desde"
+//      class of failure.
+//   2. The STRONG model (used everywhere else in this file for
+//      anything a learner will study as correct) then translates
+//      those exact English sentences into Spanish — this is the part
+//      where a wrong preposition or agreement slip actually costs
+//      something, so it keeps the careful model and the same accuracy
+//      checklist as the rest of sentence-mode. This pass runs in the
+//      background while the learner is reading/typing, so by the time
+//      they hit Submit it's very likely already finished.
+// ---------------------------------------------------------------------
+
+const GENERATE_ENGLISH_PRACTICE_SENTENCES_BATCH_PROMPT = `You write natural, level-appropriate
+English practice sentences for a Spanish learner's conjugation drill. You'll be given a numbered list
+of items, each specifying a verb (English gloss), a Spanish tense, and a grammatical person. For EACH
+item, write ONE natural ENGLISH sentence — declarative, a question, or negative, vary it across the
+list — that would call for that exact tense/person if translated into Spanish (e.g. for the Spanish
+preterite + "nosotros", write an English sentence describing something "we" completed in the past).
+Respond with ONLY a JSON object (no markdown, no code fences, no explanation) with exactly this shape:
+
+{ "sentences": [ { "englishSentence": string }, ... ] }
+
+Rules:
+- Return exactly one output object per input item, IN THE SAME ORDER as the input list.
+- Each sentence must be natural, grammatically correct English that clearly calls for the specified
+  Spanish tense/person when translated — don't hedge into an ambiguous tense.
+- Keep each sentence short (roughly 5-12 words) and naturally include 1-2 pieces of vocabulary beyond
+  basic function words so there's something worth practicing, but keep it natural, not contrived.
+- Vary sentence structure, subject matter, and phrasing across the list — no two sentences in this
+  batch should feel like copies of each other with just the verb swapped.
+- This pass only writes English — do not include any Spanish in your response.
+- Never reuse a sentence you've already been asked to avoid (a list may be given).
+- Output nothing except the JSON object.`;
+
+function callClaudeForGenerateEnglishPracticeSentencesBatch(items, avoidSentences) {
+  const avoidLines = (avoidSentences || []).length
+    ? `\n\nAvoid reusing any of these previous sentences:\n${avoidSentences.map((s) => `- ${s}`).join("\n")}`
+    : "";
+  const itemLines = items
+    .map((item, i) => `${i + 1}. Verb: "${item.infinitive}" (${item.english || ""}). Tense: ${item.tenseLabel}. Person: ${item.personLabel}.`)
+    .join("\n");
+  const userMessage = `Items:\n${itemLines}${avoidLines}`;
+  // Deliberately the fast/cheap MODEL, not GRAMMAR_CHECK_MODEL — see the
+  // block comment above for why this specific pass doesn't need it.
+  return callClaudeJSON(GENERATE_ENGLISH_PRACTICE_SENTENCES_BATCH_PROMPT, userMessage, 3000, MODEL);
+}
+
+const TRANSLATE_PRACTICE_SENTENCES_BATCH_PROMPT = `You translate English practice sentences into
+Spanish for a language learner's conjugation drill, with complete accuracy — this is the answer key
+the learner will use to grade their own attempt against, so it must be correct. You'll be given a
+numbered list of items, each with an English sentence plus the specific verb (infinitive + English
+gloss), Spanish tense, and grammatical person that the translation must use. For EACH item, translate
+the English sentence into ONE natural Spanish sentence using that exact verb correctly conjugated for
+that exact tense/person. Respond with ONLY a JSON object (no markdown, no code fences, no explanation)
+with exactly this shape:
+
+{ "translations": [ { "targetSentence": string, "verbFormTarget": string }, ... ] }
+
+Rules:
+- Return exactly one output object per input item, IN THE SAME ORDER as the input list.
+- "targetSentence" must be a faithful, natural translation of the given English sentence (not stiff
+  word-for-word) — keep the same meaning, just written the way a native Spanish speaker actually would.
+- Accuracy matters enormously — this is what a real learner will grade their own answer against, so it
+  must actually be correct. Double-check every word that isn't the target verb, especially small words
+  that are easy to mistranslate literally: prepositions ("from" is "desde", not "hasta", which means
+  "until/as far as"; "for" can be "para" or "por" depending on meaning; etc.), gender/number agreement
+  on every article and adjective, and any idiom that doesn't translate word-for-word. A native Spanish
+  speaker must find the sentence completely natural and correct with no hesitation.
+- "verbFormTarget" is the exact conjugated verb form as it appears in "targetSentence" (e.g. "habría
+  dado"), correctly conjugated for the given tense/person — this must match exactly what was asked for,
+  regardless of how the English sentence happened to be phrased.
+- Output nothing except the JSON object.`;
+
+function callClaudeForTranslatePracticeSentencesBatch(items) {
+  const itemLines = items
+    .map(
+      (item, i) =>
+        `${i + 1}. English: "${item.englishSentence}"\n   Verb: "${item.infinitive}" (${item.english || ""}). Tense: ${item.tenseLabel}. Person: ${item.personLabel}.`
+    )
+    .join("\n");
+  const userMessage = `Items:\n${itemLines}`;
+  // The strong model, same as every other sentence-mode generation call
+  // — this is the pass where translation accuracy actually matters.
+  return callClaudeJSONWithRetry(TRANSLATE_PRACTICE_SENTENCES_BATCH_PROMPT, userMessage, 12000, 24000, GRAMMAR_CHECK_MODEL);
+}
+
 // Grades a learner's typed answer for sentence-mode: the conjugated
 // verb form must be correct for the answer to count, but everything
 // else (a wrong noun, minor word choice, spelling) gets corrected in
@@ -1784,6 +1881,114 @@ const server = http.createServer((req, res) => {
       console.log(`Generating a batch of ${items.length} conjugation sentences (${language})...`);
 
       callClaudeForGenerateConjugationSentencesBatch(language, items, avoidSentences)
+        .then((result) => {
+          res.writeHead(200, { "content-type": "application/json" });
+          res.end(JSON.stringify(result));
+        })
+        .catch((err) => {
+          console.error(err.message);
+          res.writeHead(500, { "content-type": "application/json" });
+          res.end(JSON.stringify({ error: err.message }));
+        });
+    });
+    return;
+  }
+
+  if (url.pathname === "/generate-english-practice-sentences-batch" && req.method === "POST") {
+    const bodyChunks = [];
+    let bodyBytes = 0;
+    req.on("data", (chunk) => {
+      bodyChunks.push(chunk);
+      bodyBytes += chunk.length;
+      if (bodyBytes > 512 * 1024) req.destroy();
+    });
+    req.on("end", () => {
+      const rawBody = Buffer.concat(bodyChunks).toString("utf8");
+      let parsed;
+      try {
+        parsed = JSON.parse(rawBody);
+      } catch (e) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "Invalid JSON body." }));
+        return;
+      }
+
+      const { items, avoidSentences } = parsed;
+      if (!Array.isArray(items) || !items.length) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "Missing a non-empty items array." }));
+        return;
+      }
+      if (items.length > 30) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "Too many items in one batch (max 30)." }));
+        return;
+      }
+      const badItem = items.find((item) => !item || !item.infinitive || !item.tenseLabel || !item.personLabel);
+      if (badItem) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "Every item needs infinitive, tenseLabel, and personLabel." }));
+        return;
+      }
+
+      console.log(`Generating a batch of ${items.length} English practice sentences...`);
+
+      callClaudeForGenerateEnglishPracticeSentencesBatch(items, avoidSentences)
+        .then((result) => {
+          res.writeHead(200, { "content-type": "application/json" });
+          res.end(JSON.stringify(result));
+        })
+        .catch((err) => {
+          console.error(err.message);
+          res.writeHead(500, { "content-type": "application/json" });
+          res.end(JSON.stringify({ error: err.message }));
+        });
+    });
+    return;
+  }
+
+  if (url.pathname === "/translate-practice-sentences-batch" && req.method === "POST") {
+    const bodyChunks = [];
+    let bodyBytes = 0;
+    req.on("data", (chunk) => {
+      bodyChunks.push(chunk);
+      bodyBytes += chunk.length;
+      if (bodyBytes > 512 * 1024) req.destroy();
+    });
+    req.on("end", () => {
+      const rawBody = Buffer.concat(bodyChunks).toString("utf8");
+      let parsed;
+      try {
+        parsed = JSON.parse(rawBody);
+      } catch (e) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "Invalid JSON body." }));
+        return;
+      }
+
+      const { items } = parsed;
+      if (!Array.isArray(items) || !items.length) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "Missing a non-empty items array." }));
+        return;
+      }
+      if (items.length > 30) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "Too many items in one batch (max 30)." }));
+        return;
+      }
+      const badItem = items.find(
+        (item) => !item || !item.englishSentence || !item.infinitive || !item.tenseLabel || !item.personLabel
+      );
+      if (badItem) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "Every item needs englishSentence, infinitive, tenseLabel, and personLabel." }));
+        return;
+      }
+
+      console.log(`Translating a batch of ${items.length} practice sentences to Spanish...`);
+
+      callClaudeForTranslatePracticeSentencesBatch(items)
         .then((result) => {
           res.writeHead(200, { "content-type": "application/json" });
           res.end(JSON.stringify(result));

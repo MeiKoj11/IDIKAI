@@ -509,6 +509,79 @@ async function generateConjugationSentencesBatch(language, items, avoidSentences
   }
 }
 
+// Powers the "self-marking" sentence test's fast first pass — writes
+// just the English prompt sentences (no translation yet), via the fast/
+// cheap model, so the whole test can appear almost immediately. Always
+// returns { sentences, error }; `sentences` is an array of
+// { englishSentence } (one per input item, in order) or null on failure.
+async function generateEnglishPracticeSentencesBatch(items, avoidSentences) {
+  try {
+    const res = await fetch(`${API_BASE}/generate-english-practice-sentences-batch`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ items, avoidSentences: avoidSentences || [] }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      const reason = (data && data.error) || `Server responded with ${res.status}.`;
+      console.error("generate-english-practice-sentences-batch failed:", reason);
+      return { sentences: null, error: reason };
+    }
+    if (!data || !Array.isArray(data.sentences) || data.sentences.length !== items.length) {
+      console.error("generate-english-practice-sentences-batch: unexpected response shape", data);
+      return { sentences: null, error: "The server didn't return a usable result." };
+    }
+    const bad = data.sentences.find((s) => !s || typeof s.englishSentence !== "string");
+    if (bad) {
+      console.error("generate-english-practice-sentences-batch: malformed item in response", bad);
+      return { sentences: null, error: "The server didn't return a usable result." };
+    }
+    return { sentences: data.sentences.map((s) => ({ englishSentence: s.englishSentence })), error: null };
+  } catch (e) {
+    console.error("generate-english-practice-sentences-batch: could not reach the server", e);
+    return { sentences: null, error: "Couldn't reach the lookup server at localhost:3001 — is `node server.js` running?" };
+  }
+}
+
+// Powers the "self-marking" sentence test's background second pass —
+// takes the exact English sentences generateEnglishPracticeSentencesBatch
+// just wrote and translates them accurately into Spanish via the strong
+// model, becoming the answer key the learner grades their own attempt
+// against after Submit. Always returns { translations, error };
+// `translations` is an array of { targetSentence, verbFormTarget } (one
+// per input item, in order) or null on failure.
+async function translatePracticeSentencesBatch(items) {
+  try {
+    const res = await fetch(`${API_BASE}/translate-practice-sentences-batch`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ items }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      const reason = (data && data.error) || `Server responded with ${res.status}.`;
+      console.error("translate-practice-sentences-batch failed:", reason);
+      return { translations: null, error: reason };
+    }
+    if (!data || !Array.isArray(data.translations) || data.translations.length !== items.length) {
+      console.error("translate-practice-sentences-batch: unexpected response shape", data);
+      return { translations: null, error: "The server didn't return a usable result." };
+    }
+    const bad = data.translations.find((t) => !t || typeof t.targetSentence !== "string");
+    if (bad) {
+      console.error("translate-practice-sentences-batch: malformed item in response", bad);
+      return { translations: null, error: "The server didn't return a usable result." };
+    }
+    return {
+      translations: data.translations.map((t) => ({ targetSentence: t.targetSentence, verbFormTarget: t.verbFormTarget || "" })),
+      error: null,
+    };
+  } catch (e) {
+    console.error("translate-practice-sentences-batch: could not reach the server", e);
+    return { translations: null, error: "Couldn't reach the lookup server at localhost:3001 — is `node server.js` running?" };
+  }
+}
+
 // Japanese counterpart of generateConjugationSentence — different
 // shape (kanji/reading/meaning + one of the 4 special forms, no tense/
 // person) so it's its own function rather than a branch of the ES/FR
@@ -649,6 +722,8 @@ const Translate = {
   generateGrammarPractice,
   generateConjugationSentence,
   generateConjugationSentencesBatch,
+  generateEnglishPracticeSentencesBatch,
+  translatePracticeSentencesBatch,
   generateJaConjugationSentence,
   generateJaConjugationSentencesBatch,
   checkConjugationSentence,

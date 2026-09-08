@@ -3502,6 +3502,42 @@ button.secondary.tiny {
   text-transform: uppercase;
 }
 
+/* Self-marking review section, revealed in place (per card) once
+   Submit is pressed — the learner's own typed answer stacked directly
+   above the accurate translation, with tick/cross buttons to self-mark
+   and a note box that only appears once crossed. */
+
+.tenses-test-review {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+}
+
+.tenses-test-mark-row {
+  margin-top: 0.4rem;
+}
+
+.tenses-test-mark-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #ECE6D3;
+}
+
+.tenses-test-mark-btn.tenses-test-mark-correct.selected {
+  background: color-mix(in srgb, #3f7a4a 55%, #221712);
+  border-color: #3f7a4a;
+}
+
+.tenses-test-mark-btn.tenses-test-mark-wrong.selected {
+  background: color-mix(in srgb, #8a2e2e 55%, #221712);
+  border-color: #8a2e2e;
+}
+
+.tenses-test-note-wrap {
+  margin-top: 0.4rem;
+}
+
 /* Accounts: login / admin / migrate-data pages — small standalone
    pages with no topbar, just a centered card, same overall palette as
    everywhere else. */

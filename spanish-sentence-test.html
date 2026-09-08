@@ -85,25 +85,24 @@
   <main class="conjugation-test-main">
     <div class="panel conjugation-test-card">
       <div id="tenses-test-setup">
-        <p class="hint" data-immersion-key="sentenceTestIntroHint">Full-sentence practice, not just single verb forms. Your answer only needs the verb conjugated correctly — anything else gets corrected, not marked wrong.</p>
-        <button type="button" id="tenses-test-random-btn" class="tenses-test-random-btn" data-immersion-key="randomTestButton">🎲 Random test (every verb, every tense)</button>
-        <p class="tenses-test-or" data-immersion-key="orDesignYourOwn">— or design your own —</p>
+        <p class="hint" data-immersion-key="sentenceTestIntroHint">Full-sentence translation practice. You write out all your answers first, then mark them yourself against the accurate translation — the AI writes the questions and the answer key, but doesn't grade you.</p>
 
         <div class="tenses-test-section">
-          <div class="tenses-test-section-head">
-            <span data-immersion-key="verbsLabel">Verbs</span>
-            <div>
-              <button type="button" id="tenses-test-verbs-select-all" class="secondary tiny" data-immersion-key="selectAllButton">Select all</button>
-              <button type="button" id="tenses-test-verbs-clear" class="secondary tiny" data-immersion-key="clearButton">Clear</button>
-            </div>
+          <div class="tenses-test-section-head"><span data-immersion-key="questionCountLabel">Number of questions</span></div>
+          <div class="tenses-test-direction-options">
+            <label><input type="radio" name="tenses-test-question-count" value="10" /> <span data-immersion-key="questionCount10">10 questions</span></label>
+            <label><input type="radio" name="tenses-test-question-count" value="20" checked /> <span data-immersion-key="questionCount20">20 questions</span></label>
           </div>
-          <p class="hint" data-immersion-key="verbsSourceHintEs">Includes the app's default verbs plus any verb you've saved to your own Vocab Bank (only verbs saved by themselves, not ones from a saved phrase).</p>
-          <div id="tenses-test-verb-checkboxes" class="tenses-test-verb-checkboxes"></div>
         </div>
 
         <div class="tenses-test-section">
-          <div class="tenses-test-section-head"><span data-immersion-key="personsLabel">Persons</span></div>
-          <div id="tenses-test-person-checkboxes" class="tenses-test-checkboxes-inline"></div>
+          <div class="tenses-test-section-head"><span data-immersion-key="verbsLabel">Verbs</span></div>
+          <label class="tenses-test-checkbox">
+            <input type="checkbox" id="tenses-test-common-verbs-checkbox" checked />
+            <span data-immersion-key="commonVerbsCheckbox">Most commonly used verbs</span>
+          </label>
+          <p class="hint" data-immersion-key="themeVerbsHintEs">Or pull verbs from your own saved Vocab Bank themes (only the verbs saved in each theme are used):</p>
+          <div id="tenses-test-theme-checkboxes" class="tenses-test-verb-checkboxes"></div>
         </div>
 
         <div class="tenses-test-section">
@@ -117,15 +116,6 @@
           <div id="tenses-test-checkboxes" class="tenses-test-checkboxes"></div>
         </div>
 
-        <div class="tenses-test-section">
-          <div class="tenses-test-section-head"><span data-immersion-key="directionLabel">Direction</span></div>
-          <div class="tenses-test-direction-options">
-            <label><input type="radio" name="tenses-test-direction" value="enToTl" checked /> <span data-immersion-key="directionEnToTlEs">English → Spanish</span></label>
-            <label><input type="radio" name="tenses-test-direction" value="tlToEn" /> <span data-immersion-key="directionTlToEnEs">Spanish → English</span></label>
-            <label><input type="radio" name="tenses-test-direction" value="mixed" /> <span data-immersion-key="directionMixed">Mixed</span></label>
-          </div>
-        </div>
-
         <div class="tenses-test-setup-actions">
           <button type="button" id="tenses-test-start-btn" data-immersion-key="startTestButton">Start test</button>
         </div>
@@ -133,7 +123,7 @@
 
       <div id="tenses-test-loading-screen" class="card-practice-panel" hidden>
         <div class="tenses-test-loading-spinner" aria-hidden="true"></div>
-        <p class="hint" data-immersion-key="loadingTestHint">Loading your test — generating 20 sentences at once so there's no waiting between questions. This can take a little while up front.</p>
+        <p class="hint" data-immersion-key="loadingTestHint">Loading your test — writing your practice sentences now. The accurate answer key keeps preparing in the background while you work.</p>
         <p id="tenses-test-loading-error" class="card-practice-answer card-practice-wrong" hidden></p>
         <div class="tenses-test-setup-actions">
           <button type="button" id="tenses-test-loading-retry-btn" hidden data-immersion-key="tryAgainButton">Try again</button>
@@ -151,8 +141,10 @@
 
         <div id="tenses-test-question-list" class="tenses-test-question-list"></div>
 
+        <p id="tenses-test-submit-error" class="card-practice-answer card-practice-wrong" hidden></p>
+
         <div class="tenses-test-setup-actions">
-          <button type="button" id="tenses-test-new-batch-btn" data-immersion-key="loadMoreQuestionsButton">Load 20 more questions</button>
+          <button type="button" id="tenses-test-submit-btn" data-immersion-key="submitTestButton">Submit answers</button>
         </div>
       </div>
     </div>
