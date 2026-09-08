@@ -495,10 +495,22 @@ function renderMistakeClickableSentence(container, sentence, lang, session, inde
 // on how the question is currently self-marked: ordinary vocab-lookup
 // rendering when correct/unmarked, mistake-flagging rendering once
 // crossed. Re-run whenever the mark flips between wrong/not-wrong.
+//
+// Each answer container is tagged with its qIndex/side/mode so the
+// drag-select phrase handler (handleSentenceTestSelection, below) can
+// figure out how to route a selection without needing its own closure
+// over this specific card.
 function renderReviewSentences(session, index) {
   const q = session.queue[index];
   const refs = session.cardRefs[index];
   const wrong = q.marked === false;
+
+  refs.userAnswerEl.dataset.qIndex = String(index);
+  refs.userAnswerEl.dataset.side = "user";
+  refs.userAnswerEl.dataset.mode = wrong ? "mistake" : "lookup";
+  refs.correctAnswerEl.dataset.qIndex = String(index);
+  refs.correctAnswerEl.dataset.side = "accurate";
+  refs.correctAnswerEl.dataset.mode = wrong ? "mistake" : "lookup";
 
   refs.userAnswerEl.innerHTML = "";
   if (!q.answer) {
@@ -643,7 +655,8 @@ function backToSetup() {
 // only, feeding the "Retest your mistakes" EN -> Japanese quiz below.
 // ---------------------------------------------------------------------
 
-let activeMistakeWord = null; // { span, word, session, index, side }
+let activeMistakeWord = null; // { spans, word, session, index, side }
+let activeMistakeFuriganaToken = null; // guards the auto-prefill lookup against a stale response
 
 // A dedicated "Mistakes" folder, separate from the built-in "Tenses and
 // verb conjugations" folder (which otherwise ends up a mix of the
@@ -660,41 +673,77 @@ function findOrCreateMistakesFolder(language) {
   return Storage.addGrammarTheme("Mistakes", language);
 }
 
-function handleMistakeWordClick(span, word, session, index, side) {
-  if (sentenceTestSession !== session) return;
+function sameSpanGroup(a, b) {
+  if (!a || !b || a.length !== b.length) return false;
+  return a.every((s, i) => s === b[i]);
+}
 
-  if (activeMistakeWord && activeMistakeWord.span === span) {
+// `spans` can be a single span (a plain click/tap on one character) or
+// an array of spans (a drag-selected run spanning a whole word/phrase —
+// see handleSentenceTestSelection) — normalized to an array either way,
+// since flagging/saving/removing all need to act on every span in the
+// group together.
+function handleMistakeWordClick(spans, word, session, index, side) {
+  if (sentenceTestSession !== session) return;
+  const spanArray = Array.isArray(spans) ? spans : [spans];
+  if (!spanArray.length) return;
+
+  if (activeMistakeWord && sameSpanGroup(activeMistakeWord.spans, spanArray)) {
     closeMistakePanel();
     return;
   }
 
-  span.classList.add("mistake-word-flagged");
-  activeMistakeWord = { span, word, session, index, side };
+  spanArray.forEach((s) => s.classList.add("mistake-word-flagged"));
+  activeMistakeWord = { spans: spanArray, word, session, index, side };
 
   const panel = document.getElementById("mistake-panel");
   panel.hidden = false;
   document.getElementById("mistake-panel-word").textContent = word;
-  document.getElementById("mistake-panel-note").value = span.dataset.mistakeNote || "";
+  document.getElementById("mistake-panel-note").value = spanArray[0].dataset.mistakeNote || "";
   document.getElementById("mistake-panel-correct-form").value = word;
   document.getElementById("mistake-panel-furigana").value = "";
   document.getElementById("mistake-panel-translation").value = "";
   document.getElementById("mistake-panel-conjugation-status").hidden = true;
+
+  prefillMistakeFurigana(word);
+}
+
+// Auto-fills the Furigana field for whatever was just flagged — a
+// flagged word is very often unfamiliar enough that the learner
+// wouldn't know how to read it either, and this was already being
+// fetched for the ordinary lookup panel, just not reused here. Only
+// bothers looking it up if the flagged text actually contains kanji
+// (a lone kana particle has no furigana to look up) and never
+// overwrites anything the learner already typed in that field.
+async function prefillMistakeFurigana(word) {
+  if (!Array.from(word || "").some(isKanji)) return;
+  const token = `mistake-furigana:${word}`;
+  activeMistakeFuriganaToken = token;
+  const result = await Translate.lookupKanji(word, word);
+  if (activeMistakeFuriganaToken !== token || !activeMistakeWord) return;
+  if (result && result.furigana) {
+    const furiganaInput = document.getElementById("mistake-panel-furigana");
+    if (furiganaInput && !furiganaInput.value.trim()) furiganaInput.value = result.furigana;
+  }
 }
 
 function closeMistakePanel() {
   activeMistakeWord = null;
+  activeMistakeFuriganaToken = null;
   const panel = document.getElementById("mistake-panel");
   if (panel) panel.hidden = true;
 }
 
 function handleMistakePanelSave() {
   if (!activeMistakeWord) return;
-  const { span, word, session, index, side } = activeMistakeWord;
+  const { spans, word, session, index, side } = activeMistakeWord;
   if (sentenceTestSession !== session) return;
 
   const q = session.queue[index];
   const note = document.getElementById("mistake-panel-note").value.trim();
-  span.dataset.mistakeNote = note;
+  spans.forEach((s) => {
+    s.dataset.mistakeNote = note;
+  });
 
   const folder = findOrCreateMistakesFolder("ja");
   if (!folder) return;
@@ -708,20 +757,23 @@ function handleMistakePanelSave() {
     tags: ["Mistake", formLabel, side === "user" ? "Your answer" : "Accurate answer"],
   });
 
-  span.dataset.mistakeNoteId = saved.id;
-  span.classList.add("mistake-word-saved");
+  spans.forEach((s) => {
+    s.dataset.mistakeNoteId = saved.id;
+    s.classList.add("mistake-word-saved");
+  });
   closeMistakePanel();
 }
 
 function handleMistakePanelRemove() {
   if (!activeMistakeWord) return;
-  const { span } = activeMistakeWord;
-  if (span.dataset.mistakeNoteId) {
-    Storage.deleteGrammarNote(span.dataset.mistakeNoteId);
-    delete span.dataset.mistakeNoteId;
-  }
-  span.classList.remove("mistake-word-flagged", "mistake-word-saved");
-  delete span.dataset.mistakeNote;
+  const { spans } = activeMistakeWord;
+  const noteId = spans[0] && spans[0].dataset.mistakeNoteId;
+  if (noteId) Storage.deleteGrammarNote(noteId);
+  spans.forEach((s) => {
+    s.classList.remove("mistake-word-flagged", "mistake-word-saved");
+    delete s.dataset.mistakeNote;
+    delete s.dataset.mistakeNoteId;
+  });
   closeMistakePanel();
 }
 
@@ -755,9 +807,8 @@ function handleMistakePanelSaveConjugation() {
     formLabel: (JaConjugator.FORM_LABELS[q.form] || q.form).split(" —")[0],
   });
 
-  statusEl.textContent = "Saved to Retest quiz.";
-  statusEl.hidden = false;
   renderRetestSection();
+  closeMistakePanel();
 }
 
 // ---------------------------------------------------------------------
@@ -1075,7 +1126,8 @@ function handleVocabDrawerSave() {
   }
 
   const saved = Storage.addWordIfNotDuplicate(themeId, { english, targetLang, furigana, notes: "" });
-  statusEl.textContent = saved ? `${targetLang} (${english}) — added.` : `${targetLang} (${english}) — already in your deck.`;
+  const displayForm = furigana ? `${targetLang}（${furigana}）` : targetLang;
+  statusEl.textContent = saved ? `${displayForm} (${english}) — added.` : `${displayForm} (${english}) — already in your deck.`;
   statusEl.hidden = false;
   if (saved) {
     englishInput.value = "";
@@ -1156,11 +1208,12 @@ function handleAddLookedUpSentenceWord() {
   const saved = Storage.addWordIfNotDuplicate(themeId, { english, targetLang, furigana, notes: "" });
 
   const resultEl = document.getElementById("lookup-result");
+  const displayForm = furigana ? `${targetLang}（${furigana}）` : targetLang;
   if (saved) {
-    resultEl.textContent = `${targetLang} (${english}) — added.`;
+    resultEl.textContent = `${displayForm} (${english}) — added.`;
     addBtn.hidden = true;
   } else {
-    resultEl.textContent = `${targetLang} (${english}) — already in your deck.`;
+    resultEl.textContent = `${displayForm} (${english}) — already in your deck.`;
   }
 }
 
@@ -1175,9 +1228,15 @@ function beginSentenceLookup(label) {
   renderSentenceThemeOptions();
 }
 
-async function handleJapaneseKanjiClick(span, kanji, context) {
+// `span` is nullable — a plain click passes the single span it came
+// from (for the ".selected" highlight); a drag-selected phrase spanning
+// multiple sibling spans (see handleSentenceTestSelection, below) has
+// no single span to highlight and passes null instead. `kanji` can be
+// a lone character OR a multi-character compound/phrase — lookupKanji
+// is AI-backed and handles either.
+async function performKanjiLookup(kanji, context, span) {
   document.querySelectorAll(".clickable-word.selected").forEach((el) => el.classList.remove("selected"));
-  span.classList.add("selected");
+  if (span) span.classList.add("selected");
   const token = `ja:${kanji}:${context}`;
   selectedLookupToken = token;
   beginSentenceLookup(kanji);
@@ -1197,9 +1256,16 @@ async function handleJapaneseKanjiClick(span, kanji, context) {
   addBtn.dataset.furigana = result.furigana || "";
 }
 
-async function handleEnglishWordClick(span, word) {
+function handleJapaneseKanjiClick(span, kanji, context) {
+  performKanjiLookup(kanji, context, span);
+}
+
+// `span` is nullable for the same reason as performKanjiLookup above —
+// a drag-selected multi-word English phrase (e.g. "over and over") has
+// no single span to highlight.
+async function performEnglishWordLookup(word, span) {
   document.querySelectorAll(".clickable-word.selected").forEach((el) => el.classList.remove("selected"));
-  span.classList.add("selected");
+  if (span) span.classList.add("selected");
   const token = `en:${word}`;
   selectedLookupToken = token;
   beginSentenceLookup(word);
@@ -1222,6 +1288,80 @@ async function handleEnglishWordClick(span, word) {
   addBtn.dataset.targetLang = result.translation;
   addBtn.dataset.english = word;
   addBtn.dataset.furigana = result.furigana || "";
+}
+
+function handleEnglishWordClick(span, word) {
+  performEnglishWordLookup(word, span);
+}
+
+// ---------------------------------------------------------------------
+// Drag-select a whole word/phrase (Japanese: a multi-kanji compound
+// like 学院, or any run of characters; English: multiple words like
+// "over and over") instead of being limited to one character/word per
+// click. Reuses reading-app.js's general mouseup-selection pattern, but
+// without that page's "pure kanji only" restriction — there's no
+// competing grammar-note flow here to disambiguate against, so any
+// selection of 2+ characters routes to a lookup (or, in mistake mode,
+// to flagging the whole selected group at once).
+// ---------------------------------------------------------------------
+
+// Every clickable-word span inside `container` that the selection
+// range actually touches, in document order — used to collect the
+// full group of sibling spans a drag-selection covered, since a
+// Range's boundary points alone don't tell you which spans in between
+// were included.
+function spansInSelectionRange(container, range) {
+  const spans = Array.from(container.querySelectorAll(".clickable-word"));
+  return spans.filter((span) => range.intersectsNode(span));
+}
+
+function handleSentenceTestSelection() {
+  const selection = window.getSelection();
+  if (!selection || selection.isCollapsed || selection.rangeCount === 0) return;
+  const text = selection.toString().trim();
+  if (!text) return;
+
+  const range = selection.getRangeAt(0);
+  const anchorNode = selection.anchorNode;
+  if (!anchorNode) return;
+  const anchorEl = anchorNode.nodeType === Node.ELEMENT_NODE ? anchorNode : anchorNode.parentElement;
+  if (!anchorEl) return;
+
+  const promptContainer = anchorEl.closest(".card-practice-prompt");
+  if (promptContainer) {
+    // English prompt — only a genuinely multi-word drag (contains
+    // whitespace) is handled here; a single-word drag is left to that
+    // word's own click listener so it isn't looked up twice.
+    if (!/\s/.test(text)) return;
+    selection.removeAllRanges();
+    performEnglishWordLookup(text, null);
+    return;
+  }
+
+  const answerContainer = anchorEl.closest(".card-practice-answer");
+  if (!answerContainer) return;
+  // A single-character selection is left to that character's own click
+  // listener (mouse-jitter during a plain click can otherwise fire
+  // both), so only 2+ characters are handled here.
+  if (text.length < 2) return;
+
+  const qIndex = parseInt(answerContainer.dataset.qIndex, 10);
+  const side = answerContainer.dataset.side;
+  const mode = answerContainer.dataset.mode;
+  const session = sentenceTestSession;
+  if (!session || Number.isNaN(qIndex)) return;
+
+  if (mode === "mistake") {
+    const spans = spansInSelectionRange(answerContainer, range);
+    if (!spans.length) return;
+    selection.removeAllRanges();
+    handleMistakeWordClick(spans, text, session, qIndex, side);
+  } else {
+    selection.removeAllRanges();
+    const q = session.queue[qIndex];
+    const context = q ? (side === "user" ? q.answer : q.translation && q.translation.targetSentence) || text : text;
+    performKanjiLookup(text, context, null);
+  }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -1251,6 +1391,8 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll("#tenses-test-form-checkboxes input[type=checkbox]").forEach((i) => (i.checked = false));
   });
   document.getElementById("tenses-test-start-btn").addEventListener("click", startTensesTest);
+  const questionList = document.getElementById("tenses-test-question-list");
+  if (questionList) questionList.addEventListener("mouseup", handleSentenceTestSelection);
   document.getElementById("tenses-test-restart-btn").addEventListener("click", backToSetup);
   document.getElementById("tenses-test-loading-cancel-btn").addEventListener("click", backToSetup);
   document.getElementById("tenses-test-loading-retry-btn").addEventListener("click", retryLoadSentenceTestBatch);

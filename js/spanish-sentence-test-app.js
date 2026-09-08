@@ -503,10 +503,21 @@ function renderMistakeClickableSentence(container, sentence, lang, session, inde
 // words when correct/unmarked, mistake-flagging words (both sentences)
 // once crossed. Re-run whenever the mark flips between wrong/not-wrong
 // (see markQuestionAnswer) so the right click behavior is always live.
+// Each answer container is tagged with its qIndex/side/mode so the
+// drag-select phrase handler (handleSentenceTestSelection, below) can
+// figure out how to route a selection without needing its own closure
+// over this specific card.
 function renderReviewSentences(session, index) {
   const q = session.queue[index];
   const refs = session.cardRefs[index];
   const wrong = q.marked === false;
+
+  refs.userAnswerEl.dataset.qIndex = String(index);
+  refs.userAnswerEl.dataset.side = "user";
+  refs.userAnswerEl.dataset.mode = wrong ? "mistake" : "lookup";
+  refs.correctAnswerEl.dataset.qIndex = String(index);
+  refs.correctAnswerEl.dataset.side = "accurate";
+  refs.correctAnswerEl.dataset.mode = wrong ? "mistake" : "lookup";
 
   refs.userAnswerEl.innerHTML = "";
   if (!q.answer) {
@@ -664,7 +675,7 @@ function backToSetup() {
 // which feeds the "Retest your mistakes" EN->TL quiz below.
 // ---------------------------------------------------------------------
 
-let activeMistakeWord = null; // { span, word, session, index, side }
+let activeMistakeWord = null; // { spans, word, session, index, side }
 
 // A dedicated "Mistakes" folder, separate from the built-in "Tenses and
 // verb conjugations" folder (which otherwise ends up a mix of the
@@ -681,23 +692,35 @@ function findOrCreateMistakesFolder(language) {
   return Storage.addGrammarTheme("Mistakes", language);
 }
 
-function handleMistakeWordClick(span, word, session, index, side) {
-  if (sentenceTestSession !== session) return;
+function sameSpanGroup(a, b) {
+  if (!a || !b || a.length !== b.length) return false;
+  return a.every((s, i) => s === b[i]);
+}
 
-  // Clicking the word whose panel is already open just closes it again
-  // (the blue flag stays — click it again to reopen/edit/save/remove).
-  if (activeMistakeWord && activeMistakeWord.span === span) {
+// `spans` can be a single span (a plain click on one word) or an array
+// of spans (a drag-selected run of several words — see
+// handleSentenceTestSelection) — normalized to an array either way,
+// since flagging/saving/removing all need to act on every span in the
+// group together.
+function handleMistakeWordClick(spans, word, session, index, side) {
+  if (sentenceTestSession !== session) return;
+  const spanArray = Array.isArray(spans) ? spans : [spans];
+  if (!spanArray.length) return;
+
+  // Clicking the word/group whose panel is already open just closes it
+  // again (the blue flag stays — click it again to reopen/edit/save/remove).
+  if (activeMistakeWord && sameSpanGroup(activeMistakeWord.spans, spanArray)) {
     closeMistakePanel();
     return;
   }
 
-  span.classList.add("mistake-word-flagged");
-  activeMistakeWord = { span, word, session, index, side };
+  spanArray.forEach((s) => s.classList.add("mistake-word-flagged"));
+  activeMistakeWord = { spans: spanArray, word, session, index, side };
 
   const panel = document.getElementById("mistake-panel");
   panel.hidden = false;
   document.getElementById("mistake-panel-word").textContent = word;
-  document.getElementById("mistake-panel-note").value = span.dataset.mistakeNote || "";
+  document.getElementById("mistake-panel-note").value = spanArray[0].dataset.mistakeNote || "";
   // The clicked word is very often already the correct form (e.g. a
   // word clicked in the accurate translation) — prefill it as a
   // starting point for the conjugation-error form, easy to overwrite.
@@ -714,12 +737,14 @@ function closeMistakePanel() {
 
 function handleMistakePanelSave() {
   if (!activeMistakeWord) return;
-  const { span, word, session, index, side } = activeMistakeWord;
+  const { spans, word, session, index, side } = activeMistakeWord;
   if (sentenceTestSession !== session) return;
 
   const q = session.queue[index];
   const note = document.getElementById("mistake-panel-note").value.trim();
-  span.dataset.mistakeNote = note;
+  spans.forEach((s) => {
+    s.dataset.mistakeNote = note;
+  });
 
   const folder = findOrCreateMistakesFolder("es");
   if (!folder) return; // shouldn't happen, but don't crash if it somehow does
@@ -733,20 +758,23 @@ function handleMistakePanelSave() {
     tags: ["Mistake", tenseLabel, side === "user" ? "Your answer" : "Accurate answer"],
   });
 
-  span.dataset.mistakeNoteId = saved.id;
-  span.classList.add("mistake-word-saved");
+  spans.forEach((s) => {
+    s.dataset.mistakeNoteId = saved.id;
+    s.classList.add("mistake-word-saved");
+  });
   closeMistakePanel();
 }
 
 function handleMistakePanelRemove() {
   if (!activeMistakeWord) return;
-  const { span } = activeMistakeWord;
-  if (span.dataset.mistakeNoteId) {
-    Storage.deleteGrammarNote(span.dataset.mistakeNoteId);
-    delete span.dataset.mistakeNoteId;
-  }
-  span.classList.remove("mistake-word-flagged", "mistake-word-saved");
-  delete span.dataset.mistakeNote;
+  const { spans } = activeMistakeWord;
+  const noteId = spans[0] && spans[0].dataset.mistakeNoteId;
+  if (noteId) Storage.deleteGrammarNote(noteId);
+  spans.forEach((s) => {
+    s.classList.remove("mistake-word-flagged", "mistake-word-saved");
+    delete s.dataset.mistakeNote;
+    delete s.dataset.mistakeNoteId;
+  });
   closeMistakePanel();
 }
 
@@ -779,9 +807,8 @@ function handleMistakePanelSaveConjugation() {
     personLabel: SpanishConjugator.PERSON_LABELS[q.person] || q.person,
   });
 
-  statusEl.textContent = "Saved to Retest quiz.";
-  statusEl.hidden = false;
   renderRetestSection();
+  closeMistakePanel();
 }
 
 // ---------------------------------------------------------------------
@@ -1201,9 +1228,15 @@ function handleAddLookedUpSentenceWord() {
 // `lang` is whichever language the clicked word actually appeared in
 // ("es" or "en") — the sentence shown can be either, depending on
 // whether the card is still pre-submit (English) or in review (Spanish).
-async function handleSentenceWordClick(span, word, lang) {
+// `span` is nullable — a plain click passes the single span it came
+// from (for the ".selected" highlight); a drag-selected phrase (e.g.
+// "over and over" — see handleSentenceTestSelection) has no single
+// span to highlight and passes null instead. `word` can be a whole
+// phrase, not just one token — lookupTranslation is AI-backed and
+// handles either.
+async function performSentenceWordLookup(word, lang, span) {
   document.querySelectorAll(".clickable-word.selected").forEach((el) => el.classList.remove("selected"));
-  span.classList.add("selected");
+  if (span) span.classList.add("selected");
   selectedSentenceWord = word;
 
   const panel = document.getElementById("lookup-panel");
@@ -1235,6 +1268,65 @@ async function handleSentenceWordClick(span, word, lang) {
   }
 }
 
+function handleSentenceWordClick(span, word, lang) {
+  performSentenceWordLookup(word, lang, span);
+}
+
+// ---------------------------------------------------------------------
+// Drag-select a whole phrase (e.g. "over and over") instead of being
+// limited to one word per click — reuses reading-app.js's general
+// mouseup-selection pattern. Guards avoid double-firing alongside the
+// existing per-word click listeners: the prompt/lookup path requires a
+// genuinely multi-word selection (contains whitespace); the mistake
+// path collects every span the selection touches via
+// spansInSelectionRange, since a Range's boundary points alone don't
+// say which spans in between were included.
+// ---------------------------------------------------------------------
+
+function spansInSelectionRange(container, range) {
+  const spans = Array.from(container.querySelectorAll(".clickable-word"));
+  return spans.filter((span) => range.intersectsNode(span));
+}
+
+function handleSentenceTestSelection() {
+  const selection = window.getSelection();
+  if (!selection || selection.isCollapsed || selection.rangeCount === 0) return;
+  const text = selection.toString().trim();
+  if (!text || !/\s/.test(text)) return; // single-word drags are left to that word's own click listener
+
+  const range = selection.getRangeAt(0);
+  const anchorNode = selection.anchorNode;
+  if (!anchorNode) return;
+  const anchorEl = anchorNode.nodeType === Node.ELEMENT_NODE ? anchorNode : anchorNode.parentElement;
+  if (!anchorEl) return;
+
+  const promptContainer = anchorEl.closest(".card-practice-prompt");
+  if (promptContainer) {
+    selection.removeAllRanges();
+    performSentenceWordLookup(text, "en", null);
+    return;
+  }
+
+  const answerContainer = anchorEl.closest(".card-practice-answer");
+  if (!answerContainer) return;
+
+  const qIndex = parseInt(answerContainer.dataset.qIndex, 10);
+  const side = answerContainer.dataset.side;
+  const mode = answerContainer.dataset.mode;
+  const session = sentenceTestSession;
+  if (!session || Number.isNaN(qIndex)) return;
+
+  if (mode === "mistake") {
+    const spans = spansInSelectionRange(answerContainer, range);
+    if (!spans.length) return;
+    selection.removeAllRanges();
+    handleMistakeWordClick(spans, text, session, qIndex, side);
+  } else {
+    selection.removeAllRanges();
+    performSentenceWordLookup(text, "es", null);
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const setup = document.getElementById("tenses-test-setup");
   if (!setup || !document.getElementById("tenses-test-question-list")) return; // not this page
@@ -1262,6 +1354,8 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll("#tenses-test-checkboxes input[type=checkbox]").forEach((i) => (i.checked = false));
   });
   document.getElementById("tenses-test-start-btn").addEventListener("click", startTensesTest);
+  const questionList = document.getElementById("tenses-test-question-list");
+  if (questionList) questionList.addEventListener("mouseup", handleSentenceTestSelection);
   document.getElementById("tenses-test-restart-btn").addEventListener("click", backToSetup);
   document.getElementById("tenses-test-loading-cancel-btn").addEventListener("click", backToSetup);
   document.getElementById("tenses-test-loading-retry-btn").addEventListener("click", retryLoadSentenceTestBatch);
