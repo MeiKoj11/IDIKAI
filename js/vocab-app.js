@@ -1149,6 +1149,71 @@ function buildWordEditForm(word) {
   exampleInput.setAttribute("aria-label", "Example sentence");
   wrapper.appendChild(exampleInput);
 
+  // Manual verb classification. Normally this only ever gets set
+  // automatically, as a side effect of leaving one side blank and
+  // triggering a dictionary lookup that identifies the word as a verb
+  // (see pendingVerbInfo above) — a word typed in on both sides by hand
+  // (including anything saved through a sentence test's "+ Add vocab"
+  // drawer, which never does a lookup at all) never gets classified,
+  // and until now there was no way to fix that after the fact. This is
+  // what feeds "pull verbs from your saved themes" on the Conjugation
+  // Test / sentence-test config screens — without it, a real verb saved
+  // by hand is silently invisible to that feature.
+  if (activeTheme && (activeTheme.language === "es" || activeTheme.language === "fr" || activeTheme.language === "ja")) {
+    const verbFieldWrap = document.createElement("div");
+    verbFieldWrap.className = "edit-verb-field";
+
+    const verbLabel = document.createElement("label");
+    const verbCheckbox = document.createElement("input");
+    verbCheckbox.type = "checkbox";
+    verbCheckbox.className = "edit-is-verb-checkbox";
+    verbCheckbox.checked = word.partOfSpeech === "verb";
+    verbLabel.appendChild(verbCheckbox);
+    verbLabel.appendChild(document.createTextNode(" This is a verb"));
+    verbFieldWrap.appendChild(verbLabel);
+
+    const classOptions =
+      activeTheme.language === "ja"
+        ? [
+            ["godan", "Godan (u-verb)"],
+            ["ichidan", "Ichidan (ru-verb)"],
+            ["irregular-suru", "Irregular (する)"],
+            ["irregular-kuru", "Irregular (来る)"],
+          ]
+        : activeTheme.language === "fr"
+        ? [
+            ["er", "-er verb"],
+            ["ir", "-ir verb"],
+            ["re", "-re verb"],
+            ["irregular", "Irregular"],
+          ]
+        : [
+            ["ar", "-ar verb"],
+            ["er", "-er verb"],
+            ["ir", "-ir verb"],
+            ["irregular", "Irregular"],
+          ];
+
+    const classSelect = document.createElement("select");
+    classSelect.className = "edit-verb-class-select";
+    classOptions.forEach(([value, label]) => {
+      const opt = document.createElement("option");
+      opt.value = value;
+      opt.textContent = label;
+      classSelect.appendChild(opt);
+    });
+    const currentClass = word.verbClass || word.verbType || classOptions[0][0];
+    classSelect.value = currentClass;
+    classSelect.hidden = !verbCheckbox.checked;
+    verbFieldWrap.appendChild(classSelect);
+
+    verbCheckbox.addEventListener("change", () => {
+      classSelect.hidden = !verbCheckbox.checked;
+    });
+
+    wrapper.appendChild(verbFieldWrap);
+  }
+
   const saveBtn = document.createElement("button");
   saveBtn.type = "button";
   saveBtn.textContent = "Save";
@@ -1188,7 +1253,32 @@ function handleSaveWordEdit(wordId, wrapper) {
     return;
   }
 
-  Storage.updateWord(wordId, { english, targetLang, furigana, exampleSentence });
+  const updates = { english, targetLang, furigana, exampleSentence };
+
+  // Manual verb classification — see the field's own comment in
+  // buildWordEditForm for why this exists. Unchecking "This is a verb"
+  // explicitly clears the tagging (rather than leaving it untouched) so
+  // a mistakenly-tagged word can be un-tagged too, not just tagged.
+  const verbCheckbox = wrapper.querySelector(".edit-is-verb-checkbox");
+  if (verbCheckbox) {
+    const classSelect = wrapper.querySelector(".edit-verb-class-select");
+    if (verbCheckbox.checked && classSelect) {
+      updates.partOfSpeech = "verb";
+      if (activeTheme.language === "ja") {
+        updates.verbClass = classSelect.value;
+        updates.verbType = null;
+      } else {
+        updates.verbType = classSelect.value;
+        updates.verbClass = null;
+      }
+    } else {
+      updates.partOfSpeech = null;
+      updates.verbClass = null;
+      updates.verbType = null;
+    }
+  }
+
+  Storage.updateWord(wordId, updates);
   editingWordId = null;
   renderWordList();
 }
