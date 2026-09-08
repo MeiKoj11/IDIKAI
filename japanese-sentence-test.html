@@ -85,44 +85,86 @@
   <main class="conjugation-test-main">
     <div class="panel conjugation-test-card">
       <div id="tenses-test-setup">
-        <p class="hint" data-immersion-key="jaSentenceTestIntroHint">Full-sentence practice for the potential/passive/causative/causative-passive forms. Both sentences always spell out who's doing what to whom, so there's no ambiguity about which voice to use. Your answer only needs the verb form conjugated correctly — anything else gets corrected, not marked wrong.</p>
-        <button type="button" id="tenses-test-random-btn" class="tenses-test-random-btn" data-immersion-key="randomTestButton">🎲 Random test (every verb, every form)</button>
-        <p class="tenses-test-or" data-immersion-key="orDesignYourOwn">— or design your own —</p>
+        <p class="hint" data-immersion-key="sentenceTestIntroHint">Full-sentence translation practice. You write out all your answers first, then mark them yourself against the accurate translation — the AI writes the questions and the answer key, but doesn't grade you.</p>
+
+        <div class="tenses-test-section">
+          <div class="tenses-test-section-head"><span data-immersion-key="questionCountLabel">Number of questions</span></div>
+          <div class="tenses-test-direction-options">
+            <label><input type="radio" name="tenses-test-question-count" value="10" /> <span data-immersion-key="questionCount10">10 questions</span></label>
+            <label><input type="radio" name="tenses-test-question-count" value="20" checked /> <span data-immersion-key="questionCount20">20 questions</span></label>
+          </div>
+        </div>
+
+        <div class="tenses-test-section">
+          <div class="tenses-test-section-head"><span data-immersion-key="verbsLabel">Verbs</span></div>
+          <label class="tenses-test-checkbox">
+            <input type="checkbox" id="tenses-test-common-verbs-checkbox" checked />
+            <span data-immersion-key="commonVerbsCheckbox">Most commonly used verbs</span>
+          </label>
+          <p class="hint" data-immersion-key="themeVerbsHintJa">Or pull verbs from your own saved Vocab Bank themes (only verbs saved with a recognized conjugation class are used):</p>
+          <div id="tenses-test-theme-checkboxes" class="tenses-test-verb-checkboxes"></div>
+        </div>
 
         <div class="tenses-test-section">
           <div class="tenses-test-section-head">
-            <span data-immersion-key="verbsLabel">Verbs</span>
+            <span data-immersion-key="formsLabel">Forms</span>
             <div>
-              <button type="button" id="tenses-test-verbs-select-all" class="secondary tiny" data-immersion-key="selectAllButton">Select all</button>
-              <button type="button" id="tenses-test-verbs-clear" class="secondary tiny" data-immersion-key="clearButton">Clear</button>
+              <button type="button" id="tenses-test-forms-select-all" class="secondary tiny" data-immersion-key="selectAllButton">Select all</button>
+              <button type="button" id="tenses-test-forms-clear" class="secondary tiny" data-immersion-key="clearButton">Clear</button>
             </div>
           </div>
-          <p class="hint" data-immersion-key="verbsSourceHintJa">Includes the app's default verbs plus any verb you've saved to your own Vocab Bank (only verbs saved by themselves, not ones from a saved phrase).</p>
-          <div id="tenses-test-verb-checkboxes" class="tenses-test-verb-checkboxes"></div>
-        </div>
-
-        <div class="tenses-test-section">
-          <div class="tenses-test-section-head"><span data-immersion-key="formsLabel">Forms</span></div>
           <div id="tenses-test-form-checkboxes" class="tenses-test-checkboxes-inline"></div>
-        </div>
-
-        <div class="tenses-test-section">
-          <div class="tenses-test-section-head"><span data-immersion-key="directionLabel">Direction</span></div>
-          <div class="tenses-test-direction-options">
-            <label><input type="radio" name="tenses-test-direction" value="enToJa" checked /> <span data-immersion-key="directionEnToJa">English → Japanese</span></label>
-            <label><input type="radio" name="tenses-test-direction" value="jaToEn" /> <span data-immersion-key="directionJaToEn">Japanese → English</span></label>
-            <label><input type="radio" name="tenses-test-direction" value="mixed" /> <span data-immersion-key="directionMixed">Mixed</span></label>
-          </div>
         </div>
 
         <div class="tenses-test-setup-actions">
           <button type="button" id="tenses-test-start-btn" data-immersion-key="startTestButton">Start test</button>
         </div>
+
+        <div id="tenses-test-saved-section" class="tenses-test-section" hidden>
+          <div class="tenses-test-section-head"><span data-immersion-key="savedTestsLabel">Your saved tests</span></div>
+          <ul id="tenses-test-saved-list" class="tenses-test-saved-list"></ul>
+        </div>
+
+        <div id="tenses-test-retest-section" class="tenses-test-section" hidden>
+          <div class="tenses-test-section-head"><span data-immersion-key="retestMistakesLabel">Retest your mistakes</span></div>
+          <p id="tenses-test-retest-count" class="hint"></p>
+          <button type="button" id="tenses-test-retest-start-btn" data-immersion-key="startRetestButton">Retest your mistakes</button>
+        </div>
+      </div>
+
+      <div id="tenses-test-saved-detail" class="card-practice-panel" hidden>
+        <div class="card-practice-top-row">
+          <span id="tenses-test-saved-detail-score" class="card-practice-score"></span>
+          <button type="button" id="tenses-test-saved-detail-back-btn" class="secondary tiny" data-immersion-key="backToSetupButton">← Change setup</button>
+        </div>
+        <div id="tenses-test-saved-detail-list" class="tenses-test-question-list"></div>
+      </div>
+
+      <div id="tenses-test-retest-quiz" class="card-practice-panel" hidden>
+        <div class="card-practice-top-row">
+          <span id="tenses-test-retest-score" class="hint" data-immersion-key="retestEnToJaHint">English → Japanese</span>
+          <button type="button" id="tenses-test-retest-back-btn" class="secondary tiny" data-immersion-key="backToSetupButton">← Change setup</button>
+        </div>
+
+        <div id="tenses-test-retest-card" hidden>
+          <p class="hint" data-immersion-key="translateToJapaneseLabel">Translate to Japanese:</p>
+          <p id="tenses-test-retest-prompt" class="card-practice-prompt"></p>
+          <button type="button" id="tenses-test-retest-show-btn" data-immersion-key="showAnswerButton">Show answer</button>
+          <p id="tenses-test-retest-answer" class="card-practice-answer" hidden></p>
+          <div id="tenses-test-retest-buttons" class="card-practice-judge-row" hidden>
+            <button type="button" id="tenses-test-retest-got-it-btn" data-immersion-key="gotItRightButton">Got it right</button>
+            <button type="button" id="tenses-test-retest-again-btn" class="secondary" data-immersion-key="reviewAgainButton">Got it wrong — review again</button>
+          </div>
+        </div>
+
+        <div id="tenses-test-retest-done" class="tenses-test-setup-actions" hidden>
+          <p class="hint" data-immersion-key="retestDoneHint">You've gone through all your saved mistakes! Any you got right are cleared from this list.</p>
+        </div>
       </div>
 
       <div id="tenses-test-loading-screen" class="card-practice-panel" hidden>
         <div class="tenses-test-loading-spinner" aria-hidden="true"></div>
-        <p class="hint" data-immersion-key="loadingTestHint">Loading your test — generating 20 sentences at once so there's no waiting between questions. This can take a little while up front.</p>
+        <p class="hint" data-immersion-key="loadingTestHint">Loading your test — writing your practice sentences now. The accurate answer key keeps preparing in the background while you work.</p>
         <p id="tenses-test-loading-error" class="card-practice-answer card-practice-wrong" hidden></p>
         <div class="tenses-test-setup-actions">
           <button type="button" id="tenses-test-loading-retry-btn" hidden data-immersion-key="tryAgainButton">Try again</button>
@@ -140,8 +182,12 @@
 
         <div id="tenses-test-question-list" class="tenses-test-question-list"></div>
 
+        <p id="tenses-test-submit-error" class="card-practice-answer card-practice-wrong" hidden></p>
+
         <div class="tenses-test-setup-actions">
-          <button type="button" id="tenses-test-new-batch-btn" data-immersion-key="loadMoreQuestionsButton">Load 20 more questions</button>
+          <button type="button" id="tenses-test-submit-btn" data-immersion-key="submitTestButton">Submit answers</button>
+          <button type="button" id="tenses-test-save-btn" class="secondary" hidden data-immersion-key="saveTestButton">Save this test</button>
+          <span id="tenses-test-save-status" class="hint" hidden></span>
         </div>
       </div>
     </div>
@@ -154,6 +200,58 @@
     <select id="add-to-theme-select"></select>
     <button type="button" id="add-to-theme-new-theme-btn" class="secondary" data-immersion-key="newThemeButtonPlus">+ New theme</button>
     <button type="button" id="add-looked-up-word" hidden data-immersion-key="addToThemeButton">Add to theme</button>
+  </div>
+
+  <div id="mistake-panel" class="lookup-panel" hidden>
+    <strong id="mistake-panel-word"></strong>
+    <textarea id="mistake-panel-note" class="card-practice-input mistake-panel-note" rows="2" placeholder="What went wrong, in your own words…" data-immersion-key="mistakeNotePlaceholder"></textarea>
+    <button type="button" id="mistake-panel-save-btn" data-immersion-key="saveToMistakesButton">Save to Mistakes</button>
+    <button type="button" id="mistake-panel-remove-btn" class="secondary" data-immersion-key="removeFlagButton">Remove flag</button>
+
+    <div class="mistake-panel-conjugation">
+      <span class="mistake-panel-conjugation-label" data-immersion-key="conjugationErrorLabel">Conjugation error</span>
+      <label class="mistake-panel-conjugation-field">
+        <span data-immersion-key="correctFormInJaLabel">Correct form in Japanese</span>
+        <input type="text" id="mistake-panel-correct-form" autocomplete="off" />
+      </label>
+      <label class="mistake-panel-conjugation-field">
+        <span data-immersion-key="furiganaOptionalLabel">Furigana (optional)</span>
+        <input type="text" id="mistake-panel-furigana" autocomplete="off" />
+      </label>
+      <label class="mistake-panel-conjugation-field">
+        <span data-immersion-key="translationLabel">Translation</span>
+        <input type="text" id="mistake-panel-translation" autocomplete="off" />
+      </label>
+      <button type="button" id="mistake-panel-save-conjugation-btn" data-immersion-key="saveToRetestButton">Save to Retest quiz</button>
+      <span id="mistake-panel-conjugation-status" class="hint" hidden></span>
+    </div>
+  </div>
+
+  <button type="button" id="vocab-drawer-toggle" class="vocab-drawer-toggle" data-immersion-key="addVocabDrawerToggle">+ Add vocab</button>
+  <div id="vocab-drawer" class="vocab-drawer" hidden>
+    <div class="vocab-drawer-header">
+      <span data-immersion-key="addVocabDrawerHeading">Add a word</span>
+      <button type="button" id="vocab-drawer-close-btn" class="secondary tiny" aria-label="Close">×</button>
+    </div>
+    <label class="vocab-drawer-field">
+      <span data-immersion-key="englishLabel">English</span>
+      <input type="text" id="vocab-drawer-english" autocomplete="off" />
+    </label>
+    <label class="vocab-drawer-field">
+      <span data-immersion-key="japaneseLabel">Japanese</span>
+      <input type="text" id="vocab-drawer-japanese" autocomplete="off" />
+    </label>
+    <label class="vocab-drawer-field">
+      <span data-immersion-key="furiganaOptionalLabel">Furigana (optional)</span>
+      <input type="text" id="vocab-drawer-furigana" autocomplete="off" />
+    </label>
+    <label class="vocab-drawer-field">
+      <span data-immersion-key="themeLabel">Theme</span>
+      <select id="vocab-drawer-theme-select"></select>
+    </label>
+    <button type="button" id="vocab-drawer-new-theme-btn" class="secondary tiny" data-immersion-key="newThemeButtonPlus">+ New theme</button>
+    <button type="button" id="vocab-drawer-save-btn" data-immersion-key="saveWordButton">Save word</button>
+    <p id="vocab-drawer-status" class="hint" hidden></p>
   </div>
 
   <script src="js/topbar.js"></script>

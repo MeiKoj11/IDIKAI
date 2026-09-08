@@ -647,16 +647,25 @@ function callClaudeForGenerateConjugationSentencesBatch(language, items, avoidSe
 
 // Parameterized by language name (was Spanish-only) so the self-marking
 // sentence-test flow works for any target language that uses this
-// English-draft/foreign-language-translate split — currently Spanish
-// and French; the prompt text itself is otherwise unchanged.
+// English-draft/foreign-language-translate split — currently Spanish,
+// French, and Japanese; the prompt text itself is otherwise unchanged.
+// Worded generically enough to cover BOTH item shapes an item can come
+// in (see formatPracticeItemVerbLine below): a tense/person pair
+// (Spanish/French) or one of Japanese's four special verb forms
+// (potential/passive/causative/causative-passive — see ja-conjugator.js),
+// since a single learner-facing English sentence-writing prompt doesn't
+// need to know which shape it's dealing with.
 function buildGenerateEnglishPracticeSentencesBatchPrompt(languageName) {
   return `You write natural, level-appropriate
 English practice sentences for a ${languageName} learner's conjugation drill. You'll be given a numbered list
-of items, each specifying a verb (English gloss), a ${languageName} tense, and a grammatical person. For EACH
-item, write ONE natural ENGLISH sentence — declarative, a question, or negative, vary it across the
-list — that would call for that exact tense/person if translated into ${languageName} (e.g. for the ${languageName}
-preterite + "nosotros"/"nous", write an English sentence describing something completed in the past by
-that subject).
+of items, each specifying a verb (English gloss) and the exact grammatical form it must take when
+translated into ${languageName} — either a tense/person combination, or (for Japanese) one of the potential/
+passive/causative/causative-passive forms. For EACH item, write ONE natural ENGLISH sentence —
+declarative, a question, or negative, vary it across the list — that would clearly call for that exact
+form if translated into ${languageName} (e.g. for a Spanish/French preterite + "nosotros"/"nous", describe
+something completed in the past by that subject; for a Japanese causative or passive form, write a
+sentence that clearly names BOTH people involved — who's making/letting/affecting whom — so there's no
+ambiguity about which party is the grammatical subject once translated).
 Respond with ONLY a JSON object (no markdown, no code fences, no explanation) with exactly this shape:
 
 { "sentences": [ { "englishSentence": string }, ... ] }
@@ -664,7 +673,7 @@ Respond with ONLY a JSON object (no markdown, no code fences, no explanation) wi
 Rules:
 - Return exactly one output object per input item, IN THE SAME ORDER as the input list.
 - Each sentence must be natural, grammatically correct English that clearly calls for the specified
-  ${languageName} tense/person when translated — don't hedge into an ambiguous tense.
+  form when translated — don't hedge into an ambiguous tense or voice.
 - Keep each sentence short (roughly 5-12 words) and naturally include 1-2 pieces of vocabulary beyond
   basic function words so there's something worth practicing, but keep it natural, not contrived.
 - Vary sentence structure, subject matter, and phrasing across the list — no two sentences in this
@@ -674,14 +683,24 @@ Rules:
 - Output nothing except the JSON object.`;
 }
 
+// One input item is EITHER the Spanish/French shape
+// ({ infinitive, english, tenseLabel, personLabel }) OR the Japanese
+// shape ({ kanji, reading, meaning, formLabel }) — dispatches on which
+// fields are present rather than needing a separate "shape" flag, since
+// the two shapes don't overlap on any field name.
+function formatPracticeItemVerbLine(item) {
+  if (item.kanji) {
+    return `Verb: "${item.kanji}"${item.reading ? ` (${item.reading})` : ""} — "${item.meaning || ""}". Form: ${item.formLabel}.`;
+  }
+  return `Verb: "${item.infinitive}" (${item.english || ""}). Tense: ${item.tenseLabel}. Person: ${item.personLabel}.`;
+}
+
 function callClaudeForGenerateEnglishPracticeSentencesBatch(language, items, avoidSentences) {
   const languageName = LANGUAGE_NAMES[language] || language;
   const avoidLines = (avoidSentences || []).length
     ? `\n\nAvoid reusing any of these previous sentences:\n${avoidSentences.map((s) => `- ${s}`).join("\n")}`
     : "";
-  const itemLines = items
-    .map((item, i) => `${i + 1}. Verb: "${item.infinitive}" (${item.english || ""}). Tense: ${item.tenseLabel}. Person: ${item.personLabel}.`)
-    .join("\n");
+  const itemLines = items.map((item, i) => `${i + 1}. ${formatPracticeItemVerbLine(item)}`).join("\n");
   const userMessage = `Items:\n${itemLines}${avoidLines}`;
   // Deliberately the fast/cheap MODEL, not GRAMMAR_CHECK_MODEL — see the
   // block comment above for why this specific pass doesn't need it.
@@ -692,11 +711,11 @@ function buildTranslatePracticeSentencesBatchPrompt(languageName) {
   return `You translate English practice sentences into
 ${languageName} for a language learner's conjugation drill, with complete accuracy — this is the answer key
 the learner will use to grade their own attempt against, so it must be correct. You'll be given a
-numbered list of items, each with an English sentence plus the specific verb (infinitive + English
-gloss), ${languageName} tense, and grammatical person that the translation must use. For EACH item, translate
-the English sentence into ONE natural ${languageName} sentence using that exact verb correctly conjugated for
-that exact tense/person. Respond with ONLY a JSON object (no markdown, no code fences, no explanation)
-with exactly this shape:
+numbered list of items, each with an English sentence plus the specific verb and the exact grammatical
+form the translation must use — either a tense/person combination, or (for Japanese) one of the
+potential/passive/causative/causative-passive forms. For EACH item, translate the English sentence into
+ONE natural ${languageName} sentence using that exact verb correctly conjugated for that exact form.
+Respond with ONLY a JSON object (no markdown, no code fences, no explanation) with exactly this shape:
 
 { "translations": [ { "targetSentence": string, "verbFormTarget": string }, ... ] }
 
@@ -711,19 +730,21 @@ Rules:
   gender/number agreement on every article and adjective, and any idiom that doesn't translate
   word-for-word. A native ${languageName} speaker must find the sentence completely natural and correct
   with no hesitation.
+- For Japanese passive/causative/causative-passive items specifically: the given English sentence
+  already names both parties involved (the agent and the one affected) unambiguously with one of them
+  as its grammatical subject — write the Japanese so its own grammatical subject matches that SAME
+  party, so the two sentences describe the relationship the same unambiguous way. Do not silently swap
+  which party the sentence is "about" just because it would also be grammatically valid Japanese.
 - "verbFormTarget" is the exact conjugated verb form as it appears in "targetSentence" (e.g. "habría
-  dado" or "aurait donné"), correctly conjugated for the given tense/person — this must match exactly
-  what was asked for, regardless of how the English sentence happened to be phrased.
+  dado", "aurait donné", or "書かれた"), correctly conjugated for the given form — this must match
+  exactly what was asked for, regardless of how the English sentence happened to be phrased.
 - Output nothing except the JSON object.`;
 }
 
 function callClaudeForTranslatePracticeSentencesBatch(language, items) {
   const languageName = LANGUAGE_NAMES[language] || language;
   const itemLines = items
-    .map(
-      (item, i) =>
-        `${i + 1}. English: "${item.englishSentence}"\n   Verb: "${item.infinitive}" (${item.english || ""}). Tense: ${item.tenseLabel}. Person: ${item.personLabel}.`
-    )
+    .map((item, i) => `${i + 1}. English: "${item.englishSentence}"\n   ${formatPracticeItemVerbLine(item)}`)
     .join("\n");
   const userMessage = `Items:\n${itemLines}`;
   // The strong model, same as every other sentence-mode generation call
@@ -1937,10 +1958,14 @@ const server = http.createServer((req, res) => {
         res.end(JSON.stringify({ error: "Too many items in one batch (max 30)." }));
         return;
       }
-      const badItem = items.find((item) => !item || !item.infinitive || !item.tenseLabel || !item.personLabel);
+      const badItem = items.find(
+        (item) => !item || (item.kanji ? !item.formLabel : !item.infinitive || !item.tenseLabel || !item.personLabel)
+      );
       if (badItem) {
         res.writeHead(400, { "content-type": "application/json" });
-        res.end(JSON.stringify({ error: "Every item needs infinitive, tenseLabel, and personLabel." }));
+        res.end(
+          JSON.stringify({ error: "Every item needs either (kanji, formLabel) or (infinitive, tenseLabel, personLabel)." })
+        );
         return;
       }
 
@@ -1992,11 +2017,18 @@ const server = http.createServer((req, res) => {
         return;
       }
       const badItem = items.find(
-        (item) => !item || !item.englishSentence || !item.infinitive || !item.tenseLabel || !item.personLabel
+        (item) =>
+          !item ||
+          !item.englishSentence ||
+          (item.kanji ? !item.formLabel : !item.infinitive || !item.tenseLabel || !item.personLabel)
       );
       if (badItem) {
         res.writeHead(400, { "content-type": "application/json" });
-        res.end(JSON.stringify({ error: "Every item needs englishSentence, infinitive, tenseLabel, and personLabel." }));
+        res.end(
+          JSON.stringify({
+            error: "Every item needs englishSentence plus either (kanji, formLabel) or (infinitive, tenseLabel, personLabel).",
+          })
+        );
         return;
       }
 
