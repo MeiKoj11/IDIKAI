@@ -3601,6 +3601,98 @@ button.secondary.tiny {
   color: #D9534F;
 }
 
+/* Mistake panel's "Conjugation error" mini-form — a pure right-tense-
+   wrong-ending slip saved as quiz data (see handleMistakePanelSaveConjugation),
+   separate from the free-text note above it. Sits below the main note/
+   Save-Remove row inside the same bottom bar, full-width, with a thin
+   divider so it reads as its own sub-section. */
+
+.mistake-panel-conjugation {
+  flex: 1 1 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.6rem;
+  padding-top: 0.6rem;
+  margin-top: 0.2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.mistake-panel-conjugation-label {
+  flex: 1 1 100%;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.mistake-panel-conjugation-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.8rem;
+  color: #C0BFB2;
+}
+
+.mistake-panel-conjugation-field input {
+  padding: 0.35rem 0.5rem;
+  font-size: 0.95rem;
+}
+
+/* Right-side "Add vocab" drawer — a small vertical tab fixed to the
+   right edge of the viewport; clicking it slides out a manual-entry
+   form in the same spot. Independent of the mistake-flagging panel
+   above, and of the bottom lookup-panel — this one is for jotting down
+   any word noticed as unfamiliar, not tied to a specific clicked word. */
+
+.vocab-drawer-toggle {
+  position: fixed;
+  right: 0;
+  top: 45%;
+  transform: translateY(-50%);
+  z-index: 40;
+  border-radius: 8px 0 0 8px;
+  padding: 0.7rem 0.5rem;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+.vocab-drawer {
+  position: fixed;
+  right: 0;
+  top: 45%;
+  transform: translateY(-50%);
+  z-index: 41;
+  width: 260px;
+  max-width: calc(100vw - 2rem);
+  background: #221712;
+  color: #ECE6D3;
+  border-radius: 8px 0 0 8px;
+  padding: 1rem;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.vocab-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 600;
+}
+
+.vocab-drawer-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.85rem;
+}
+
+.vocab-drawer-field input,
+.vocab-drawer-field select {
+  padding: 0.4rem 0.5rem;
+  font-size: 0.95rem;
+}
+
 /* Accounts: login / admin / migrate-data pages — small standalone
    pages with no topbar, just a centered card, same overall palette as
    everywhere else. */

@@ -119,6 +119,7 @@ const STORAGE_KEYS = {
   hubReminders: "hub.reminders",
   hubNotesText: "hub.notesText",
   sentenceTestSaved: "sentenceTest.saved",
+  sentenceTestConjugationMistakes: "sentenceTest.conjugationMistakes",
 };
 
 function readJSON(key, fallback) {
@@ -966,6 +967,35 @@ function deleteSavedSentenceTest(testId) {
   writeJSON(STORAGE_KEYS.sentenceTestSaved, tests);
 }
 
+// ---- Conjugation-mistake flashcards ----
+// A single, purely-conjugation slip (right tense/person, wrong ending)
+// saved from the sentence test's "Conjugation error" mini-form — just
+// the correct target-language form plus its English translation, so it
+// can be quizzed EN->TL exactly like the regular vocab quiz (see
+// spanish-sentence-test-app.js's "Retest your mistakes"). Deliberately
+// separate from the free-form Mistakes grammar notes: this is quiz
+// data, not something meant to be browsed/edited as a note. Getting one
+// right in the retest quiz deletes it — the pool is meant to shrink as
+// the learner masters each form, not accumulate forever.
+
+function getConjugationMistakes(language) {
+  const mistakes = readJSON(STORAGE_KEYS.sentenceTestConjugationMistakes, []);
+  return language ? mistakes.filter((m) => m.language === language) : mistakes;
+}
+
+function addConjugationMistake(mistake) {
+  const mistakes = readJSON(STORAGE_KEYS.sentenceTestConjugationMistakes, []);
+  const record = { id: uid(), createdAt: Date.now(), ...mistake };
+  mistakes.push(record);
+  writeJSON(STORAGE_KEYS.sentenceTestConjugationMistakes, mistakes);
+  return record;
+}
+
+function deleteConjugationMistake(mistakeId) {
+  const mistakes = readJSON(STORAGE_KEYS.sentenceTestConjugationMistakes, []).filter((m) => m.id !== mistakeId);
+  writeJSON(STORAGE_KEYS.sentenceTestConjugationMistakes, mistakes);
+}
+
 // ---- Hub to-do widget ----
 // A small task list that lives directly on a language's hub page (not
 // tucked inside a bubble) — quick things like "finish reading" or "do
@@ -1123,6 +1153,9 @@ const Storage = {
   getSavedSentenceTest,
   addSavedSentenceTest,
   deleteSavedSentenceTest,
+  getConjugationMistakes,
+  addConjugationMistake,
+  deleteConjugationMistake,
   getSpeakingEntries,
   getSpeakingEntry,
   addSpeakingEntry,

@@ -230,6 +230,8 @@ function startTensesTestWithConfig(config) {
     submitted: false,
   };
   document.getElementById("tenses-test-setup").hidden = true;
+  document.getElementById("tenses-test-saved-detail").hidden = true;
+  document.getElementById("tenses-test-retest-quiz").hidden = true;
   document.getElementById("tenses-test-quiz").hidden = true;
   document.getElementById("tenses-test-question-list").innerHTML = "";
   document.getElementById("lookup-panel").hidden = true;
@@ -623,6 +625,7 @@ async function submitSentenceTest() {
 function backToSetup() {
   document.getElementById("tenses-test-setup").hidden = false;
   document.getElementById("tenses-test-saved-detail").hidden = true;
+  document.getElementById("tenses-test-retest-quiz").hidden = true;
   document.getElementById("tenses-test-quiz").hidden = true;
   document.getElementById("tenses-test-loading-screen").hidden = true;
   document.getElementById("tenses-test-question-list").innerHTML = "";
@@ -637,28 +640,40 @@ function backToSetup() {
   document.getElementById("tenses-test-save-status").hidden = true;
   document.getElementById("lookup-panel").hidden = true;
   closeMistakePanel();
+  retestSession = null;
   sentenceTestSession = null;
   renderSavedTestsList();
+  renderRetestSection();
 }
 
 // ---------------------------------------------------------------------
 // Mistakes: click-a-word self-marking review, wrong-marked questions
-// only. Flagging a word (blue) and saving stores a lightweight note in
-// the Grammar Bank's "Mistakes" folder (created the first time it's
-// needed) — reuses the same free-form grammar-note shape the original
+// only. Flagging a word (blue) and saving stores a lightweight note
+// directly in the Grammar Bank's existing "Tenses and verb
+// conjugations" folder (tagged "Mistake" so it's easy to spot there) —
+// reuses the same free-form grammar-note shape the original
 // single-sentence notes use (sentence/translation/pattern/tags/notes),
 // so it gets the existing note card's expand/collapse, Edit, Delete,
 // and "+ Personal note" editing for free with no new UI to build there.
+//
+// The same panel also offers a second, separate save: when the mistake
+// was purely a conjugation ending (not a vocab/tense-choice error), the
+// "Conjugation error" mini-form saves just the correct target-language
+// form + its English translation as a small flashcard (see
+// Storage.addConjugationMistake) — quiz data only, not a grammar note —
+// which feeds the "Retest your mistakes" EN->TL quiz below.
 // ---------------------------------------------------------------------
 
-const MISTAKES_FOLDER_NAME = "Mistakes";
 let activeMistakeWord = null; // { span, word, session, index, side }
 
-function findOrCreateMistakesFolder(language) {
+// The Tenses folder always exists once ensureDefaultGrammarThemes has
+// run for this language (grammar.html's list page does this on load;
+// call it here too since a learner may never have opened Grammar Bank
+// yet when they save their first mistake from a sentence test).
+function findTensesFolder(language) {
+  Storage.ensureDefaultGrammarThemes(language);
   const themes = Storage.getGrammarThemes(language);
-  const existing = themes.find((t) => (t.name || "").trim().toLowerCase() === MISTAKES_FOLDER_NAME.toLowerCase());
-  if (existing) return existing;
-  return Storage.addGrammarTheme(MISTAKES_FOLDER_NAME, language);
+  return themes.find((t) => (t.name || "").trim().toLowerCase() === "tenses and verb conjugations") || null;
 }
 
 function handleMistakeWordClick(span, word, session, index, side) {
@@ -678,6 +693,12 @@ function handleMistakeWordClick(span, word, session, index, side) {
   panel.hidden = false;
   document.getElementById("mistake-panel-word").textContent = word;
   document.getElementById("mistake-panel-note").value = span.dataset.mistakeNote || "";
+  // The clicked word is very often already the correct form (e.g. a
+  // word clicked in the accurate translation) — prefill it as a
+  // starting point for the conjugation-error form, easy to overwrite.
+  document.getElementById("mistake-panel-correct-form").value = word;
+  document.getElementById("mistake-panel-translation").value = "";
+  document.getElementById("mistake-panel-conjugation-status").hidden = true;
 }
 
 function closeMistakePanel() {
@@ -695,7 +716,8 @@ function handleMistakePanelSave() {
   const note = document.getElementById("mistake-panel-note").value.trim();
   span.dataset.mistakeNote = note;
 
-  const folder = findOrCreateMistakesFolder("es");
+  const folder = findTensesFolder("es");
+  if (!folder) return; // shouldn't happen, but don't crash if it somehow does
   const tenseLabel = SpanishConjugator.ALL_TENSE_LABELS[q.tense] || q.tense;
   const saved = Storage.addGrammarNote({
     themeId: folder.id,
@@ -703,7 +725,7 @@ function handleMistakePanelSave() {
     translation: q.translation ? `Accurate: ${q.translation.targetSentence}` : "",
     pattern: `English: ${q.englishSentence}\nYour answer: ${q.answer || "(no answer)"}`,
     notes: note,
-    tags: [tenseLabel, side === "user" ? "Your answer" : "Accurate answer"],
+    tags: ["Mistake", tenseLabel, side === "user" ? "Your answer" : "Accurate answer"],
   });
 
   span.dataset.mistakeNoteId = saved.id;
@@ -721,6 +743,40 @@ function handleMistakePanelRemove() {
   span.classList.remove("mistake-word-flagged", "mistake-word-saved");
   delete span.dataset.mistakeNote;
   closeMistakePanel();
+}
+
+// The "Conjugation error" mini-form — a pure right-tense-wrong-ending
+// slip, saved as quiz data only (see the block comment above), separate
+// from the free-form note handleMistakePanelSave writes.
+function handleMistakePanelSaveConjugation() {
+  if (!activeMistakeWord) return;
+  const { session, index } = activeMistakeWord;
+  if (sentenceTestSession !== session) return;
+
+  const q = session.queue[index];
+  const correctFormInput = document.getElementById("mistake-panel-correct-form");
+  const translationInput = document.getElementById("mistake-panel-translation");
+  const targetForm = correctFormInput.value.trim();
+  const translation = translationInput.value.trim();
+  const statusEl = document.getElementById("mistake-panel-conjugation-status");
+  if (!targetForm || !translation) {
+    statusEl.textContent = "Fill in both the correct form and its translation.";
+    statusEl.hidden = false;
+    return;
+  }
+
+  Storage.addConjugationMistake({
+    language: "es",
+    targetForm,
+    translation,
+    infinitive: q.verb.infinitive,
+    tenseLabel: SpanishConjugator.ALL_TENSE_LABELS[q.tense] || q.tense,
+    personLabel: SpanishConjugator.PERSON_LABELS[q.person] || q.person,
+  });
+
+  statusEl.textContent = "Saved to Retest quiz.";
+  statusEl.hidden = false;
+  renderRetestSection();
 }
 
 // ---------------------------------------------------------------------
@@ -864,6 +920,188 @@ function viewSavedTest(testId) {
 function backFromSavedDetail() {
   document.getElementById("tenses-test-saved-detail").hidden = true;
   document.getElementById("tenses-test-setup").hidden = false;
+}
+
+// ---------------------------------------------------------------------
+// Retest your mistakes — a small EN->TL flashcard quiz over just the
+// conjugation-error entries saved from the mistake panel (see
+// handleMistakePanelSaveConjugation). Same self-marking shape as the
+// Vocab Bank's own quiz (Show answer, then Got it/Review again), not
+// AI-graded. Getting a card right removes it from the saved pool
+// entirely — the whole point of "retest your mistakes" is to shrink
+// this list as each form gets mastered, not to keep it around forever.
+// ---------------------------------------------------------------------
+
+let retestSession = null; // { queue, current }
+
+function renderRetestSection() {
+  const section = document.getElementById("tenses-test-retest-section");
+  const countEl = document.getElementById("tenses-test-retest-count");
+  if (!section) return;
+  const mistakes = Storage.getConjugationMistakes("es");
+  section.hidden = mistakes.length === 0;
+  if (countEl) {
+    countEl.textContent = `${mistakes.length} saved mistake${mistakes.length === 1 ? "" : "s"} to retest.`;
+  }
+}
+
+function shuffleArray(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = tmp;
+  }
+  return arr;
+}
+
+function startRetest() {
+  const mistakes = Storage.getConjugationMistakes("es");
+  if (!mistakes.length) return;
+  retestSession = { queue: shuffleArray(mistakes.slice()), current: null };
+
+  document.getElementById("tenses-test-setup").hidden = true;
+  document.getElementById("tenses-test-retest-quiz").hidden = false;
+  document.getElementById("tenses-test-retest-done").hidden = true;
+  document.getElementById("tenses-test-retest-card").hidden = false;
+  showNextRetestCard();
+}
+
+function showNextRetestCard() {
+  const session = retestSession;
+  if (!session) return;
+
+  if (!session.queue.length) {
+    document.getElementById("tenses-test-retest-card").hidden = true;
+    document.getElementById("tenses-test-retest-done").hidden = false;
+    return;
+  }
+
+  session.current = session.queue.shift();
+  document.getElementById("tenses-test-retest-prompt").textContent = session.current.translation;
+  const answerEl = document.getElementById("tenses-test-retest-answer");
+  answerEl.textContent = session.current.targetForm;
+  answerEl.hidden = true;
+  document.getElementById("tenses-test-retest-buttons").hidden = true;
+  document.getElementById("tenses-test-retest-show-btn").hidden = false;
+}
+
+function handleRetestShowAnswer() {
+  document.getElementById("tenses-test-retest-answer").hidden = false;
+  document.getElementById("tenses-test-retest-buttons").hidden = false;
+  document.getElementById("tenses-test-retest-show-btn").hidden = true;
+}
+
+function handleRetestGotIt() {
+  if (!retestSession || !retestSession.current) return;
+  Storage.deleteConjugationMistake(retestSession.current.id);
+  showNextRetestCard();
+}
+
+function handleRetestAgain() {
+  if (!retestSession || !retestSession.current) return;
+  const insertAt = Math.min(3, retestSession.queue.length);
+  retestSession.queue.splice(insertAt, 0, retestSession.current);
+  showNextRetestCard();
+}
+
+function backFromRetest() {
+  retestSession = null;
+  document.getElementById("tenses-test-retest-quiz").hidden = true;
+  document.getElementById("tenses-test-setup").hidden = false;
+  renderRetestSection();
+}
+
+// ---------------------------------------------------------------------
+// Right-side "Add vocab" drawer — a quick manual entry (no AI call) for
+// jotting down any word noticed as unfamiliar while reviewing the test,
+// independent of the word-click mistake-flagging flow above.
+// ---------------------------------------------------------------------
+
+function toggleVocabDrawer(forceOpen) {
+  const drawer = document.getElementById("vocab-drawer");
+  if (!drawer) return;
+  const open = forceOpen !== undefined ? forceOpen : drawer.hidden;
+  drawer.hidden = !open;
+  if (open) {
+    populateVocabDrawerThemeOptions();
+    document.getElementById("vocab-drawer-status").hidden = true;
+  }
+}
+
+function populateVocabDrawerThemeOptions(selectId) {
+  const select = document.getElementById("vocab-drawer-theme-select");
+  if (!select) return;
+  select.innerHTML = "";
+
+  const themes = Storage.getThemes().filter((t) => t.language === "es");
+  themes.forEach((theme) => {
+    const opt = document.createElement("option");
+    opt.value = theme.id;
+    opt.textContent = theme.name;
+    select.appendChild(opt);
+  });
+
+  const newOpt = document.createElement("option");
+  newOpt.value = NEW_THEME_VALUE;
+  newOpt.textContent = "+ Create new theme…";
+  newOpt.dataset.immersionKey = "createNewThemeOption";
+  select.appendChild(newOpt);
+
+  if (selectId) {
+    select.value = selectId;
+  } else if (themes.length === 0) {
+    select.value = NEW_THEME_VALUE;
+  }
+}
+
+function createVocabDrawerTheme() {
+  const name = prompt("Name for the new theme:");
+  const existingThemes = Storage.getThemes().filter((t) => t.language === "es");
+  if (!name || !name.trim()) {
+    populateVocabDrawerThemeOptions(existingThemes.length ? existingThemes[0].id : null);
+    return;
+  }
+  const theme = Storage.addTheme(name.trim(), "es");
+  populateVocabDrawerThemeOptions(theme.id);
+}
+
+function handleVocabDrawerThemeSelectChange(e) {
+  if (e.target.value !== NEW_THEME_VALUE) return;
+  createVocabDrawerTheme();
+}
+
+function handleVocabDrawerSave() {
+  const englishInput = document.getElementById("vocab-drawer-english");
+  const spanishInput = document.getElementById("vocab-drawer-spanish");
+  const select = document.getElementById("vocab-drawer-theme-select");
+  const statusEl = document.getElementById("vocab-drawer-status");
+
+  const english = englishInput.value.trim();
+  const targetLang = spanishInput.value.trim();
+  if (!english || !targetLang) {
+    statusEl.textContent = "Fill in both English and Spanish.";
+    statusEl.hidden = false;
+    return;
+  }
+
+  let themeId = select.value;
+  if (!themeId || themeId === NEW_THEME_VALUE) {
+    const name = prompt("Name for the new theme:");
+    if (!name || !name.trim()) return;
+    const theme = Storage.addTheme(name.trim(), "es");
+    populateVocabDrawerThemeOptions(theme.id);
+    themeId = theme.id;
+  }
+
+  const saved = Storage.addWordIfNotDuplicate(themeId, { english, targetLang, furigana: "", notes: "" });
+  statusEl.textContent = saved ? `${targetLang} (${english}) — added.` : `${targetLang} (${english}) — already in your deck.`;
+  statusEl.hidden = false;
+  if (saved) {
+    englishInput.value = "";
+    spanishInput.value = "";
+    englishInput.focus();
+  }
 }
 
 // ---------------------------------------------------------------------
@@ -1032,7 +1270,32 @@ document.addEventListener("DOMContentLoaded", () => {
   if (mistakeSaveBtn) mistakeSaveBtn.addEventListener("click", handleMistakePanelSave);
   const mistakeRemoveBtn = document.getElementById("mistake-panel-remove-btn");
   if (mistakeRemoveBtn) mistakeRemoveBtn.addEventListener("click", handleMistakePanelRemove);
+  const mistakeSaveConjugationBtn = document.getElementById("mistake-panel-save-conjugation-btn");
+  if (mistakeSaveConjugationBtn) mistakeSaveConjugationBtn.addEventListener("click", handleMistakePanelSaveConjugation);
   renderSavedTestsList();
+
+  const retestStartBtn = document.getElementById("tenses-test-retest-start-btn");
+  if (retestStartBtn) retestStartBtn.addEventListener("click", startRetest);
+  const retestBackBtn = document.getElementById("tenses-test-retest-back-btn");
+  if (retestBackBtn) retestBackBtn.addEventListener("click", backFromRetest);
+  const retestShowBtn = document.getElementById("tenses-test-retest-show-btn");
+  if (retestShowBtn) retestShowBtn.addEventListener("click", handleRetestShowAnswer);
+  const retestGotItBtn = document.getElementById("tenses-test-retest-got-it-btn");
+  if (retestGotItBtn) retestGotItBtn.addEventListener("click", handleRetestGotIt);
+  const retestAgainBtn = document.getElementById("tenses-test-retest-again-btn");
+  if (retestAgainBtn) retestAgainBtn.addEventListener("click", handleRetestAgain);
+  renderRetestSection();
+
+  const vocabDrawerToggle = document.getElementById("vocab-drawer-toggle");
+  if (vocabDrawerToggle) vocabDrawerToggle.addEventListener("click", () => toggleVocabDrawer());
+  const vocabDrawerCloseBtn = document.getElementById("vocab-drawer-close-btn");
+  if (vocabDrawerCloseBtn) vocabDrawerCloseBtn.addEventListener("click", () => toggleVocabDrawer(false));
+  const vocabDrawerThemeSelect = document.getElementById("vocab-drawer-theme-select");
+  if (vocabDrawerThemeSelect) vocabDrawerThemeSelect.addEventListener("change", handleVocabDrawerThemeSelectChange);
+  const vocabDrawerNewThemeBtn = document.getElementById("vocab-drawer-new-theme-btn");
+  if (vocabDrawerNewThemeBtn) vocabDrawerNewThemeBtn.addEventListener("click", createVocabDrawerTheme);
+  const vocabDrawerSaveBtn = document.getElementById("vocab-drawer-save-btn");
+  if (vocabDrawerSaveBtn) vocabDrawerSaveBtn.addEventListener("click", handleVocabDrawerSave);
 
   const themeSelect = document.getElementById("add-to-theme-select");
   if (themeSelect) themeSelect.addEventListener("change", handleSentenceThemeSelectChange);
