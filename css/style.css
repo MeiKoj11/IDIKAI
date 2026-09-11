@@ -589,6 +589,26 @@ main {
   gap: 1rem;
 }
 
+/* Only used on theme.html, which needs its "View Vocab" box to always
+   sit on its own row underneath "Add New Vocab"/"Test" rather than
+   auto-filling a third column alongside them on wide screens — a fixed
+   2-column grid here (instead of the general auto-fit rule above)
+   guarantees that wrap, and this third box spans both columns so it
+   still reads as one full-width row rather than a lone half-width box. */
+.bubble-grid:has(.bubble-span-full) {
+  grid-template-columns: repeat(2, minmax(200px, 1fr));
+}
+
+.bubble-span-full {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 560px) {
+  main .bubble-grid:has(.bubble-span-full) {
+    grid-template-columns: 1fr;
+  }
+}
+
 .bubble {
   display: flex;
   flex-direction: column;

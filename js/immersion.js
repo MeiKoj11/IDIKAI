@@ -127,6 +127,8 @@ const IMMERSION_STRINGS = {
   addNewVocabSub: { es: "Añade palabras y ve todo lo guardado en este tema", ja: "単語を追加し、このテーマに保存されたものをすべて見る", fr: "Ajoute des mots et vois tout ce qui est enregistré dans ce thème" },
   testTitle: { es: "Prueba", ja: "テスト", fr: "Test" },
   testSub: { es: "Prueba de tarjetas o práctica de conjugación verbal", ja: "単語カードクイズまたは動詞活用の練習", fr: "Quiz de cartes mémo ou pratique de conjugaison" },
+  viewVocabTitle: { es: "Ver vocabulario", ja: "単語を見る", fr: "Voir le vocabulaire" },
+  viewVocabSub: { es: "Ve todo lo que ya has guardado en este tema", ja: "このテーマに保存済みの単語をすべて見る", fr: "Voir tout ce qui est déjà enregistré dans ce thème" },
   addNewVocabHeading: { es: "Añadir vocabulario nuevo", ja: "新しい単語を追加", fr: "Ajouter du vocabulaire" },
   addWordHeadingPrefix: { es: "Añadir una palabra —", ja: "単語を追加 —", fr: "Ajouter un mot —" },
   englishLabel: { es: "Inglés", ja: "英語", fr: "Anglais" },

@@ -116,6 +116,11 @@ function applyActiveThemeToUI() {
   }
   const hubAddLink = document.getElementById("theme-hub-add-link");
   if (hubAddLink) hubAddLink.href = `add-vocab.html?id=${id}`;
+  // "View Vocab" opens the same add-vocab.html page (it already renders
+  // the saved-words list) but jumps straight to the word-list section
+  // rather than the add-a-word form at the top.
+  const hubViewLink = document.getElementById("theme-hub-view-link");
+  if (hubViewLink) hubViewLink.href = `add-vocab.html?id=${id}#word-list-panel`;
 
   // Verb conjugation is a Spanish-only concept (conjugation tables,
   // detected verb forms, the conjugation quiz mode) — hide every entry
