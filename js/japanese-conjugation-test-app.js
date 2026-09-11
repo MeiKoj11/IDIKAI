@@ -166,6 +166,14 @@ function pickQuestionSpec(config, guard) {
   const form = config.forms[Math.floor(Math.random() * config.forms.length)];
   const verb = config.verbs[Math.floor(Math.random() * config.verbs.length)];
   if (!verb || !verb.class || !verb.reading) return pickQuestionSpec(config, safeGuard + 1);
+  // The PASSIVE cue template ("It was {past participle}.") only reads as
+  // natural English for a transitive verb — "It was written"/"It was
+  // lent" are fine, but "It was died"/"It was lived" aren't, even
+  // though the Japanese passive form itself is real grammar either way.
+  // Only skip this for verbs explicitly hand-tagged intransitive (see
+  // ja-conjugator.js's COMMON_VERBS) — a Vocab Bank verb with no
+  // transitive flag at all is left eligible rather than guessed at.
+  if (form === "passive" && verb.transitive === false) return pickQuestionSpec(config, safeGuard + 1);
   const englishSentence = buildEnglishCue(verb, form);
   if (!englishSentence) return pickQuestionSpec(config, safeGuard + 1);
   return { form, verb, englishSentence };
