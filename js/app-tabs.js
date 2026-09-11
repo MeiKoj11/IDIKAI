@@ -17,6 +17,15 @@
   survives reloads and in-app navigation, clears when the browser tab
   closes.
 
+  The strip only ever DISPLAYS tabs matching the "active language" (see
+  getActiveAppTabLanguage/setActiveAppTabLanguage) — everything else you
+  had open in another language stays saved, right where you left it,
+  just hidden until you switch back. The active language itself is set
+  from initTopbar(lang) on every single page load (see topbar.js), so
+  simply navigating to a page in a different language — via the
+  topbar's "Change language" menu, a hub tile, or any other link — is
+  what does the switching; there's no separate toggle to manage here.
+
   Every page that has the #app-tab-strip markup calls initAppTabs(current)
   once, after it has resolved its own language/title — mirroring the
   established initTopbar(lang) pattern. `current` is either:
@@ -36,6 +45,7 @@
 
 const APP_TABS_SESSION_KEY = "appTabs.open";
 const APP_TABS_ACTIVE_SESSION_KEY = "appTabs.activeHref";
+const APP_TABS_ACTIVE_LANG_KEY = "appTabs.activeLanguage";
 const APP_TAB_LANGUAGE_NAMES = { es: "Spanish", ja: "Japanese", fr: "French" };
 
 const APP_TAB_SECTION_LABELS = {
@@ -48,7 +58,28 @@ const APP_TAB_SECTION_LABELS = {
   listening: "Listening",
 };
 
-let _appTabsCurrentLanguage = "es";
+// Which language's tabs the strip currently shows — every OTHER
+// language's tabs stay saved in sessionStorage untouched, just hidden
+// from the render until you switch back. Kept in sessionStorage (not a
+// plain JS variable) so it survives normal in-app navigation the same
+// way the open-tabs list itself does; set from initTopbar(lang) on
+// every single page load (see topbar.js), since that's called with a
+// resolved language on every page — hub/list pages included — well
+// before initAppTabs ever renders anything.
+function getActiveAppTabLanguage() {
+  try {
+    return sessionStorage.getItem(APP_TABS_ACTIVE_LANG_KEY);
+  } catch (e) {
+    return null;
+  }
+}
+
+function setActiveAppTabLanguage(lang) {
+  if (!lang) return;
+  try {
+    sessionStorage.setItem(APP_TABS_ACTIVE_LANG_KEY, lang);
+  } catch (e) {}
+}
 
 function getOpenAppTabs() {
   try {
@@ -98,7 +129,7 @@ function initAppTabs(current) {
   const strip = document.getElementById("app-tab-strip");
   if (!strip) return; // this page doesn't have the tab-strip markup
 
-  if (current && current.language) _appTabsCurrentLanguage = current.language;
+  if (current && current.language) setActiveAppTabLanguage(current.language);
 
   let tabs = getOpenAppTabs();
   let activeHref = getActiveAppTabHref();
@@ -209,11 +240,23 @@ function buildAppTabElement(tab, activeHref) {
   return a;
 }
 
+// Only tabs matching the currently active language are shown — every
+// other open tab stays exactly as it was in sessionStorage (still
+// there, in order, with whatever page it was left on), just filtered
+// out of THIS render. A tab with no language (shouldn't normally
+// happen — every call site always passes one — but kept as a safe
+// fallback) is never hidden, rather than silently disappearing.
+function visibleAppTabs(tabs) {
+  const activeLang = getActiveAppTabLanguage();
+  if (!activeLang) return tabs;
+  return tabs.filter((t) => !t.language || t.language === activeLang);
+}
+
 function renderAppTabStrip(tabs, activeHref) {
   const tabsContainer = document.getElementById("app-tab-strip-tabs");
   if (!tabsContainer) return;
   tabsContainer.innerHTML = "";
-  tabs.forEach((tab) => tabsContainer.appendChild(buildAppTabElement(tab, activeHref)));
+  visibleAppTabs(tabs).forEach((tab) => tabsContainer.appendChild(buildAppTabElement(tab, activeHref)));
 }
 
 // Moves the dragged tab to sit where the target tab currently is,
@@ -256,7 +299,12 @@ function closeAppTab(href) {
   saveOpenAppTabs(tabs);
 
   if (wasActive) {
-    const next = tabs[tabs.length - 1];
+    // Land on another tab in the SAME language, not just whichever tab
+    // happens to be last overall — jumping into a different language's
+    // tab here would be exactly the cross-language mixing this filter
+    // exists to avoid.
+    const candidates = visibleAppTabs(tabs);
+    const next = candidates[candidates.length - 1];
     setActiveAppTabHref(next ? next.href : null);
     window.location.href = next ? next.href : "index.html";
     return;
@@ -311,7 +359,7 @@ function wireAppTabPicker() {
   openBtn.addEventListener("click", () => {
     const section = sectionSelect.value;
     if (!section) return;
-    const lang = _appTabsCurrentLanguage;
+    const lang = getActiveAppTabLanguage() || "es";
 
     if (section === "personal-hub") {
       resetAppTabPicker();
@@ -356,7 +404,7 @@ function appTabAddUnitOption(select, href, label, immersionKey) {
 }
 
 function populateAppTabUnitSelect(section, unitSelect) {
-  const lang = _appTabsCurrentLanguage;
+  const lang = getActiveAppTabLanguage() || "es";
   const langName = APP_TAB_LANGUAGE_NAMES[lang] || "";
   unitSelect.innerHTML = "";
   const placeholder = document.createElement("option");

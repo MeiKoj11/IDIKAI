@@ -57,6 +57,14 @@ function initTopbar(lang) {
   if (label) label.textContent = lang ? TOPBAR_LANGUAGE_NAMES[lang] : "";
   if (lang) bar.classList.add(`lang-${lang}`);
 
+  // Every page resolves and passes its own language here — hub/list
+  // pages included — before app-tabs.js ever renders the tab strip, so
+  // this is the one place that can reliably tell the strip which
+  // language's tabs to show right now, regardless of how the user
+  // actually got to this page (topbar menu, a hub tile, a bookmark,
+  // clicking an existing tab, etc).
+  if (lang && typeof setActiveAppTabLanguage === "function") setActiveAppTabLanguage(lang);
+
   // Always the title/cover page — the one predictable "take me all the
   // way back" target, same as clicking a logo would on any other site.
   const homeLink = document.getElementById("topbar-home");
