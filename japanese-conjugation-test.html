@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Japanese verb forms</title>
+  <title>Japanese conjugation test</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fahkwang:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -77,45 +77,90 @@
     </div>
   </div>
 
-  <header class="app-header" id="japanese-tenses-header">
-    <a href="grammar.html?lang=ja" class="back-link" data-immersion-key="backToGrammar">&larr; Back to Grammar</a>
-    <h1 data-immersion-key="japaneseVerbFormsHeading">Japanese verb forms</h1>
+  <header class="app-header lang-ja" id="japanese-conjugation-test-header">
+    <a href="japanese-tenses.html" class="back-link" data-immersion-key="backToJapaneseForms">&larr; Back to Japanese verb forms</a>
+    <h1 data-immersion-key="conjugationTestHeading">Conjugation test</h1>
   </header>
 
-  <main class="spanish-tenses-main">
-    <div class="spanish-tenses-toolbar">
-      <label class="spanish-tenses-verb-picker">
-        <span data-immersion-key="exampleVerbLabel">Example verb</span>
-        <select id="tenses-verb-select"></select>
-      </label>
-      <div class="spanish-tenses-test-links">
-        <a href="japanese-conjugation-test.html" id="tenses-test-btn" class="secondary" data-immersion-key="testMeButton">Test me</a>
-        <a href="japanese-sentence-test.html" id="tenses-sentence-test-btn" class="secondary" data-immersion-key="sentenceTestButton">Sentence test</a>
+  <main class="conjugation-test-main">
+    <div class="panel conjugation-test-card">
+      <div id="tenses-test-setup">
+        <p class="hint" data-immersion-key="conjugationTestIntroHintJa">A quick word-level drill on the four special Japanese verb forms — potential, passive, causative, and causative-passive. You'll get all your questions at once, then check them all in one go — graded automatically, no self-marking needed. The dictionary form is allowed under "Show dictionary form" if you get stuck.</p>
+
+        <div class="tenses-test-section">
+          <div class="tenses-test-section-head"><span data-immersion-key="questionCountLabel">Number of questions</span></div>
+          <div class="tenses-test-direction-options">
+            <label><input type="radio" name="tenses-test-question-count" value="5" /> <span data-immersion-key="questionCount5">5 questions</span></label>
+            <label><input type="radio" name="tenses-test-question-count" value="10" checked /> <span data-immersion-key="questionCount10">10 questions</span></label>
+            <label><input type="radio" name="tenses-test-question-count" value="20" /> <span data-immersion-key="questionCount20">20 questions</span></label>
+          </div>
+        </div>
+
+        <div class="tenses-test-section">
+          <div class="tenses-test-section-head"><span data-immersion-key="verbsLabel">Verbs</span></div>
+          <label class="tenses-test-checkbox">
+            <input type="checkbox" id="tenses-test-common-verbs-checkbox" checked />
+            <span data-immersion-key="commonVerbsCheckbox">Most commonly used verbs</span>
+          </label>
+          <p class="hint" data-immersion-key="themeVerbsHintJa">Or pull verbs from your own saved Vocab Bank themes (only verbs saved with a recognized conjugation class are used):</p>
+          <div id="tenses-test-theme-checkboxes" class="tenses-test-verb-checkboxes"></div>
+        </div>
+
+        <div class="tenses-test-section">
+          <div class="tenses-test-section-head">
+            <span data-immersion-key="formsLabel">Forms</span>
+            <div>
+              <button type="button" id="tenses-test-forms-select-all" class="secondary tiny" data-immersion-key="selectAllButton">Select all</button>
+              <button type="button" id="tenses-test-forms-clear" class="secondary tiny" data-immersion-key="clearButton">Clear</button>
+            </div>
+          </div>
+          <div id="tenses-test-form-checkboxes" class="tenses-test-checkboxes-inline"></div>
+        </div>
+
+        <div class="tenses-test-setup-actions">
+          <button type="button" id="tenses-test-start-btn" data-immersion-key="startTestButton">Start test</button>
+        </div>
+
+        <div id="tenses-test-saved-section" class="tenses-test-section" hidden>
+          <div class="tenses-test-section-head"><span data-immersion-key="savedTestsLabel">Your saved tests</span></div>
+          <ul id="tenses-test-saved-list" class="tenses-test-saved-list"></ul>
+        </div>
+      </div>
+
+      <div id="tenses-test-saved-detail" class="card-practice-panel" hidden>
+        <div class="card-practice-top-row">
+          <span id="tenses-test-saved-detail-score" class="card-practice-score"></span>
+          <button type="button" id="tenses-test-saved-detail-back-btn" class="secondary tiny" data-immersion-key="backToSetupButton">← Change setup</button>
+        </div>
+        <div id="tenses-test-saved-detail-list" class="tenses-test-question-list"></div>
+      </div>
+
+      <div id="tenses-test-quiz" class="card-practice-panel" hidden>
+        <div class="card-practice-top-row">
+          <span id="tenses-test-score" class="card-practice-score"></span>
+          <button type="button" id="tenses-test-restart-btn" class="secondary tiny" data-immersion-key="backToSetupButton">← Change setup</button>
+        </div>
+
+        <div id="tenses-test-question-list" class="tenses-test-question-list"></div>
+
+        <div class="tenses-test-setup-actions">
+          <button type="button" id="tenses-test-check-all-btn" data-immersion-key="checkAllButton">Check all</button>
+          <button type="button" id="tenses-test-save-mistakes-btn" class="secondary" hidden data-immersion-key="saveSelectedToMistakesButton">Save selected to Mistakes</button>
+          <button type="button" id="tenses-test-save-btn" class="secondary" hidden data-immersion-key="saveTestButton">Save this test</button>
+          <span id="tenses-test-save-status" class="hint" hidden></span>
+          <span id="tenses-test-mistakes-save-status" class="hint" hidden></span>
+        </div>
       </div>
     </div>
-    <p class="hint" data-immersion-key="clickBoxToSeeFormHint">Click any box to see the meaning and full form. Click again (or outside it) to shrink it back.</p>
-
-    <div id="tenses-grid" class="tenses-grid"></div>
   </main>
-
-  <!-- Enlarged single-form detail, brought to front over everything else. -->
-  <div id="tenses-overlay-backdrop" class="tenses-overlay-backdrop" hidden>
-    <div id="tenses-overlay-card" class="tenses-overlay-card panel">
-      <div class="tenses-overlay-head">
-        <h2 id="tenses-overlay-title"></h2>
-        <button type="button" id="tenses-overlay-close" class="secondary" data-immersion-key="btnClose">Close</button>
-      </div>
-      <table id="tenses-overlay-table" class="tenses-overlay-table"></table>
-    </div>
-  </div>
 
   <script src="js/topbar.js"></script>
   <script src="js/immersion.js"></script>
   <script src="js/app-tabs.js"></script>
   <script src="js/storage.js"></script>
   <script src="js/hub-tasks.js"></script>
-  <script src="js/translate.js"></script>
   <script src="js/ja-conjugator.js"></script>
-  <script src="js/japanese-tenses-app.js"></script>
+  <script src="js/english-verb-forms.js"></script>
+  <script src="js/japanese-conjugation-test-app.js"></script>
 </body>
 </html>

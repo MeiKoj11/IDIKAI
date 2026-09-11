@@ -3612,6 +3612,15 @@ button.secondary.tiny {
   margin-top: 0.4rem;
 }
 
+/* japanese-conjugation-test.html's per-question "Save this to Mistakes"
+   checkbox — a simpler, question-level alternative to the sentence
+   test's word-level drag-flagging above, since each question there IS
+   already one word. Unticked by default, only shown on questions the
+   computer marked wrong. */
+.tenses-test-mistake-checkbox-row {
+  margin-top: 0.5rem;
+}
+
 /* Mistake word flagging (crossed questions only) — clicking a word in
    either stacked sentence colors it blue and opens #mistake-panel at
    the bottom to save it (plus an optional note) to the Grammar Bank's

@@ -120,6 +120,7 @@ const STORAGE_KEYS = {
   hubNotesText: "hub.notesText",
   sentenceTestSaved: "sentenceTest.saved",
   sentenceTestConjugationMistakes: "sentenceTest.conjugationMistakes",
+  conjugationTestSaved: "conjugationTest.saved",
 };
 
 function readJSON(key, fallback) {
@@ -996,6 +997,37 @@ function deleteConjugationMistake(mistakeId) {
   writeJSON(STORAGE_KEYS.sentenceTestConjugationMistakes, mistakes);
 }
 
+// ---- Saved conjugation tests ----
+// A completed, COMPUTER-graded conjugation-test run (see
+// japanese-conjugation-test-app.js) the learner chose to keep — same
+// "saving is always optional" shape as addSavedSentenceTest, but for a
+// test that's graded locally against a deterministic answer rather than
+// self-marked. Read-only once saved: the question list (verb/form, the
+// English cue, the learner's typed answer, the correct answer(s), and
+// whether it was marked right or wrong) plus the overall score.
+
+function getSavedConjugationTests(language) {
+  const tests = readJSON(STORAGE_KEYS.conjugationTestSaved, []);
+  return language ? tests.filter((t) => t.language === language) : tests;
+}
+
+function getSavedConjugationTest(testId) {
+  return getSavedConjugationTests().find((t) => t.id === testId) || null;
+}
+
+function addSavedConjugationTest(test) {
+  const tests = readJSON(STORAGE_KEYS.conjugationTestSaved, []);
+  const record = { id: uid(), createdAt: Date.now(), ...test };
+  tests.push(record);
+  writeJSON(STORAGE_KEYS.conjugationTestSaved, tests);
+  return record;
+}
+
+function deleteSavedConjugationTest(testId) {
+  const tests = readJSON(STORAGE_KEYS.conjugationTestSaved, []).filter((t) => t.id !== testId);
+  writeJSON(STORAGE_KEYS.conjugationTestSaved, tests);
+}
+
 // ---- Hub to-do widget ----
 // A small task list that lives directly on a language's hub page (not
 // tucked inside a bubble) — quick things like "finish reading" or "do
@@ -1156,6 +1188,10 @@ const Storage = {
   getConjugationMistakes,
   addConjugationMistake,
   deleteConjugationMistake,
+  getSavedConjugationTests,
+  getSavedConjugationTest,
+  addSavedConjugationTest,
+  deleteSavedConjugationTest,
   getSpeakingEntries,
   getSpeakingEntry,
   addSpeakingEntry,
