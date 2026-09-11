@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Personal Hub</title>
+  <title>Main Hub</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fahkwang:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -68,7 +68,7 @@
           <option value="writing" data-immersion-key="sectionWriting">Writing</option>
           <option value="speaking" data-immersion-key="sectionSpeaking">Speaking</option>
           <option value="reading" data-immersion-key="sectionReading">Reading</option>
-          <option value="personal-hub" data-immersion-key="sectionPersonalHub">Personal Hub</option>
+          <option value="personal-hub" data-immersion-key="sectionPersonalHub">Main Hub</option>
           <option value="listening" data-immersion-key="sectionListening">Listening</option>
         </select>
         <select id="app-tab-unit-select" hidden>
@@ -81,9 +81,39 @@
   </div>
   <header class="app-header" id="personal-hub-header">
     <a href="index.html" class="back-link" id="personal-hub-back-link" data-immersion-key="backPlain">&larr; Back</a>
-    <h1 id="personal-hub-heading" data-immersion-key="sectionPersonalHub">Personal Hub</h1>
+    <h1 id="personal-hub-heading" data-immersion-key="sectionPersonalHub">Main Hub</h1>
   </header>
   <main>
+    <!-- Storage Locker: saved title+link entries — a PDF hosted
+         elsewhere, a Word doc, any page worth keeping handy. Click a
+         title to open its link in a new tab. Phase 1 is links only, no
+         file upload yet. -->
+    <section class="panel" id="storage-locker-panel">
+      <h2 data-immersion-key="storageLockerHeading">Storage Locker</h2>
+      <p class="hint" data-immersion-key="storageLockerIntro">
+        Save a link to a PDF, Word doc, or anything else worth keeping handy — give it a title, paste the link, and
+        it opens in a new tab whenever you need it.
+      </p>
+      <button type="button" id="add-storage-locker-btn" data-immersion-key="addLinkButton">+ Add link</button>
+      <div id="storage-locker-form-wrap" hidden>
+        <form id="storage-locker-form" class="stacked-form">
+          <label>
+            <span data-immersion-key="titleLabel">Title</span>
+            <input type="text" id="storage-locker-title" placeholder="e.g. Chapter 4 homework" required data-immersion-key="storageLockerTitlePlaceholder" />
+          </label>
+          <label>
+            <span data-immersion-key="linkLabel">Link</span>
+            <input type="text" id="storage-locker-url" placeholder="https://..." required data-immersion-key="storageLockerUrlPlaceholder" />
+          </label>
+          <div class="detection-actions">
+            <button type="submit" data-immersion-key="btnSave">Save</button>
+            <button type="button" id="cancel-storage-locker" class="secondary" data-immersion-key="btnCancel">Cancel</button>
+          </div>
+        </form>
+      </div>
+      <ul id="storage-locker-list" class="word-list storage-locker-list"></ul>
+    </section>
+
     <!-- Helper Notebook: two quick reminder lists (Late / Homework) plus
          a standing pair of notes fields — distinct from the freeform
          bubbles below, which you create yourself one at a time. -->

@@ -121,6 +121,7 @@ const STORAGE_KEYS = {
   sentenceTestSaved: "sentenceTest.saved",
   sentenceTestConjugationMistakes: "sentenceTest.conjugationMistakes",
   conjugationTestSaved: "conjugationTest.saved",
+  storageLockerItems: "mainHub.storageLocker",
 };
 
 function readJSON(key, fallback) {
@@ -901,7 +902,7 @@ function updateHelperWordNotes(wordId, notes) {
   return word;
 }
 
-// ---- Personal Hub ----
+// ---- Main Hub ----
 // The "make your own bubble" space — freeform note cards (a title plus
 // a block of text) with no imposed structure, so a to-do list, a random
 // idea, or anything else all fit the same simple shape. Per-language,
@@ -936,6 +937,33 @@ function updatePersonalNote(noteId, updates) {
 function deletePersonalNote(noteId) {
   const notes = readJSON(STORAGE_KEYS.personalNotes, []).filter((n) => n.id !== noteId);
   writeJSON(STORAGE_KEYS.personalNotes, notes);
+}
+
+// ---- Main Hub storage locker ----
+// A saved title + URL — click opens the link in a new tab. Phase 1 of
+// the storage locker: just links (to a PDF hosted on Drive/Dropbox/
+// wherever, or any other page worth keeping handy), not file uploads —
+// see the in-chat discussion of why real file storage needs its own
+// infrastructure decision before building. Same per-language shape as
+// Personal Notes, for the same reason (a language's own homework/
+// resources don't belong mixed in with another language's).
+
+function getStorageLockerItems(language) {
+  const items = readJSON(STORAGE_KEYS.storageLockerItems, []);
+  return language ? items.filter((i) => i.language === language) : items;
+}
+
+function addStorageLockerItem(item) {
+  const items = readJSON(STORAGE_KEYS.storageLockerItems, []);
+  const entry = { id: uid(), createdAt: Date.now(), ...item };
+  items.push(entry);
+  writeJSON(STORAGE_KEYS.storageLockerItems, items);
+  return entry;
+}
+
+function deleteStorageLockerItem(itemId) {
+  const items = readJSON(STORAGE_KEYS.storageLockerItems, []).filter((i) => i.id !== itemId);
+  writeJSON(STORAGE_KEYS.storageLockerItems, items);
 }
 
 // ---- Saved sentence tests ----
@@ -1101,7 +1129,7 @@ function deleteTaskFolder(folderId) {
   if (changed) writeJSON(STORAGE_KEYS.hubTasks, tasks);
 }
 
-// ---- Helper Notebook hub panel (Personal Hub) ----
+// ---- Helper Notebook hub panel (Main Hub) ----
 // Two quick-add reminder lists ("late" and "homework" — just short
 // lines, no started/completed tracking like the to-do widget has) plus
 // a standing pair of notes fields. Distinct from Writing's own Helper
@@ -1127,7 +1155,7 @@ function deleteHubReminder(reminderId) {
 }
 
 // Notes to self / notes to teacher — one standing pair per language,
-// not a list of entries (unlike Personal Hub's freeform bubbles below),
+// not a list of entries (unlike Main Hub's freeform bubbles below),
 // so it's always the same two boxes rather than something you create.
 function getHubNotesText(language) {
   const all = readJSON(STORAGE_KEYS.hubNotesText, {});
@@ -1214,6 +1242,9 @@ const Storage = {
   addPersonalNote,
   updatePersonalNote,
   deletePersonalNote,
+  getStorageLockerItems,
+  addStorageLockerItem,
+  deleteStorageLockerItem,
   getTasks,
   addTask,
   updateTask,

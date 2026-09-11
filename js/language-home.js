@@ -2,13 +2,13 @@
   language-home.js
   -----------------
   Renders the 7-bubble hub for a single language (language-home.html?lang=es|ja):
-  6 subject sections arranged in a flower pattern around a 7th "Personal
-  Hub" bubble (your own freeform notes/to-do space) in the middle. Same
-  layout for every language — only the accent color and which bubbles
-  are enabled differ.
+  6 subject sections arranged in a flower pattern around a 7th "Main
+  Hub" bubble (storage locker, freeform notes, to-do space) in the
+  middle. Same layout for every language — only the accent color and
+  which bubbles are enabled differ.
 
   Each bubble has a `row` (1, 2, or 3) matching where it sits in the
-  flower: row 1 is the top pair, row 2 is the middle trio (Personal Hub
+  flower: row 1 is the top pair, row 2 is the middle trio (Main Hub
   always centered), row 3 is the bottom pair.
 */
 
@@ -44,9 +44,9 @@ const HUB_BUBBLES = [
     row: 2,
   },
   {
-    title: "Personal Hub",
+    title: "Main Hub",
     titleKey: "sectionPersonalHub",
-    sub: "Your own space — notes, to-do lists, anything",
+    sub: "Storage locker, notes, to-do lists, anything",
     subKey: "subPersonalHub",
     href: (lang) => `personal-hub.html?lang=${lang}`,
     available: () => true,
@@ -120,7 +120,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const el = document.createElement(isAvailable && href ? "a" : "div");
     el.className = isAvailable && href ? `bubble lang-${lang}` : "bubble bubble-disabled";
     if (isAvailable && href) el.href = href;
-    if (bubble.title === "Personal Hub") el.classList.add("bubble-personal-hub");
+    if (bubble.title === "Main Hub") el.classList.add("bubble-personal-hub");
 
     const titleEl = document.createElement("span");
     titleEl.className = "bubble-title";

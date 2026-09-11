@@ -58,7 +58,7 @@ const IMMERSION_STRINGS = {
   sectionWriting: { es: "Escritura", ja: "ライティング", fr: "Écriture" },
   sectionSpeaking: { es: "Habla", ja: "スピーキング", fr: "Expression orale" },
   sectionReading: { es: "Lectura", ja: "リーディング", fr: "Lecture" },
-  sectionPersonalHub: { es: "Espacio personal", ja: "パーソナルハブ", fr: "Espace personnel" },
+  sectionPersonalHub: { es: "Centro principal", ja: "メインハブ", fr: "Espace principal" },
   sectionListening: { es: "Escucha", ja: "リスニング", fr: "Écoute" },
   allLanguagesLink: { es: "Todos los idiomas", ja: "すべての言語", fr: "Toutes les langues" },
 
@@ -85,7 +85,7 @@ const IMMERSION_STRINGS = {
   noTranslationFoundHint: { es: "No se encontró traducción — igual puedes añadirla manualmente desde el Banco de Vocabulario.", ja: "翻訳が見つかりませんでした — 単語帳から手動で追加することもできます。", fr: "Aucune traduction trouvée — tu peux quand même l'ajouter manuellement depuis la Banque de vocabulaire." },
   grammarLookupFailedHint: { es: "No se pudo buscar esto automáticamente — igual puedes guardarlo y escribir tus propias notas.", ja: "自動で調べられませんでした — 保存して自分でメモを書くこともできます。", fr: "Impossible de rechercher cela automatiquement — tu peux quand même l'enregistrer et écrire tes propres notes." },
 
-  // ---- Personal Hub ----
+  // ---- Main Hub ----
   helperNotebookHeading: { es: "Cuaderno de ayuda", ja: "ヘルパーノート", fr: "Cahier d'aide" },
   hubLateLabel: { es: "Atrasado", ja: "遅れ", fr: "En retard" },
   hubLatePlaceholder: { es: "p. ej. Lectura del capítulo 4", ja: "例：第4章の読解", fr: "p. ex. Lecture du chapitre 4" },
@@ -103,12 +103,23 @@ const IMMERSION_STRINGS = {
   },
   addBubbleButton: { es: "+ Añadir burbuja", ja: "+ バブルを追加", fr: "+ Ajouter une bulle" },
   personalNoteTitlePlaceholder: { es: "p. ej. Lista de tareas", ja: "例：やることリスト", fr: "p. ex. Liste de tâches" },
+  storageLockerHeading: { es: "Casillero de almacenamiento", ja: "保管庫", fr: "Casier de stockage" },
+  storageLockerIntro: {
+    es: "Guarda un enlace a un PDF, documento de Word o cualquier otra cosa útil — ponle un título, pega el enlace, y se abrirá en una pestaña nueva cuando lo necesites.",
+    ja: "PDFやWord文書、その他役立つもののリンクを保存しましょう — タイトルを付けてリンクを貼れば、必要なときに新しいタブで開きます。",
+    fr: "Enregistre un lien vers un PDF, un document Word ou autre chose d'utile — donne-lui un titre, colle le lien, et il s'ouvrira dans un nouvel onglet quand tu en auras besoin.",
+  },
+  addLinkButton: { es: "+ Añadir enlace", ja: "+ リンクを追加", fr: "+ Ajouter un lien" },
+  storageLockerTitlePlaceholder: { es: "p. ej. Tarea del capítulo 4", ja: "例：第4章の宿題", fr: "p. ex. Devoirs du chapitre 4" },
+  linkLabel: { es: "Enlace", ja: "リンク", fr: "Lien" },
+  storageLockerUrlPlaceholder: { es: "https://...", ja: "https://...", fr: "https://..." },
+  noStorageLockerItemsText: { es: "Todavía no hay nada guardado — añade un enlace arriba.", ja: "まだ何も保存されていません — 上でリンクを追加してください。", fr: "Rien d'enregistré pour l'instant — ajoute un lien ci-dessus." },
 
   // ---- Language home bubble descriptions ----
   subVocab: { es: "Temas, palabras, conjugación de verbos, tarjetas", ja: "テーマ、単語、動詞の活用、単語カード", fr: "Thèmes, mots, conjugaison, cartes mémo" },
   subGrammar: { es: "Tus propias notas sobre estructuras y patrones", ja: "文の構造やパターンに関する自分のメモ", fr: "Tes propres notes sur les structures et les tournures" },
   subWriting: { es: "Entradas tipo diario con fecha, vinculadas a un texto de referencia", ja: "日付付きの日記形式のエントリー、参照用の文章にリンク", fr: "Entrées façon journal datées, liées à un texte de référence" },
-  subPersonalHub: { es: "Tu propio espacio — notas, listas de tareas, lo que sea", ja: "あなた自身のスペース — メモ、やることリスト、何でも", fr: "Ton propre espace — notes, listes de tâches, n'importe quoi" },
+  subPersonalHub: { es: "Casillero de almacenamiento, notas, listas de tareas, lo que sea", ja: "保管庫、メモ、やることリスト、何でも", fr: "Casier de stockage, notes, listes de tâches, n'importe quoi" },
   subReading: { es: "Textos con búsqueda de palabras al hacer clic", ja: "クリックで単語を調べられる文章", fr: "Textes avec recherche de mots en un clic" },
   subSpeaking: { es: "Grábate hablando, vinculado a un texto para leer en voz alta", ja: "音読するための文章にリンクした自分の発話の録音", fr: "Enregistre-toi en train de parler, lié à un texte à lire à voix haute" },
   comingSoon: { es: "Próximamente", ja: "近日公開", fr: "Bientôt disponible" },
@@ -444,7 +455,7 @@ const IMMERSION_STRINGS = {
   copyButton: { es: "Copiar", ja: "コピー", fr: "Copier" },
   addThemeWithWordsFirstText: { es: "Primero añade un tema con algunas palabras.", ja: "まず単語のあるテーマを追加してください。", fr: "Ajoute d'abord un thème avec quelques mots." },
 
-  // ---- Personal Hub dynamic UI ----
+  // ---- Main Hub dynamic UI ----
   noBubblesYetText: { es: "Todavía no hay burbujas — añade una arriba.", ja: "まだバブルがありません — 上で追加してください。", fr: "Pas encore de bulles — ajoutes-en une ci-dessus." },
 };
 

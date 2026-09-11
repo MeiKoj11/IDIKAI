@@ -1,10 +1,12 @@
 /*
   personal-hub.js
   ---------------
-  The "make your own bubble" space — freeform note cards (a title plus
-  a block of text) with no imposed structure. Deliberately the simplest
-  CRUD in the whole app: no folders, no AI, no per-language quirks beyond
-  filtering — just add, edit, delete.
+  The Main Hub page: the "make your own bubble" space (freeform note
+  cards — a title plus a block of text, no imposed structure), plus the
+  Storage Locker (saved title+link entries, phase 1 of a proper file
+  storage feature — see the Storage Locker block below for the full
+  rationale). Deliberately simple CRUD throughout: no folders, no AI,
+  no per-language quirks beyond filtering — just add, edit, delete.
 */
 
 const PERSONAL_HUB_LANGUAGE_NAMES = { es: "Spanish", ja: "Japanese", fr: "French" };
@@ -24,7 +26,7 @@ document.addEventListener("DOMContentLoaded", () => {
   activePersonalLang = SUPPORTED_LANGUAGES.includes(langParam) ? langParam : "es";
 
   const heading = document.getElementById("personal-hub-heading");
-  if (heading) heading.textContent = `${PERSONAL_HUB_LANGUAGE_NAMES[activePersonalLang]} Personal Hub`;
+  if (heading) heading.textContent = `${PERSONAL_HUB_LANGUAGE_NAMES[activePersonalLang]} Main Hub`;
   const backLink = document.getElementById("personal-hub-back-link");
   if (backLink) backLink.href = `language-home.html?lang=${activePersonalLang}`;
   const header = document.getElementById("personal-hub-header");
@@ -34,7 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initAppTabs({
     section: "personal-hub",
     language: activePersonalLang,
-    label: `${PERSONAL_HUB_LANGUAGE_NAMES[activePersonalLang]} Personal Hub`,
+    label: `${PERSONAL_HUB_LANGUAGE_NAMES[activePersonalLang]} Main Hub`,
     href: `personal-hub.html?lang=${activePersonalLang}`,
   });
 
@@ -51,7 +53,135 @@ document.addEventListener("DOMContentLoaded", () => {
   if (form) form.addEventListener("submit", handleAddPersonalNoteSubmit);
 
   list.addEventListener("click", handlePersonalNoteListClick);
+
+  renderStorageLockerList();
+
+  const addStorageLockerBtn = document.getElementById("add-storage-locker-btn");
+  if (addStorageLockerBtn) addStorageLockerBtn.addEventListener("click", showAddStorageLockerForm);
+
+  const cancelStorageLockerBtn = document.getElementById("cancel-storage-locker");
+  if (cancelStorageLockerBtn) cancelStorageLockerBtn.addEventListener("click", hideAddStorageLockerForm);
+
+  const storageLockerForm = document.getElementById("storage-locker-form");
+  if (storageLockerForm) storageLockerForm.addEventListener("submit", handleAddStorageLockerSubmit);
+
+  const storageLockerList = document.getElementById("storage-locker-list");
+  if (storageLockerList) storageLockerList.addEventListener("click", handleStorageLockerListClick);
 });
+
+// ---------------------------------------------------------------------
+// Storage Locker — a saved title + link, click to open in a new tab.
+// Phase 1 of a proper file storage feature: links only (to a PDF on
+// Drive/Dropbox/wherever, or any other page), not file uploads yet —
+// real uploads need their own storage/backup infrastructure decision
+// before building (this app's DB+backups are sized for small text
+// data, not binary files), so this ships the useful, zero-risk half
+// first. Same per-language CRUD shape as Personal Notes above.
+// ---------------------------------------------------------------------
+
+function showAddStorageLockerForm() {
+  const wrap = document.getElementById("storage-locker-form-wrap");
+  if (wrap) wrap.hidden = false;
+  const addBtn = document.getElementById("add-storage-locker-btn");
+  if (addBtn) addBtn.hidden = true;
+  const titleInput = document.getElementById("storage-locker-title");
+  if (titleInput) titleInput.focus();
+}
+
+function hideAddStorageLockerForm() {
+  const wrap = document.getElementById("storage-locker-form-wrap");
+  if (wrap) wrap.hidden = true;
+  const addBtn = document.getElementById("add-storage-locker-btn");
+  if (addBtn) addBtn.hidden = false;
+  const form = document.getElementById("storage-locker-form");
+  if (form) form.reset();
+}
+
+// Adds https:// when the learner pastes a bare domain/path with no
+// scheme — otherwise the saved link's href would be treated as
+// relative to whatever page it's clicked from, instead of navigating
+// out to the real address.
+function normalizeStorageLockerUrl(raw) {
+  const trimmed = (raw || "").trim();
+  if (!trimmed) return "";
+  return /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
+function handleAddStorageLockerSubmit(e) {
+  e.preventDefault();
+  const titleInput = document.getElementById("storage-locker-title");
+  const urlInput = document.getElementById("storage-locker-url");
+  const title = titleInput.value.trim();
+  const url = normalizeStorageLockerUrl(urlInput.value);
+  if (!title || !url) return;
+
+  Storage.addStorageLockerItem({
+    language: activePersonalLang,
+    title,
+    url,
+  });
+
+  hideAddStorageLockerForm();
+  renderStorageLockerList();
+}
+
+function renderStorageLockerList() {
+  const list = document.getElementById("storage-locker-list");
+  if (!list) return;
+  const items = Storage.getStorageLockerItems(activePersonalLang)
+    .slice()
+    .sort((a, b) => b.createdAt - a.createdAt);
+  list.innerHTML = "";
+
+  if (items.length === 0) {
+    const li = document.createElement("li");
+    li.className = "empty-hint";
+    li.textContent = "Nothing saved yet — add a link above.";
+    li.dataset.immersionKey = "noStorageLockerItemsText";
+    list.appendChild(li);
+    return;
+  }
+
+  items.forEach((item) => {
+    const li = document.createElement("li");
+    li.className = "word-item storage-locker-item";
+
+    const main = document.createElement("div");
+    main.className = "word-main";
+
+    const link = document.createElement("a");
+    link.className = "word-label storage-locker-link";
+    link.textContent = item.title;
+    link.href = item.url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    main.appendChild(link);
+
+    li.appendChild(main);
+
+    const actions = document.createElement("span");
+    actions.className = "word-actions";
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.type = "button";
+    deleteBtn.className = "secondary delete-storage-locker-btn";
+    deleteBtn.textContent = "Delete";
+    deleteBtn.dataset.immersionKey = "btnDelete";
+    deleteBtn.dataset.itemId = item.id;
+    actions.appendChild(deleteBtn);
+
+    li.appendChild(actions);
+    list.appendChild(li);
+  });
+}
+
+function handleStorageLockerListClick(e) {
+  if (e.target.classList.contains("delete-storage-locker-btn")) {
+    if (!confirm("Delete this saved link?")) return;
+    Storage.deleteStorageLockerItem(e.target.dataset.itemId);
+    renderStorageLockerList();
+  }
+}
 
 function showAddPersonalNoteForm() {
   const wrap = document.getElementById("personal-note-form-wrap");

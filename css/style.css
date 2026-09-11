@@ -500,7 +500,7 @@ main {
 }
 
 /* Per-language home page — full-width topbar (same as every other page,
-   no card wrapper), then the 6 sections plus a center "Personal Hub"
+   no card wrapper), then the 6 sections plus a center "Main Hub"
    bubble arranged in a flower: a top pair, a middle trio, a bottom pair,
    each row nudged closer to the next so they interlock a bit. */
 
@@ -1065,7 +1065,7 @@ a.secondary:hover {
   font-size: 0.9rem;
 }
 
-/* Personal Hub */
+/* Main Hub */
 
 .personal-note-list {
   margin-top: 1.25rem;
@@ -1106,6 +1106,26 @@ a.secondary:hover {
   color: #C0BFB2;
   font-size: 0.9rem;
   font-style: italic;
+}
+
+/* Storage Locker — reuses .word-list/.word-item/.word-main/.word-actions
+   from the shared list layout above; only the link itself (in place of
+   a plain <span>) needs its own color/underline treatment, since an
+   unstyled <a> would otherwise show up in the browser's default blue. */
+
+.storage-locker-list {
+  margin-top: 1.25rem;
+}
+
+.storage-locker-link {
+  color: #ECE6D3;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.storage-locker-link:hover,
+.storage-locker-link:focus-visible {
+  text-decoration: underline;
 }
 
 /* Verb detection panel */

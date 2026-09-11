@@ -54,7 +54,7 @@ const APP_TAB_SECTION_LABELS = {
   writing: "Writing",
   speaking: "Speaking",
   reading: "Reading",
-  "personal-hub": "Personal Hub",
+  "personal-hub": "Main Hub",
   listening: "Listening",
 };
 

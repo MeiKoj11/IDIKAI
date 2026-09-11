@@ -26,7 +26,7 @@
     It also enriches that word's Helper Notebook record with the
     looked-up translation (and, for Japanese, its reading) instead of
     creating a second entry.
-  - A saved entry defaults to a read-only view (matching Personal Hub's
+  - A saved entry defaults to a read-only view (matching Main Hub's
     view/edit pattern) so the red highlighting has somewhere to live —
     a plain <textarea> can't color part of its own text. Edit switches
     back to the plain typing box.
@@ -661,7 +661,7 @@ function handleEntryDetailsSubmit(e) {
 }
 
 // ---- Helper Notebook: personal / teacher notes ----
-// Reuses the same per-language notes as Personal Hub's Helper Notebook
+// Reuses the same per-language notes as Main Hub's Helper Notebook
 // panel (Storage.getHubNotesText/updateHubNotesText) rather than a
 // separate per-entry copy — one standing pair of notes per language,
 // editable from wherever you happen to be writing.
