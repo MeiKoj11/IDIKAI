@@ -37,6 +37,11 @@ let pendingDetection = null;
 let editingWordId = null;
 // id of the word currently showing its inline move/copy panel, or null.
 let movingWordId = null;
+// How the word list is currently ordered — "newest" (createdAt
+// descending), "target-az" (alphabetical by targetLang), or
+// "english-az" (alphabetical by english). Defaults to newest-first,
+// matching the sort dropdown's default selection.
+let wordListSortMode = "newest";
 // { query, partOfSpeech, verbClass } (Japanese) or { query, partOfSpeech,
 // verbType } (Spanish/French) set right after a dictionary lookup that
 // identified a verb and its conjugation class — consumed (and cleared)
@@ -117,10 +122,11 @@ function applyActiveThemeToUI() {
   const hubAddLink = document.getElementById("theme-hub-add-link");
   if (hubAddLink) hubAddLink.href = `add-vocab.html?id=${id}`;
   // "View Vocab" opens the same add-vocab.html page (it already renders
-  // the saved-words list) but jumps straight to the word-list section
-  // rather than the add-a-word form at the top.
+  // the saved-words list) in a stripped-down ?view=list mode that hides
+  // the add-a-word form and bulk-import panel, so it actually reads as
+  // a plain list rather than looking identical to "Add New Vocab".
   const hubViewLink = document.getElementById("theme-hub-view-link");
-  if (hubViewLink) hubViewLink.href = `add-vocab.html?id=${id}#word-list-panel`;
+  if (hubViewLink) hubViewLink.href = `add-vocab.html?id=${id}&view=list`;
 
   // Verb conjugation is a Spanish-only concept (conjugation tables,
   // detected verb forms, the conjugation quiz mode) — hide every entry
@@ -165,10 +171,29 @@ document.addEventListener("DOMContentLoaded", () => {
     if (newThemeLangSelect) newThemeLangSelect.value = activeLangFilter;
   }
 
+  // "View Vocab" (theme.html's third bubble) reaches this same page
+  // with ?view=list — hides the add-word form and bulk-import panel so
+  // it actually reads as a plain list rather than looking identical to
+  // "Add New Vocab", per the whole point of that being a separate
+  // option in the first place.
+  if (getQueryParam("view") === "list") {
+    const addWordPanel = document.getElementById("add-word-panel");
+    const bulkImportPanel = document.getElementById("bulk-import-panel");
+    if (addWordPanel) addWordPanel.hidden = true;
+    if (bulkImportPanel) bulkImportPanel.hidden = true;
+    const heading = document.getElementById("add-vocab-heading");
+    if (heading) {
+      heading.textContent = "View Vocab";
+      heading.dataset.immersionKey = "viewVocabHeading";
+    }
+  }
+
   renderThemeList();
   renderQuizThemeCheckboxes();
   renderQuizTenseCheckboxes();
   renderConjugationTablesPanel();
+
+  on("word-list-sort-select", "change", handleWordListSortChange);
 
   on("new-theme-form", "submit", handleNewThemeSubmit);
   on("theme-rename-btn", "click", handleRenameThemeClick);
@@ -874,12 +899,36 @@ function handleBulkImportDiscard() {
 // Word list
 // ---------------------------------------------------------------------
 
+function handleWordListSortChange(e) {
+  wordListSortMode = e.target.value;
+  renderWordList();
+}
+
+// Sorts a COPY of the words array — Storage.getWords already returns a
+// fresh array each call, but .slice() here makes that non-mutation
+// explicit rather than relying on that. "newest" sorts by createdAt
+// descending (falling back to array order for any very old record that
+// somehow lacks it); the two alphabetical modes use localeCompare so
+// accented characters (á, é...) and, for Japanese, furigana/kana sort
+// sensibly rather than by raw char code.
+function sortedWordsForDisplay(words) {
+  const sorted = words.slice();
+  if (wordListSortMode === "target-az") {
+    sorted.sort((a, b) => (a.targetLang || "").localeCompare(b.targetLang || ""));
+  } else if (wordListSortMode === "english-az") {
+    sorted.sort((a, b) => (a.english || "").localeCompare(b.english || ""));
+  } else {
+    sorted.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  }
+  return sorted;
+}
+
 function renderWordList() {
   if (!activeTheme) return;
   const list = document.getElementById("word-list");
   if (!list) return;
   renderThemeList(); // keep each theme's word-count badge in sync (no-op if not on this page)
-  const words = Storage.getWords(activeTheme.id);
+  const words = sortedWordsForDisplay(Storage.getWords(activeTheme.id));
   list.innerHTML = "";
 
   if (words.length === 0) {

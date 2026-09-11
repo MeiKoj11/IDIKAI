@@ -81,7 +81,7 @@
   </div>
   <header class="app-header" id="page-header">
     <a href="theme.html" id="add-vocab-back-link" class="back-link" data-immersion-key="backPlain">&larr; Back</a>
-    <h1 data-immersion-key="addNewVocabHeading">Add New Vocab</h1>
+    <h1 id="add-vocab-heading" data-immersion-key="addNewVocabHeading">Add New Vocab</h1>
   </header>
 
   <main id="vocab-main-content">
@@ -167,7 +167,17 @@
       <p id="bulk-import-save-status" class="hint" hidden></p>
     </section>
     <section class="panel" id="word-list-panel">
-      <h2><span data-immersion-key="wordsHeadingPrefix">Words —</span> <span id="active-theme-name-2"></span></h2>
+      <div class="word-list-panel-header">
+        <h2><span data-immersion-key="wordsHeadingPrefix">Words —</span> <span id="active-theme-name-2"></span></h2>
+        <label class="word-list-sort-label">
+          <span data-immersion-key="sortByLabel">Sort by</span>
+          <select id="word-list-sort-select">
+            <option value="newest" data-immersion-key="sortNewestOption">Newest first</option>
+            <option value="target-az" data-immersion-key="sortTargetAzOption">A–Z (target language)</option>
+            <option value="english-az" data-immersion-key="sortEnglishAzOption">A–Z (English)</option>
+          </select>
+        </label>
+      </div>
       <ul id="word-list" class="word-list"></ul>
     </section>
     <section class="panel" id="conjugation-tables-panel" hidden>
