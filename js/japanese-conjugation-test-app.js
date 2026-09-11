@@ -154,6 +154,47 @@ function buildEnglishCue(verb, form) {
 }
 
 // ---------------------------------------------------------------------
+// Tense-matched grading. JaConjugator.acceptableAnswers/checkJapaneseAnswer
+// always compute the plain NON-PAST form (書かれる, not 書かれた) — that's
+// the right thing for the grammar-app.js quiz this engine was originally
+// built for (which teaches the bare form in isolation), but the four cue
+// templates above deliberately mix tenses to read as natural English:
+// "I can swim."/"I am made to study." are non-past, but "It was
+// written."/"I made them eat." are past. Grading every form against only
+// the non-past answer would mark a correctly-past-tense passive/causative
+// answer WRONG (and a non-past answer, which doesn't match the English
+// tense at all, "right"). Every one of the four forms conjugates exactly
+// like an ichidan verb ending in る, so its past tense is always that
+// same stem with た swapped in for the final る (書かれる -> 書かれた,
+// 食べさせる -> 食べさせた) — a safe, general string transform rather
+// than anything JaConjugator itself needs to special-case.
+const CUE_TENSE_IS_PAST = {
+  potential: false,
+  passive: true,
+  causative: true,
+  causativePassive: false,
+};
+
+function toPastTense(s) {
+  if (!s || s.slice(-1) !== "る") return s;
+  return s.slice(0, -1) + "た";
+}
+
+// The acceptable answer set for THIS test's cue sentence — past-tense
+// variants for passive/causative, the plain JaConjugator form otherwise.
+function acceptableAnswersForCue(verb, form) {
+  const nonPast = JaConjugator.acceptableAnswers(verb, form);
+  return CUE_TENSE_IS_PAST[form] ? nonPast.map(toPastTense) : nonPast;
+}
+
+function checkCueAnswer(verb, form, typed) {
+  const answers = acceptableAnswersForCue(verb, form);
+  const normalizedTyped = JaConjugator.normalizeJapaneseAnswer(typed);
+  const correct = !!normalizedTyped && answers.some((a) => JaConjugator.normalizeJapaneseAnswer(a) === normalizedTyped);
+  return { correct, answers };
+}
+
+// ---------------------------------------------------------------------
 // Question-set building — picks N random {verb, form} pairs. Requires
 // both a recognized conjugation class (needed for local grading) AND a
 // saved reading (kanji alone isn't enough to grade against — see
@@ -348,7 +389,7 @@ function checkAllAnswers() {
   session.queue.forEach((q, i) => {
     const refs = session.cardRefs[i];
     q.answer = refs.input.value.trim();
-    const result = JaConjugator.checkJapaneseAnswer(q.verb, q.form, q.answer);
+    const result = checkCueAnswer(q.verb, q.form, q.answer);
     q.correct = result.correct;
     q.acceptableAnswers = result.answers;
 
