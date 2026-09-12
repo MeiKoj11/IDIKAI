@@ -51,6 +51,7 @@ a:hover { color: var(--ink); text-decoration: underline; }
   z-index: 40;
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 10px;
   height: 58px;
   padding: 0 20px;
@@ -71,6 +72,19 @@ a:hover { color: var(--ink); text-decoration: underline; }
 .topbar-notifications,
 .topbar-todo,
 .topbar-home {
+  /* style.css's original topbar centered the language label and pinned
+     these buttons to the bar's corners with position:absolute — this
+     newer topbar is a plain flex row instead, so that old absolute
+     positioning (plus its left/top/right/transform offsets, which
+     otherwise keep applying since this rule never touched them) has to
+     be explicitly cancelled, or the buttons float off at their old
+     fixed coordinates and overlap the language label instead of
+     sitting in the row like normal flex children. */
+  position: static;
+  top: auto;
+  left: auto;
+  right: auto;
+  transform: none;
   display: flex;
   align-items: center;
   justify-content: center;
