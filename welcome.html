@@ -70,13 +70,15 @@
       flex-direction: column;
       align-items: center;
       gap: 14px;
+      white-space: nowrap;
+    }
+    .welcome-spine-text {
       font-size: 11px;
       letter-spacing: 0.22em;
       text-transform: uppercase;
       color: rgba(236,230,211,0.6);
       writing-mode: vertical-rl;
       transform: rotate(180deg);
-      white-space: nowrap;
     }
     .welcome-spine::after {
       content: "";
@@ -185,7 +187,7 @@
 <body class="welcome-body">
   <main class="welcome-main">
     <a href="about.html" class="welcome-about-link">About us</a>
-    <div class="welcome-spine">Est. 2026</div>
+    <div class="welcome-spine"><span class="welcome-spine-text">Est. 2026</span></div>
     <div class="welcome-content">
       <h1 class="welcome-title" id="welcome-title">Idikai</h1>
       <blockquote class="welcome-quote">
