@@ -72,6 +72,13 @@ const IMMERSION_STRINGS = {
   },
   newSectionButton: { es: "Nueva sección", ja: "新しいセクション", fr: "Nouvelle section" },
   addSectionLabel: { es: "Añadir sección", ja: "セクションを追加", fr: "Ajouter une section" },
+  fullConjugationTestTitle: { es: "Prueba de conjugación completa", ja: "活用テスト（全体）", fr: "Test de conjugaison complet" },
+  fullConjugationTestSub: {
+    es: "Ejercicios corregidos automáticamente con todas las formas verbales, no solo esta.",
+    ja: "このパターンだけでなく、すべての活用形を対象にしたコンピューター採点のドリル。",
+    fr: "Exercices corrigés automatiquement portant sur toutes les formes verbales, pas seulement celle-ci.",
+  },
+  startLabel: { es: "Empezar", ja: "開始", fr: "Commencer" },
 
   // ---- Generic, reused across many pages ----
   backPlain: { es: "← Volver", ja: "← 戻る", fr: "← Retour" },

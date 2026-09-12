@@ -80,28 +80,42 @@
       </div>
     </div>
   </div>
-  <header class="app-header" id="conj-note-header">
-    <a href="grammar.html" class="back-link" id="conj-note-back-link" data-immersion-key="backToFolder">&larr; Back to folder</a>
-    <h1 id="conj-note-heading" data-immersion-key="grammarPatternHeading">Grammar pattern</h1>
-  </header>
   <main>
-    <section class="panel" id="conj-note-panel" hidden>
-      <details id="conj-explanation-details" class="conj-note-section" open>
-        <summary data-immersion-key="explanationSummary">Explanation</summary>
-        <p id="conj-note-explanation" class="conj-note-explanation"></p>
-      </details>
+    <div class="pagehead" id="conj-note-header">
+      <a href="grammar.html" class="back-link" id="conj-note-back-link" data-immersion-key="backToFolder">&larr; Back to folder</a>
+      <h1 class="page-title" style="margin-top:8px; font-size:clamp(26px,4vw,38px)" id="conj-note-heading" data-immersion-key="grammarPatternHeading">Grammar pattern</h1>
+    </div>
+    <div class="cols">
+      <div class="col-main" style="gap:20px">
+        <section class="panel" id="conj-note-panel" hidden>
+          <details id="conj-explanation-details" class="conj-note-section" open>
+            <summary data-immersion-key="explanationSummary">Explanation</summary>
+            <p id="conj-note-explanation" class="conj-note-explanation"></p>
+          </details>
 
-      <details id="conj-examples-details" class="conj-note-section">
-        <summary data-immersion-key="examplesHeading">Examples</summary>
-        <div id="conj-note-examples"></div>
-      </details>
+          <details id="conj-examples-details" class="conj-note-section">
+            <summary data-immersion-key="examplesHeading">Examples</summary>
+            <div id="conj-note-examples"></div>
+          </details>
 
-      <details id="conj-practice-details" class="conj-note-section">
-        <summary data-immersion-key="testMePracticeSummary">Test me / Practice</summary>
-        <div id="conj-practice-root" class="card-practice-panel conjugation-practice-panel"></div>
-      </details>
-    </section>
-    <p id="conj-note-not-found" class="hint" hidden data-immersion-key="patternNotFound">Couldn't find that grammar pattern.</p>
+          <details id="conj-practice-details" class="conj-note-section">
+            <summary data-immersion-key="testMePracticeSummary">Test me / Practice</summary>
+            <div id="conj-practice-root" class="card-practice-panel conjugation-practice-panel"></div>
+          </details>
+        </section>
+        <p id="conj-note-not-found" class="hint" hidden data-immersion-key="patternNotFound">Couldn't find that grammar pattern.</p>
+      </div>
+      <div class="col-side" id="conj-note-side">
+        <a href="japanese-conjugation-test.html" class="card card-red card-lift" style="display:flex; flex-direction:column; gap:8px; padding:20px">
+          <span style="font-family:'Fahkwang',serif; font-weight:500; font-size:22px; line-height:1.1" data-immersion-key="fullConjugationTestTitle">Conjugation Test</span>
+          <span class="card-text" data-immersion-key="fullConjugationTestSub">Computer-graded drills across every verb form, not just this one.</span>
+          <span style="display:flex; align-items:center; gap:8px; margin-top:2px; font-size:11px; letter-spacing:0.14em; text-transform:uppercase">
+            <span data-immersion-key="startLabel">Start</span>
+            <span style="font-size:15px; line-height:1">&rarr;</span>
+          </span>
+        </a>
+      </div>
+    </div>
   </main>
   <script src="js/topbar.js"></script>
   <script src="js/immersion.js"></script>

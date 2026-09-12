@@ -278,11 +278,17 @@ function initGrammarConjugationNotePage() {
 
   if (!note || note.practiceType !== "conjugation") {
     document.getElementById("conj-note-not-found").hidden = false;
+    const side = document.getElementById("conj-note-side");
+    if (side) side.hidden = true;
     return;
   }
 
   const theme = Storage.getGrammarTheme(note.themeId);
   const language = (theme && theme.language) || "ja";
+
+  // idikai-refresh.css scopes the --accent custom property off
+  // body.lang-XX.
+  document.body.classList.add(`lang-${language}`);
 
   // Same reasoning as initGrammarThemePage — apply content migrations
   // here too, then re-read the note so a stale explanation caught by
