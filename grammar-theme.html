@@ -80,33 +80,36 @@
       </div>
     </div>
   </div>
-  <header class="app-header" id="grammar-theme-header">
-    <a href="grammar.html" class="back-link" id="grammar-theme-back-link" data-immersion-key="backToGrammar">&larr; Back to Grammar</a>
-    <h1 id="grammar-theme-heading">Folder</h1>
-  </header>
   <main>
-    <section class="panel grammar-notes-section">
-      <a id="add-note-link" href="grammar-add-note.html" class="bubble">
-        <span class="bubble-title" data-immersion-key="addNoteTitle">+ Add note</span>
-        <span class="bubble-sub" data-immersion-key="addNoteSub">Write down a sentence structure you noticed</span>
+    <div class="pagehead" id="grammar-theme-header">
+      <a href="grammar.html" class="back-link" id="grammar-theme-back-link" data-immersion-key="backToGrammar">&larr; Back to Grammar</a>
+      <div class="row-head" style="margin-top:8px">
+        <h1 class="page-title grow" style="font-size:clamp(26px,4vw,38px)" id="grammar-theme-heading">Folder</h1>
+        <span class="meta-text" id="grammar-theme-meta-text"></span>
+      </div>
+    </div>
+    <section class="panel grammar-notes-section" style="margin-top:22px">
+      <a id="add-note-link" href="grammar-add-note.html" class="pill-add">
+        <span style="font-size:17px; line-height:1">+</span>
+        <span data-immersion-key="addNoteTitle">Add note</span>
       </a>
 
       <!-- Only shown in Spanish's "Tenses and verb conjugations" folder. -->
-      <a id="spanish-tenses-link" href="spanish-tenses.html" class="bubble" hidden>
-        <span class="bubble-title" data-immersion-key="allSpanishTensesTitle">All Spanish tenses</span>
-        <span class="bubble-sub" data-immersion-key="tensesOverviewSub">Full tense overview + a mixed-tense test mode</span>
+      <a id="spanish-tenses-link" href="spanish-tenses.html" class="card card-red card-lift" style="display:flex; flex-direction:column; gap:6px; padding:18px; margin-top:14px" hidden>
+        <span style="font-family:'Fahkwang',serif; font-weight:500; font-size:20px" data-immersion-key="allSpanishTensesTitle">All Spanish tenses</span>
+        <span class="card-text" data-immersion-key="tensesOverviewSub">Full tense overview + a mixed-tense test mode</span>
       </a>
 
       <!-- Only shown in French's "Tenses and verb conjugations" folder. -->
-      <a id="french-tenses-link" href="french-tenses.html" class="bubble" hidden>
-        <span class="bubble-title" data-immersion-key="allFrenchTensesTitle">All French tenses</span>
-        <span class="bubble-sub" data-immersion-key="tensesOverviewSub">Full tense overview + a mixed-tense test mode</span>
+      <a id="french-tenses-link" href="french-tenses.html" class="card card-red card-lift" style="display:flex; flex-direction:column; gap:6px; padding:18px; margin-top:14px" hidden>
+        <span style="font-family:'Fahkwang',serif; font-weight:500; font-size:20px" data-immersion-key="allFrenchTensesTitle">All French tenses</span>
+        <span class="card-text" data-immersion-key="tensesOverviewSub">Full tense overview + a mixed-tense test mode</span>
       </a>
 
       <!-- Only shown in Japanese's "Tenses and verb conjugations" folder. -->
-      <a id="japanese-tenses-link" href="japanese-tenses.html" class="bubble" hidden>
-        <span class="bubble-title" data-immersion-key="allJapaneseFormsTitle">All Japanese verb forms</span>
-        <span class="bubble-sub" data-immersion-key="japaneseFormsOverviewSub">Potential/passive/causative overview + a sentence test mode</span>
+      <a id="japanese-tenses-link" href="japanese-tenses.html" class="card card-red card-lift" style="display:flex; flex-direction:column; gap:6px; padding:18px; margin-top:14px" hidden>
+        <span style="font-family:'Fahkwang',serif; font-weight:500; font-size:20px" data-immersion-key="allJapaneseFormsTitle">All Japanese verb forms</span>
+        <span class="card-text" data-immersion-key="japaneseFormsOverviewSub">Potential/passive/causative overview + a sentence test mode</span>
       </a>
 
       <!-- Only shown for folders tagged with a recognized, practice-able

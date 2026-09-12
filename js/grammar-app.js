@@ -211,6 +211,9 @@ function initGrammarThemePage() {
   heading.textContent = theme.name;
 
   const themeLang = theme.language || "es";
+  // idikai-refresh.css scopes the --accent custom property off
+  // body.lang-XX.
+  document.body.classList.add(`lang-${themeLang}`);
   // Content migrations (e.g. correcting the seeded conjugation cards'
   // wording) shouldn't depend on having visited grammar.html first —
   // apply them here too, since a folder can be opened directly from a
@@ -218,6 +221,11 @@ function initGrammarThemePage() {
   Storage.ensureDefaultConjugationCards(themeLang);
   const header = document.getElementById("grammar-theme-header");
   if (header) header.classList.add(`lang-${themeLang}`);
+  const metaText = document.getElementById("grammar-theme-meta-text");
+  if (metaText) {
+    const noteCount = Storage.getGrammarNotes(theme.id).length;
+    metaText.textContent = `${noteCount} note${noteCount === 1 ? "" : "s"}`;
+  }
   const backLink = document.getElementById("grammar-theme-back-link");
   if (backLink) backLink.href = `grammar.html?lang=${themeLang}`;
   initTopbar(themeLang);
