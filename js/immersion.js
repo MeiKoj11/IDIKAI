@@ -61,6 +61,15 @@ const IMMERSION_STRINGS = {
   sectionPersonalHub: { es: "Centro principal", ja: "メインハブ", fr: "Espace principal" },
   sectionListening: { es: "Escucha", ja: "リスニング", fr: "Écoute" },
   allLanguagesLink: { es: "Todos los idiomas", ja: "すべての言語", fr: "Toutes les langues" },
+  langHomeEyebrow: { es: "Inicio de idioma", ja: "言語ホーム", fr: "Accueil linguistique" },
+  langHomeTitle: { es: "¿Dónde quieres trabajar hoy?", ja: "今日はどこで作業する？", fr: "Où veux-tu travailler aujourd'hui ?" },
+  backToWelcome: { es: "Volver al inicio", ja: "トップに戻る", fr: "Retour à l'accueil" },
+  mainHubHeroBadge: { es: "Cuaderno y archivos", ja: "ノート＆ファイル", fr: "Cahier et fichiers" },
+  mainHubHeroDesc: {
+    es: "Cuaderno de clase, Casillero de almacenamiento, Cuaderno de ayuda y tus propias burbujas de notas — todo lo que no es un ejercicio.",
+    ja: "クラスノート、保管庫、ヘルパーノート、自分だけのメモバブル — ドリル以外のすべて。",
+    fr: "Cahier de classe, Casier de stockage, Cahier d'aide et tes propres bulles de notes — tout ce qui n'est pas un exercice.",
+  },
 
   // ---- Generic, reused across many pages ----
   backPlain: { es: "← Volver", ja: "← 戻る", fr: "← Retour" },

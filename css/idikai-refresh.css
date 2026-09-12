@@ -739,3 +739,249 @@ body.picker-body { background: var(--paper); }
   .topbar-lang-label { font-size: 18px; }
   main, .app-header, .lang-home-main { padding-left: 14px; padding-right: 14px; }
 }
+
+/* ==========================================================================
+   Design-system primitives (from the Claude Design mockups: language-home,
+   grammar, grammar-theme, conjugation). Ported wholesale so every mockup
+   page shares the exact same card/layout vocabulary — makes each later
+   integration a markup-only change, no new CSS needed per page.
+
+   Deliberately NOT porting the mockups' own .topbar/.icon-btn/.hamburger/
+   .tabstrip/.tab/.picker* rules — the real topbar, tab strip, and language
+   picker already have working structure + styling above, and duplicating
+   those class names here would just create competing definitions.
+   ========================================================================== */
+
+/* ---------- Page head extras -------------------------------------------- */
+
+.pagehead { padding-top: 26px; }
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(34, 23, 18, 0.6);
+}
+.page-title { font-size: clamp(28px, 4.4vw, 42px); line-height: 1.1; margin-top: 8px; }
+.page-sub {
+  font-size: 14.5px;
+  line-height: 1.55;
+  margin: 10px 0 0;
+  max-width: 52ch;
+  color: rgba(34, 23, 18, 0.78);
+  text-wrap: pretty;
+}
+.meta-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.meta-text { font-size: 13px; color: rgba(34, 23, 18, 0.7); }
+
+.dot {
+  display: block;
+  flex: 0 0 auto;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+  background: var(--accent);
+}
+.dot-sm { width: 10px; height: 10px; }
+
+/* ---------- Buttons (link-styled, distinct from <button>/.button above) - */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "Nunito", sans-serif;
+  font-size: 13px;
+  background: var(--ink);
+  color: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 9px;
+  padding: 11px 18px;
+  cursor: pointer;
+}
+.btn:hover { background: var(--red); border-color: var(--red); color: var(--paper); text-decoration: none; }
+.btn-ghost { background: transparent; color: var(--ink); border-color: rgba(34, 23, 18, 0.35); }
+.btn-ghost:hover { background: rgba(34, 23, 18, 0.05); color: var(--ink); border-color: var(--ink); }
+.link-btn {
+  font-size: 12px;
+  color: rgba(34, 23, 18, 0.62);
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.link-btn:hover { color: var(--red); }
+
+/* ---------- Cards --------------------------------------------------------*/
+
+.card {
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  padding: 18px;
+}
+.card-ruled { background-image: var(--ruled); }
+.card-lift { transition: transform 120ms ease, box-shadow 120ms ease; }
+.card-lift:hover { transform: translate(1px, 1px); box-shadow: var(--shadow-sm); text-decoration: none; }
+.card-red { background: var(--red); color: var(--card); }
+.card-red h2, .card-red h3 { color: var(--card); }
+.card-red:hover { color: var(--card); }
+.card-dashed { background: transparent; border-style: dashed; border-color: rgba(34, 23, 18, 0.4); box-shadow: none; }
+.card-dashed:hover { border-color: var(--ink); background: rgba(34, 23, 18, 0.03); }
+.card-title { font-size: 21px; line-height: 1.18; text-wrap: pretty; }
+.card-text { font-size: 13.5px; line-height: 1.5; margin: 6px 0 0; color: rgba(34, 23, 18, 0.78); }
+.card-red .card-text { color: rgba(243, 238, 221, 0.92); }
+
+.pill-tag {
+  display: inline-flex;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--card);
+  background: var(--red);
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  padding: 4px 12px;
+}
+.chip {
+  display: inline-flex;
+  font-size: 11.5px;
+  line-height: 1;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(34, 23, 18, 0.4);
+  color: rgba(34, 23, 18, 0.78);
+  white-space: nowrap;
+}
+.chip-strong { border-color: var(--red); color: var(--red); background: rgba(119, 16, 17, 0.07); }
+.chip-outline-link:hover { border-color: var(--red); color: var(--red); text-decoration: none; }
+.badge-outline {
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border: 1px solid rgba(243, 238, 221, 0.55);
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+.arrow { font-size: 18px; line-height: 1; color: var(--red); }
+.card-red .arrow { color: var(--card); }
+
+/* ---------- Layout helpers ------------------------------------------------*/
+
+.cols { display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-start; padding-top: 22px; }
+.col-main { flex: 1.9 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 18px; }
+.col-side { flex: 1 1 230px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.grid-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 185px), 1fr));
+  gap: 16px;
+  max-width: 760px;
+}
+.stack { display: flex; flex-direction: column; gap: 9px; }
+.row-head { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px; }
+.grow { flex: 1; min-width: 240px; }
+
+/* ---------- Pill rows (grammar notes list) --------------------------------*/
+
+.pill-row {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  padding: 10px 18px;
+  flex-wrap: wrap;
+}
+.pill-row:hover { background: #E4DCC4; text-decoration: none; }
+.pill-row-title { font-family: "Fahkwang", serif; font-weight: 500; font-size: 15.5px; color: var(--ink); }
+.pill-row-title-jp { font-size: 19px; }
+.pill-row-tags { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-left: auto; }
+.pill-row-x {
+  font-size: 15px;
+  line-height: 1;
+  color: rgba(34, 23, 18, 0.45);
+  background: transparent;
+  border: none;
+  padding: 2px 2px 2px 6px;
+  cursor: pointer;
+}
+.pill-row-x:hover { color: var(--red); }
+.pill-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  border: 2px dashed rgba(34, 23, 18, 0.42);
+  border-radius: 999px;
+  background: transparent;
+  padding: 11px 18px;
+  margin-top: 4px;
+  font-size: 13.5px;
+  color: var(--ink);
+  cursor: pointer;
+}
+.pill-add:hover { border-color: var(--ink); background: rgba(34, 23, 18, 0.04); text-decoration: none; color: var(--ink); }
+
+/* ---------- Mistakes card ---------------------------------------------- */
+
+.card-mistakes {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(119, 16, 17, 0.08);
+  border: 2px solid var(--red);
+  border-radius: 16px;
+  box-shadow: none;
+  padding: 15px 18px;
+}
+.card-mistakes:hover { background: rgba(119, 16, 17, 0.16); text-decoration: none; }
+.card-mistakes h3 { font-size: 18px; color: var(--red); }
+
+/* ---------- Reference table (conjugation page) -------------------------- */
+
+.ref-card { padding: 0; overflow: hidden; }
+.ref-head { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 2px solid var(--ink); }
+.ref-head h2 { font-size: 17px; }
+.ref-table {
+  display: grid;
+  grid-template-columns: minmax(88px, 0.8fr) minmax(90px, 1fr) minmax(120px, 1.4fr);
+  font-size: 13.5px;
+}
+.ref-table .th {
+  padding: 9px 14px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.ref-table .td { padding: 12px 14px; border-bottom: 1px solid var(--rule); }
+.ref-table .td-last { border-bottom: none; }
+
+.note-card h2 { font-size: 17px; margin-bottom: 10px; }
+.note-lines { display: flex; flex-direction: column; gap: 9px; font-size: 14px; line-height: 1.55; }
+
+.examples { display: flex; flex-direction: column; gap: 14px; }
+.example { display: flex; flex-direction: column; gap: 4px; padding-left: 14px; border-left: 3px solid var(--accent); }
+.example-jp { font-family: "Fahkwang", serif; font-size: 19px; line-height: 1.4; }
+.example-en { font-size: 13.5px; color: rgba(34, 23, 18, 0.7); }
+
+.title-ruby { display: inline-flex; flex-direction: column; align-items: center; gap: 1px; }
+.title-ruby-kana {
+  font-family: "Fahkwang", serif;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  color: rgba(34, 23, 18, 0.6);
+}
+.title-ruby-kanji { font-family: "Fahkwang", serif; font-size: clamp(28px, 4.2vw, 40px); line-height: 1.1; color: var(--red); }
+
+/* ---------- language-home.html specific ---------------------------------*/
+
+.lang-home-main { max-width: 1080px; padding: 26px 20px 72px; }
+
+@media (max-width: 640px) {
+  .cols { padding-top: 16px; }
+  .grid-tiles { max-width: none; }
+}

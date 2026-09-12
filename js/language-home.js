@@ -1,21 +1,32 @@
 /*
   language-home.js
   -----------------
-  Renders the 7-bubble hub for a single language (language-home.html?lang=es|ja):
-  6 subject sections arranged in a flower pattern around a 7th "Main
-  Hub" bubble (storage locker, freeform notes, to-do space) in the
-  middle. Same layout for every language — only the accent color and
-  which bubbles are enabled differ.
+  Renders the per-language hub (language-home.html?lang=es|ja|fr): a big
+  "Main Hub" hero card (storage locker, freeform notes, to-do space) plus
+  a grid of the 5 built subject cards and one "not built yet" placeholder
+  (Listening). Same layout for every language — only the accent color
+  and which cards are enabled differ.
 
-  Each bubble has a `row` (1, 2, or 3) matching where it sits in the
-  flower: row 1 is the top pair, row 2 is the middle trio (Main Hub
-  always centered), row 3 is the bottom pair.
+  Markup follows the Claude Design mockup (card/grid-tiles/col-main /
+  col-side primitives in css/idikai-refresh.css) — see language-home.html.
 */
 
 const LANGUAGE_LABELS = { es: "Spanish", ja: "Japanese", fr: "French" };
 
-// href: null means "not built yet" -> renders as a disabled bubble.
-const HUB_BUBBLES = [
+// The large hero card at the top of the main column.
+const HUB_HERO = {
+  title: "Main Hub",
+  titleKey: "sectionPersonalHub",
+  badge: "Notebook & files",
+  badgeKey: "mainHubHeroBadge",
+  desc: "Class Notebook, Storage Locker, Helper Notebook and your own note bubbles — everything that isn't a drill.",
+  descKey: "mainHubHeroDesc",
+  href: (lang) => `personal-hub.html?lang=${lang}`,
+};
+
+// The grid of subject cards below the hero. href: null means "not built
+// yet" -> renders as a dashed, disabled card.
+const HUB_TILES = [
   {
     title: "Vocab Bank",
     titleKey: "sectionVocab",
@@ -23,7 +34,6 @@ const HUB_BUBBLES = [
     subKey: "subVocab",
     href: (lang) => `vocab.html?lang=${lang}`,
     available: () => true,
-    row: 1,
   },
   {
     title: "Grammar",
@@ -32,7 +42,6 @@ const HUB_BUBBLES = [
     subKey: "subGrammar",
     href: (lang) => `grammar.html?lang=${lang}`,
     available: () => true,
-    row: 1,
   },
   {
     title: "Writing",
@@ -41,16 +50,22 @@ const HUB_BUBBLES = [
     subKey: "subWriting",
     href: (lang) => `writing.html?lang=${lang}`,
     available: () => true,
-    row: 2,
   },
   {
-    title: "Main Hub",
-    titleKey: "sectionPersonalHub",
-    sub: "Storage locker, notes, to-do lists, anything",
-    subKey: "subPersonalHub",
-    href: (lang) => `personal-hub.html?lang=${lang}`,
+    title: "Speaking",
+    titleKey: "sectionSpeaking",
+    sub: "Record yourself speaking, linked to a passage to read aloud",
+    subKey: "subSpeaking",
+    href: (lang) => `speaking.html?lang=${lang}`,
     available: () => true,
-    row: 2,
+  },
+  {
+    title: "Reading",
+    titleKey: "sectionReading",
+    sub: "Passages with click-to-look-up words",
+    subKey: "subReading",
+    href: (lang) => `reading.html?lang=${lang}`,
+    available: () => true,
   },
   {
     title: "Listening",
@@ -60,25 +75,6 @@ const HUB_BUBBLES = [
     href: () => null,
     available: () => false,
     globallyUnbuilt: true,
-    row: 2,
-  },
-  {
-    title: "Reading",
-    titleKey: "sectionReading",
-    sub: "Passages with click-to-look-up words",
-    subKey: "subReading",
-    href: (lang) => `reading.html?lang=${lang}`,
-    available: () => true,
-    row: 3,
-  },
-  {
-    title: "Speaking",
-    titleKey: "sectionSpeaking",
-    sub: "Record yourself speaking, linked to a passage to read aloud",
-    subKey: "subSpeaking",
-    href: (lang) => `speaking.html?lang=${lang}`,
-    available: () => true,
-    row: 3,
   },
 ];
 
@@ -88,52 +84,91 @@ function getQueryParam(name) {
 
 document.addEventListener("DOMContentLoaded", () => {
   const lang = getQueryParam("lang");
-  const flower = document.getElementById("lang-home-flower");
+  const colMain = document.getElementById("lang-home-col-main");
 
   if (!SUPPORTED_LANGUAGES.includes(lang)) {
     initTopbar(null);
     initAppTabs(null);
-    if (flower) {
-      flower.innerHTML = "";
+    if (colMain) {
+      colMain.innerHTML = "";
       const msg = document.createElement("p");
       msg.className = "empty-hint";
       msg.textContent = "Language not found — go back and pick Spanish or Japanese.";
-      flower.appendChild(msg);
+      colMain.appendChild(msg);
     }
     return;
   }
 
   document.title = LANGUAGE_LABELS[lang];
+  // idikai-refresh.css scopes the --accent custom property off
+  // body.lang-XX (used by .dot below) — the topbar already gets its own
+  // lang-XX class from initTopbar, but the page body doesn't, so set it
+  // here too.
+  document.body.classList.add(`lang-${lang}`);
   initTopbar(lang);
   initAppTabs(null); // a picker hub, not a single addressable unit
   if (typeof initHubTasks === "function") initHubTasks(lang);
 
-  if (!flower) return;
+  if (!colMain) return;
 
-  HUB_BUBBLES.forEach((bubble) => {
-    const row = document.getElementById(`lang-row-${bubble.row}`);
-    if (!row) return;
+  // Hero card.
+  const hero = document.createElement("a");
+  hero.href = HUB_HERO.href(lang);
+  hero.className = "card card-red card-lift";
+  const heroHead = document.createElement("div");
+  heroHead.style.cssText = "display:flex; flex-wrap:wrap; align-items:center; gap:14px";
+  const heroTitle = document.createElement("h2");
+  heroTitle.style.fontSize = "26px";
+  heroTitle.textContent = HUB_HERO.title;
+  heroTitle.dataset.immersionKey = HUB_HERO.titleKey;
+  const heroBadge = document.createElement("span");
+  heroBadge.className = "badge-outline";
+  heroBadge.textContent = HUB_HERO.badge;
+  heroBadge.dataset.immersionKey = HUB_HERO.badgeKey;
+  heroHead.appendChild(heroTitle);
+  heroHead.appendChild(heroBadge);
+  hero.appendChild(heroHead);
+  const heroDesc = document.createElement("p");
+  heroDesc.className = "card-text";
+  heroDesc.style.maxWidth = "52ch";
+  heroDesc.textContent = HUB_HERO.desc;
+  heroDesc.dataset.immersionKey = HUB_HERO.descKey;
+  hero.appendChild(heroDesc);
+  colMain.appendChild(hero);
 
-    const isAvailable = bubble.available(lang);
-    const href = isAvailable ? bubble.href(lang) : null;
+  // Tile grid.
+  const grid = document.createElement("div");
+  grid.className = "grid-tiles";
+  colMain.appendChild(grid);
+
+  HUB_TILES.forEach((tile) => {
+    const isAvailable = tile.available(lang);
+    const href = isAvailable ? tile.href(lang) : null;
 
     const el = document.createElement(isAvailable && href ? "a" : "div");
-    el.className = isAvailable && href ? `bubble lang-${lang}` : "bubble bubble-disabled";
+    el.className = isAvailable && href ? "card card-ruled card-lift" : "card card-dashed";
     if (isAvailable && href) el.href = href;
-    if (bubble.title === "Main Hub") el.classList.add("bubble-personal-hub");
 
-    const titleEl = document.createElement("span");
-    titleEl.className = "bubble-title";
-    titleEl.textContent = bubble.title;
-    titleEl.dataset.immersionKey = bubble.titleKey;
+    const dot = document.createElement("span");
+    dot.className = "dot";
+    if (!isAvailable) dot.style.cssText = "background:transparent; border-color:rgba(34,23,18,0.4)";
+    el.appendChild(dot);
+
+    const titleEl = document.createElement("h3");
+    titleEl.className = "card-title";
+    titleEl.style.marginTop = "12px";
+    if (!isAvailable) titleEl.style.color = "rgba(34,23,18,0.55)";
+    titleEl.textContent = tile.title;
+    titleEl.dataset.immersionKey = tile.titleKey;
     el.appendChild(titleEl);
 
-    const subEl = document.createElement("span");
-    subEl.className = "bubble-sub";
+    const subEl = document.createElement("p");
+    subEl.className = "card-text";
+    if (!isAvailable) subEl.style.color = "rgba(34,23,18,0.5)";
     if (isAvailable) {
-      subEl.textContent = bubble.sub;
-      subEl.dataset.immersionKey = bubble.subKey;
-    } else if (bubble.globallyUnbuilt) {
+      subEl.textContent = tile.sub;
+      subEl.dataset.immersionKey = tile.subKey;
+    } else if (tile.globallyUnbuilt) {
       subEl.textContent = "Coming soon";
       subEl.dataset.immersionKey = "comingSoon";
     } else {
@@ -142,6 +177,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     el.appendChild(subEl);
 
-    row.appendChild(el);
+    grid.appendChild(el);
   });
 });
