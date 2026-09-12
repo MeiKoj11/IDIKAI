@@ -67,6 +67,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const storageLockerList = document.getElementById("storage-locker-list");
   if (storageLockerList) storageLockerList.addEventListener("click", handleStorageLockerListClick);
+
+  initStorageLockerDropzone();
 });
 
 // ---------------------------------------------------------------------
@@ -125,6 +127,14 @@ function handleAddStorageLockerSubmit(e) {
   renderStorageLockerList();
 }
 
+// Human-readable file size (1.2 MB, 340 KB, etc.) for uploaded items.
+function formatFileSize(bytes) {
+  if (!bytes && bytes !== 0) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 function renderStorageLockerList() {
   const list = document.getElementById("storage-locker-list");
   if (!list) return;
@@ -136,26 +146,50 @@ function renderStorageLockerList() {
   if (items.length === 0) {
     const li = document.createElement("li");
     li.className = "empty-hint";
-    li.textContent = "Nothing saved yet — add a link above.";
+    li.textContent = "Nothing saved yet — add a link or drop a file above.";
     li.dataset.immersionKey = "noStorageLockerItemsText";
     list.appendChild(li);
     return;
   }
 
   items.forEach((item) => {
+    const isFile = item.kind === "file";
     const li = document.createElement("li");
-    li.className = "word-item storage-locker-item";
+    li.className = "word-item storage-locker-item" + (isFile ? " storage-locker-item-file" : "");
 
     const main = document.createElement("div");
     main.className = "word-main";
 
-    const link = document.createElement("a");
-    link.className = "word-label storage-locker-link";
-    link.textContent = item.title;
-    link.href = item.url;
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
-    main.appendChild(link);
+    const icon = document.createElement("span");
+    icon.className = "storage-locker-icon";
+    icon.setAttribute("aria-hidden", "true");
+    icon.textContent = isFile ? "📄" : "🔗";
+    main.appendChild(icon);
+
+    if (isFile) {
+      const link = document.createElement("a");
+      link.className = "word-label storage-locker-link";
+      link.textContent = item.fileName || item.title;
+      link.href = `/api/storage-locker-download?key=${encodeURIComponent(item.fileKey)}&name=${encodeURIComponent(item.fileName || item.title || "file")}`;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      main.appendChild(link);
+
+      if (item.fileSize) {
+        const size = document.createElement("span");
+        size.className = "storage-locker-file-size";
+        size.textContent = formatFileSize(item.fileSize);
+        main.appendChild(size);
+      }
+    } else {
+      const link = document.createElement("a");
+      link.className = "word-label storage-locker-link";
+      link.textContent = item.title;
+      link.href = item.url;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      main.appendChild(link);
+    }
 
     li.appendChild(main);
 
@@ -177,10 +211,136 @@ function renderStorageLockerList() {
 
 function handleStorageLockerListClick(e) {
   if (e.target.classList.contains("delete-storage-locker-btn")) {
-    if (!confirm("Delete this saved link?")) return;
-    Storage.deleteStorageLockerItem(e.target.dataset.itemId);
+    const itemId = e.target.dataset.itemId;
+    const item = Storage.getStorageLockerItems(activePersonalLang).find((i) => i.id === itemId);
+    if (!item) return;
+    if (!confirm(item.kind === "file" ? "Delete this saved file?" : "Delete this saved link?")) return;
+
+    if (item.kind === "file" && item.fileKey) {
+      // Remove the R2 object first — if that fails, keep the list entry
+      // so the file isn't silently orphaned with no way to retry.
+      fetch(`/api/storage-locker-file?key=${encodeURIComponent(item.fileKey)}`, { method: "DELETE" })
+        .then((res) => {
+          if (!res.ok) throw new Error("Could not delete the file from storage.");
+          Storage.deleteStorageLockerItem(itemId);
+          renderStorageLockerList();
+        })
+        .catch((err) => {
+          console.error(err);
+          alert("Couldn't delete that file — please try again.");
+        });
+      return;
+    }
+
+    Storage.deleteStorageLockerItem(itemId);
     renderStorageLockerList();
   }
+}
+
+// ---------------------------------------------------------------------
+// Storage Locker — real file uploads (Cloudflare R2). Kept deliberately
+// separate from the link CRUD above: the upload endpoint only returns
+// file metadata, then this reuses Storage.addStorageLockerItem (the
+// same proven cache-sync path the link items already use) to persist
+// the list entry, rather than inventing a second write path.
+// ---------------------------------------------------------------------
+
+const STORAGE_LOCKER_ALLOWED_EXTENSIONS = [".pdf", ".doc", ".docx"];
+const STORAGE_LOCKER_MAX_BYTES = 25 * 1024 * 1024;
+
+function setStorageLockerUploadStatus(message, isError) {
+  const el = document.getElementById("storage-locker-upload-status");
+  if (!el) return;
+  if (!message) {
+    el.hidden = true;
+    el.textContent = "";
+    return;
+  }
+  el.hidden = false;
+  el.textContent = message;
+  el.classList.toggle("storage-locker-upload-error", !!isError);
+}
+
+function initStorageLockerDropzone() {
+  const dropzone = document.getElementById("storage-locker-dropzone");
+  const fileInput = document.getElementById("storage-locker-file-input");
+  if (!dropzone || !fileInput) return;
+
+  dropzone.addEventListener("click", () => fileInput.click());
+  dropzone.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      fileInput.click();
+    }
+  });
+
+  fileInput.addEventListener("change", () => {
+    if (fileInput.files && fileInput.files[0]) uploadStorageLockerFile(fileInput.files[0]);
+    fileInput.value = "";
+  });
+
+  ["dragenter", "dragover"].forEach((evt) => {
+    dropzone.addEventListener(evt, (e) => {
+      e.preventDefault();
+      dropzone.classList.add("storage-locker-dropzone-active");
+    });
+  });
+  ["dragleave", "drop"].forEach((evt) => {
+    dropzone.addEventListener(evt, (e) => {
+      e.preventDefault();
+      dropzone.classList.remove("storage-locker-dropzone-active");
+    });
+  });
+  dropzone.addEventListener("drop", (e) => {
+    const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (file) uploadStorageLockerFile(file);
+  });
+}
+
+function uploadStorageLockerFile(file) {
+  const ext = "." + (file.name.split(".").pop() || "").toLowerCase();
+  if (!STORAGE_LOCKER_ALLOWED_EXTENSIONS.includes(ext)) {
+    setStorageLockerUploadStatus("Only PDF and Word documents (.pdf, .doc, .docx) can be uploaded.", true);
+    return;
+  }
+  if (file.size > STORAGE_LOCKER_MAX_BYTES) {
+    setStorageLockerUploadStatus("That file is larger than the 25 MB limit.", true);
+    return;
+  }
+
+  setStorageLockerUploadStatus(`Uploading "${file.name}"…`, false);
+
+  fetch("/api/storage-locker-upload", {
+    method: "POST",
+    headers: {
+      "Content-Type": file.type || "application/octet-stream",
+      "X-File-Name": encodeURIComponent(file.name),
+    },
+    body: file,
+  })
+    .then((res) =>
+      res.json().then((body) => {
+        if (!res.ok) throw new Error(body.error || "Upload failed.");
+        return body;
+      })
+    )
+    .then((result) => {
+      Storage.addStorageLockerItem({
+        language: activePersonalLang,
+        kind: "file",
+        title: result.fileName,
+        fileKey: result.fileKey,
+        fileName: result.fileName,
+        fileType: result.fileType,
+        fileSize: result.fileSize,
+      });
+      setStorageLockerUploadStatus("", false);
+      renderStorageLockerList();
+    })
+    .catch((err) => {
+      console.error(err);
+      setStorageLockerUploadStatus(err.message || "Upload failed — please try again.", true);
+    });
 }
 
 function showAddPersonalNoteForm() {

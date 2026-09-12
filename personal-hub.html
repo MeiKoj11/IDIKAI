@@ -94,7 +94,9 @@
         Save a link to a PDF, Word doc, or anything else worth keeping handy — give it a title, paste the link, and
         it opens in a new tab whenever you need it.
       </p>
-      <button type="button" id="add-storage-locker-btn" data-immersion-key="addLinkButton">+ Add link</button>
+      <div class="storage-locker-actions">
+        <button type="button" id="add-storage-locker-btn" data-immersion-key="addLinkButton">+ Add link</button>
+      </div>
       <div id="storage-locker-form-wrap" hidden>
         <form id="storage-locker-form" class="stacked-form">
           <label>
@@ -111,6 +113,18 @@
           </div>
         </form>
       </div>
+
+      <!-- Drag-and-drop / file-picker upload — real files, stored in
+           Cloudflare R2, kept completely separate from the links above
+           (different item "kind", same list). -->
+      <div id="storage-locker-dropzone" class="storage-locker-dropzone" tabindex="0" role="button" aria-label="Upload a PDF or Word document">
+        <p class="storage-locker-dropzone-text" data-immersion-key="storageLockerDropzoneText">
+          Drag a PDF or Word doc here, or click to choose a file
+        </p>
+        <input type="file" id="storage-locker-file-input" accept=".pdf,.doc,.docx" hidden />
+      </div>
+      <p id="storage-locker-upload-status" class="storage-locker-upload-status" hidden></p>
+
       <ul id="storage-locker-list" class="word-list storage-locker-list"></ul>
     </section>
 

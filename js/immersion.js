@@ -113,7 +113,16 @@ const IMMERSION_STRINGS = {
   storageLockerTitlePlaceholder: { es: "p. ej. Tarea del capítulo 4", ja: "例：第4章の宿題", fr: "p. ex. Devoirs du chapitre 4" },
   linkLabel: { es: "Enlace", ja: "リンク", fr: "Lien" },
   storageLockerUrlPlaceholder: { es: "https://...", ja: "https://...", fr: "https://..." },
-  noStorageLockerItemsText: { es: "Todavía no hay nada guardado — añade un enlace arriba.", ja: "まだ何も保存されていません — 上でリンクを追加してください。", fr: "Rien d'enregistré pour l'instant — ajoute un lien ci-dessus." },
+  storageLockerDropzoneText: {
+    es: "Arrastra un PDF o documento de Word aquí, o haz clic para elegir un archivo",
+    ja: "PDFまたはWord文書をここにドラッグするか、クリックしてファイルを選択",
+    fr: "Glisse un PDF ou un document Word ici, ou clique pour choisir un fichier",
+  },
+  noStorageLockerItemsText: {
+    es: "Todavía no hay nada guardado — añade un enlace o arrastra un archivo arriba.",
+    ja: "まだ何も保存されていません — 上でリンクを追加するかファイルをドラッグしてください。",
+    fr: "Rien d'enregistré pour l'instant — ajoute un lien ou dépose un fichier ci-dessus.",
+  },
 
   // ---- Language home bubble descriptions ----
   subVocab: { es: "Temas, palabras, conjugación de verbos, tarjetas", ja: "テーマ、単語、動詞の活用、単語カード", fr: "Thèmes, mots, conjugaison, cartes mémo" },

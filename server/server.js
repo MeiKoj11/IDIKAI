@@ -20,9 +20,11 @@
 
 const http = require("http");
 const https = require("https");
+const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 const db = require("./db.js");
+const r2 = require("./r2.js");
 
 // Hosting platforms (Render, Railway, etc.) assign their own port via
 // this env var and expect the app to listen on it — 3001 stays as the
@@ -1353,6 +1355,25 @@ function readJSONBody(req, maxBytes) {
   });
 }
 
+// Like readJSONBody, but for a raw binary payload (a file upload) — no
+// JSON.parse, just hands back the concatenated Buffer as-is.
+function readRawBody(req, maxBytes) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let bytes = 0;
+    req.on("data", (chunk) => {
+      chunks.push(chunk);
+      bytes += chunk.length;
+      if (bytes > maxBytes) {
+        req.destroy();
+        reject(new Error("File is too large."));
+      }
+    });
+    req.on("end", () => resolve(Buffer.concat(chunks)));
+    req.on("error", reject);
+  });
+}
+
 function parseCookies(req) {
   const header = req.headers.cookie;
   const cookies = {};
@@ -1561,6 +1582,108 @@ function handleApiRoute(req, res, url) {
         sendJSON(res, 200, { ok: true, user: { email: created.email } });
       })
       .catch((err) => sendJSON(res, 400, { error: err.message }));
+    return true;
+  }
+
+  // ---- POST /api/storage-locker-upload ----
+  // Body is the raw file bytes (not JSON) — the browser sends them
+  // straight from a File object. The original name comes URL-encoded
+  // in a header (headers must be ASCII) and the MIME type comes from
+  // the request's own Content-Type, exactly as the browser reported it
+  // for that file. Files go to Cloudflare R2, never through db.js —
+  // that database/backup system is explicitly sized for small
+  // text-only data, not binary uploads.
+  if (url.pathname === "/api/storage-locker-upload" && req.method === "POST") {
+    const user = getSessionUser(req);
+    if (!user) return sendJSON(res, 401, { error: "Not logged in." }) || true;
+    if (!r2.isR2Configured()) {
+      return sendJSON(res, 503, { error: "File uploads aren't set up on this server yet." }) || true;
+    }
+
+    let originalName = "file";
+    try {
+      originalName = decodeURIComponent(req.headers["x-file-name"] || "file");
+    } catch (e) {
+      // Malformed header — fall back to the default name below.
+    }
+    const ext = path.extname(originalName).toLowerCase();
+    const ALLOWED_EXTENSIONS = [".pdf", ".doc", ".docx"];
+    if (!ALLOWED_EXTENSIONS.includes(ext)) {
+      return sendJSON(res, 400, { error: "Only PDF and Word documents (.pdf, .doc, .docx) can be uploaded." }) || true;
+    }
+    const sanitizedName = originalName.replace(/[/\\]/g, "_").replace(/[^\w.\- ]/g, "_").slice(0, 150) || "file";
+    const contentType = req.headers["content-type"] || "application/octet-stream";
+
+    // 25MB per file — generous for any homework PDF/Word doc, well
+    // inside R2's free tier, and no risk of buffering something huge
+    // in memory.
+    readRawBody(req, 25 * 1024 * 1024)
+      .then((buffer) => {
+        if (!buffer.length) return sendJSON(res, 400, { error: "The uploaded file is empty." });
+        const fileKey = `storage-locker/${user.id}/${crypto.randomUUID()}-${sanitizedName}`;
+        return r2
+          .uploadToR2(fileKey, buffer, contentType)
+          .then(() => {
+            sendJSON(res, 200, {
+              ok: true,
+              fileKey,
+              fileName: sanitizedName,
+              fileType: contentType,
+              fileSize: buffer.length,
+            });
+          });
+      })
+      .catch((err) => {
+        console.error("Storage Locker upload failed:", err.message);
+        sendJSON(res, 400, { error: err.message });
+      });
+    return true;
+  }
+
+  // ---- GET /api/storage-locker-download?key=...&name=... ----
+  // Ownership is checked by simple key-prefix matching (every file's
+  // key is namespaced storage-locker/<userId>/...) rather than any DB
+  // lookup, since these R2 endpoints are intentionally decoupled from
+  // the JSON-blob storage system. Redirects to a short-lived presigned
+  // R2 URL — PDFs open inline (in the browser tab), everything else
+  // downloads, matching the earlier "just download Word docs" choice.
+  if (url.pathname === "/api/storage-locker-download" && req.method === "GET") {
+    const user = getSessionUser(req);
+    if (!user) return sendJSON(res, 401, { error: "Not logged in." }) || true;
+    if (!r2.isR2Configured()) {
+      return sendJSON(res, 503, { error: "File uploads aren't set up on this server yet." }) || true;
+    }
+    const fileKey = url.searchParams.get("key") || "";
+    const fileName = url.searchParams.get("name") || "file";
+    if (!fileKey.startsWith(`storage-locker/${user.id}/`)) {
+      return sendJSON(res, 403, { error: "Not your file." }) || true;
+    }
+    const disposition = path.extname(fileName).toLowerCase() === ".pdf" ? "inline" : "attachment";
+    try {
+      const presignedUrl = r2.getPresignedDownloadUrl(fileKey, fileName, disposition, 300);
+      res.writeHead(302, { Location: presignedUrl });
+      res.end();
+    } catch (err) {
+      sendJSON(res, 500, { error: err.message });
+    }
+    return true;
+  }
+
+  // ---- DELETE /api/storage-locker-file?key=... ----
+  if (url.pathname === "/api/storage-locker-file" && req.method === "DELETE") {
+    const user = getSessionUser(req);
+    if (!user) return sendJSON(res, 401, { error: "Not logged in." }) || true;
+    if (!r2.isR2Configured()) {
+      return sendJSON(res, 503, { error: "File uploads aren't set up on this server yet." }) || true;
+    }
+    const fileKey = url.searchParams.get("key") || "";
+    if (!fileKey.startsWith(`storage-locker/${user.id}/`)) {
+      return sendJSON(res, 403, { error: "Not your file." }) || true;
+    }
+    r2
+      .deleteFromR2(fileKey)
+      .then(() => sendJSON(res, 200, { ok: true }))
+      .catch((err) => sendJSON(res, 500, { error: err.message }));
     return true;
   }
 

@@ -1128,6 +1128,58 @@ a.secondary:hover {
   text-decoration: underline;
 }
 
+.storage-locker-actions {
+  margin-bottom: 0.75rem;
+}
+
+.storage-locker-icon {
+  margin-right: 0.4rem;
+}
+
+.storage-locker-file-size {
+  margin-left: 0.5rem;
+  font-size: 0.85em;
+  opacity: 0.7;
+}
+
+.storage-locker-dropzone {
+  margin-top: 0.75rem;
+  padding: 1.5rem 1rem;
+  border: 2px dashed #8a7a6a;
+  border-radius: 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.storage-locker-dropzone:hover,
+.storage-locker-dropzone:focus-visible {
+  border-color: #ECE6D3;
+  outline: none;
+}
+
+.storage-locker-dropzone-active {
+  border-color: #ECE6D3;
+  background-color: rgba(236, 230, 211, 0.08);
+}
+
+.storage-locker-dropzone-text {
+  margin: 0;
+  opacity: 0.85;
+  font-size: 0.95em;
+}
+
+.storage-locker-upload-status {
+  margin-top: 0.5rem;
+  font-size: 0.9em;
+  opacity: 0.85;
+}
+
+.storage-locker-upload-error {
+  color: #e08b7d;
+  opacity: 1;
+}
+
 /* Verb detection panel */
 
 .detection-panel {

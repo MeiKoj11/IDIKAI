@@ -75,6 +75,35 @@ month, billed per GB provisioned regardless of how much is actually
 used) on top of the existing Web Service plan — see the cost breakdown
 already discussed for the current total.
 
+## Storage Locker file uploads (Cloudflare R2)
+
+The Main Hub's Storage Locker can save real files (PDFs, Word docs),
+not just links — those files are stored in Cloudflare R2 (not on
+Render's disk, and not in the SQLite database, which is sized for
+small text data only). This is optional: without it configured, the
+Storage Locker's link-saving still works fine, and uploads just show
+a friendly "not set up yet" message.
+
+1. Sign up / log in at https://dash.cloudflare.com and open **R2** in
+   the left sidebar (you may need to enable R2 once — it has its own
+   free tier, currently ~10GB storage with no egress fees).
+2. **Create a bucket** — any name (e.g. `idikai-storage-locker`). Note
+   the name; it's `R2_BUCKET_NAME`.
+3. Find your **Account ID** — shown on the R2 overview page, on the
+   right side. That's `R2_ACCOUNT_ID`.
+4. **Create an API token**: R2 → Manage R2 API Tokens → Create API
+   Token. Give it **Object Read & Write** permission, scoped to just
+   the bucket you created if you want to be strict. Creating it shows
+   an **Access Key ID** and a **Secret Access Key** exactly once — copy
+   both immediately (Cloudflare won't show the secret again). These
+   are `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY`.
+5. Set all four as env vars — locally in `server/.env`, and on Render
+   under Settings → Environment (same names). Redeploy on Render for
+   the new env vars to take effect.
+6. Never paste these values into a chat with an AI assistant (including
+   this one) — set them directly in your `.env` file or the Render
+   dashboard.
+
 ## If a feature that calls the AI doesn't work
 
 - Check the Render logs (or your local terminal) for an error message
