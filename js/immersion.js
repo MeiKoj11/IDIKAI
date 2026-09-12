@@ -67,6 +67,7 @@ const IMMERSION_STRINGS = {
   backToThemes: { es: "← Volver a los temas", ja: "← テーマに戻る", fr: "← Retour aux thèmes" },
   backToGrammar: { es: "← Volver a Gramática", ja: "← 文法に戻る", fr: "← Retour à Grammaire" },
   backToFolder: { es: "← Volver a la carpeta", ja: "← フォルダに戻る", fr: "← Retour au dossier" },
+  backToMainHub: { es: "← Volver al Centro principal", ja: "← メインハブに戻る", fr: "← Retour à l'Espace principal" },
   backToPassages: { es: "← Volver a los textos", ja: "← 文章に戻る", fr: "← Retour aux textes" },
   btnAdd: { es: "Añadir", ja: "追加", fr: "Ajouter" },
   btnCancel: { es: "Cancelar", ja: "キャンセル", fr: "Annuler" },
@@ -123,6 +124,17 @@ const IMMERSION_STRINGS = {
     ja: "まだ何も保存されていません — 上でリンクを追加するかファイルをドラッグしてください。",
     fr: "Rien d'enregistré pour l'instant — ajoute un lien ou dépose un fichier ci-dessus.",
   },
+  classNotebookLauncherHeading: { es: "Cuaderno de clase", ja: "授業ノート", fr: "Cahier de classe" },
+  classNotebookLauncherIntro: {
+    es: "Abre un cuaderno para tomar apuntes durante una clase — escribe libremente, página a página, y ordena lo útil en Gramática o Vocabulario más tarde.",
+    ja: "授業中にノートを取るためのノートブックを開きましょう — ページごとに自由に書いて、あとで役立つ内容を文法や単語に整理できます。",
+    fr: "Ouvre un cahier pour prendre des notes pendant un cours — écris librement, page par page, et trie ce qui est utile dans Grammaire ou Vocabulaire plus tard.",
+  },
+  openClassNotebookButton: { es: "Abrir Cuaderno de clase", ja: "授業ノートを開く", fr: "Ouvrir le Cahier de classe" },
+  classNotebookHeading: { es: "Cuaderno de clase", ja: "授業ノート", fr: "Cahier de classe" },
+  classNotebookPlaceholder: { es: "Empieza a escribir…", ja: "書き始めましょう…", fr: "Commence à écrire…" },
+  notebookPrevPage: { es: "← Página anterior", ja: "← 前のページ", fr: "← Page précédente" },
+  notebookNextPage: { es: "Página siguiente →", ja: "次のページ →", fr: "Page suivante →" },
 
   // ---- Language home bubble descriptions ----
   subVocab: { es: "Temas, palabras, conjugación de verbos, tarjetas", ja: "テーマ、単語、動詞の活用、単語カード", fr: "Thèmes, mots, conjugaison, cartes mémo" },

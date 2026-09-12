@@ -84,6 +84,22 @@
     <h1 id="personal-hub-heading" data-immersion-key="sectionPersonalHub">Main Hub</h1>
   </header>
   <main>
+    <!-- Class Notebook launcher: a clickable notebook icon that opens
+         the full-page book view (class-notebook.html) — a separate
+         page, not a panel here, since it takes over the whole screen
+         while open. See class-notebook.html for the notebook itself. -->
+    <section class="panel class-notebook-launcher-panel" id="class-notebook-launcher-panel">
+      <h2 data-immersion-key="classNotebookLauncherHeading">Class Notebook</h2>
+      <p class="hint" data-immersion-key="classNotebookLauncherIntro">
+        Open a notebook to take notes during a lesson — write freely, page by page, and sort anything useful into
+        Grammar or Vocab later.
+      </p>
+      <a href="class-notebook.html" id="class-notebook-launcher-link" class="class-notebook-launcher-link">
+        <span class="class-notebook-launcher-icon" aria-hidden="true">📔</span>
+        <span data-immersion-key="openClassNotebookButton">Open Class Notebook</span>
+      </a>
+    </section>
+
     <!-- Storage Locker: saved title+link entries — a PDF hosted
          elsewhere, a Word doc, any page worth keeping handy. Click a
          title to open its link in a new tab. Phase 1 is links only, no

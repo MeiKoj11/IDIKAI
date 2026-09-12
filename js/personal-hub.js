@@ -55,6 +55,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   list.addEventListener("click", handlePersonalNoteListClick);
 
+  const classNotebookLink = document.getElementById("class-notebook-launcher-link");
+  if (classNotebookLink) classNotebookLink.href = `class-notebook.html?lang=${activePersonalLang}`;
+
   renderStorageLockerList();
 
   const addStorageLockerBtn = document.getElementById("add-storage-locker-btn");

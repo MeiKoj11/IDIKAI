@@ -122,6 +122,7 @@ const STORAGE_KEYS = {
   sentenceTestConjugationMistakes: "sentenceTest.conjugationMistakes",
   conjugationTestSaved: "conjugationTest.saved",
   storageLockerItems: "mainHub.storageLocker",
+  classNotebookPages: "mainHub.classNotebookPages",
 };
 
 function readJSON(key, fallback) {
@@ -975,6 +976,37 @@ function deleteStorageLockerItem(itemId) {
   writeJSON(STORAGE_KEYS.storageLockerItems, items);
 }
 
+// ---- Main Hub class notebook ----
+// One continuous notebook per language — a plain-text page per entry,
+// always sorted oldest-first so page order matches the order they were
+// created in (createdAt is never touched again after creation, so this
+// stays stable even though editing a page's content updates updatedAt).
+// Meant for live in-class notetaking; sorting it out into Grammar/Vocab
+// afterward is a manual, separate step (copy, not move) — not part of
+// this schema at all.
+function getClassNotebookPages(language) {
+  const pages = readJSON(STORAGE_KEYS.classNotebookPages, []);
+  return pages.filter((p) => p.language === language).sort((a, b) => a.createdAt - b.createdAt);
+}
+
+function addClassNotebookPage(language) {
+  const pages = readJSON(STORAGE_KEYS.classNotebookPages, []);
+  const entry = { id: uid(), language, content: "", createdAt: Date.now() };
+  pages.push(entry);
+  writeJSON(STORAGE_KEYS.classNotebookPages, pages);
+  return entry;
+}
+
+function updateClassNotebookPage(pageId, content) {
+  const pages = readJSON(STORAGE_KEYS.classNotebookPages, []);
+  const page = pages.find((p) => p.id === pageId);
+  if (!page) return null;
+  page.content = content;
+  page.updatedAt = Date.now();
+  writeJSON(STORAGE_KEYS.classNotebookPages, pages);
+  return page;
+}
+
 // ---- Saved sentence tests ----
 // A completed, self-marked sentence-test run the learner chose to keep
 // (saving is always optional — see spanish-sentence-test-app.js's
@@ -1255,6 +1287,9 @@ const Storage = {
   addStorageLockerItem,
   updateStorageLockerItem,
   deleteStorageLockerItem,
+  getClassNotebookPages,
+  addClassNotebookPage,
+  updateClassNotebookPage,
   getTasks,
   addTask,
   updateTask,
