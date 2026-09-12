@@ -25,37 +25,15 @@
     <button type="button" id="topbar-notifications" class="topbar-notifications" aria-label="Notifications" aria-haspopup="true">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2"></rect><path d="M3 6.5l9 6.5 9-6.5"></path></svg>
     </button>
-    <!-- A quick-glance to-do list — just a small icon here next to
-         Notifications, opening the same panel that used to float over
-         the page as a big red button. -->
-    <button type="button" id="hub-todo-toggle" class="topbar-todo" aria-label="To-do list" aria-haspopup="true">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"></rect><path d="M8 12l3 3 5-6"></path></svg>
-      <span id="hub-todo-toggle-count" class="hub-todo-toggle-count" hidden></span>
-    </button>
+    <!-- No to-do icon here — this page hosts the to-do list inline in
+         its side column instead (see #hub-todo-panel below), so a
+         second floating trigger would just be a redundant control. -->
     <a href="welcome.html" id="topbar-home" class="topbar-home" aria-label="Language home">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"></path><path d="M5 10v10h14V10"></path></svg>
     </a>
     <div id="topbar-notifications-menu" class="topbar-menu topbar-notifications-menu" hidden>
       <div class="topbar-menu-heading" data-immersion-key="notificationsHeading">Notifications</div>
       <p class="topbar-notifications-empty" data-immersion-key="notificationsEmpty">Coming soon — once a teacher connection exists, updates will show up here.</p>
-    </div>
-    <div id="hub-todo-panel" class="hub-todo-panel" hidden>
-      <div id="hub-todo-header" class="hub-todo-header">
-        <span class="hub-todo-title" data-immersion-key="todoTitle">To-do list</span>
-        <button type="button" id="hub-todo-close" class="hub-todo-close" aria-label="Close">×</button>
-      </div>
-      <form id="hub-todo-add-form" class="hub-todo-add-form">
-        <input type="text" id="hub-todo-add-input" placeholder="Add a task…" autocomplete="off" data-immersion-key="todoAddPlaceholder" />
-        <select id="hub-todo-folder-select" class="hub-todo-folder-select" aria-label="Folder">
-          <option value="" data-immersion-key="todoNoFolder">No folder</option>
-        </select>
-        <button type="submit" data-immersion-key="todoAddButton">Add</button>
-      </form>
-      <div id="hub-todo-groups" class="hub-todo-groups"></div>
-      <label class="hub-todo-show-completed">
-        <input type="checkbox" id="hub-todo-show-completed" />
-        <span data-immersion-key="todoShowCompleted">Show completed</span>
-      </label>
     </div>
   </div>
   <div id="app-tab-strip" class="app-tab-strip">
@@ -100,6 +78,25 @@
             <h3 style="font-size:17px" data-immersion-key="notificationsHeading">Teacher updates</h3>
           </div>
           <p class="card-text" style="color:rgba(34,23,18,0.75)" data-immersion-key="notificationsEmpty">Coming soon — once a teacher connection exists, updates will show up here.</p>
+        </div>
+        <div class="card">
+          <div id="hub-todo-panel" class="hub-todo-panel hub-todo-panel--inline">
+            <div id="hub-todo-header" class="hub-todo-header">
+              <span class="hub-todo-title" data-immersion-key="todoTitle">To-do list</span>
+            </div>
+            <form id="hub-todo-add-form" class="hub-todo-add-form">
+              <input type="text" id="hub-todo-add-input" placeholder="Add a task…" autocomplete="off" data-immersion-key="todoAddPlaceholder" />
+              <select id="hub-todo-folder-select" class="hub-todo-folder-select" aria-label="Folder">
+                <option value="" data-immersion-key="todoNoFolder">No folder</option>
+              </select>
+              <button type="submit" data-immersion-key="todoAddButton">Add</button>
+            </form>
+            <div id="hub-todo-groups" class="hub-todo-groups"></div>
+            <label class="hub-todo-show-completed">
+              <input type="checkbox" id="hub-todo-show-completed" />
+              <span data-immersion-key="todoShowCompleted">Show completed</span>
+            </label>
+          </div>
         </div>
       </div>
     </div>

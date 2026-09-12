@@ -981,6 +981,25 @@ body.picker-body { background: var(--paper); }
 
 .lang-home-main { max-width: 1080px; padding: 26px 20px 72px; }
 
+/* Inline to-do panel: the same #hub-todo-panel markup/JS every other
+   page floats over the topbar, but placed directly in the page and
+   always visible here — zero out the floating box chrome so it just
+   sits as plain content inside its enclosing .card. */
+.hub-todo-panel--inline {
+  position: static;
+  z-index: auto;
+  width: auto;
+  max-height: none;
+  overflow: visible;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+.hub-todo-panel--inline .hub-todo-header { margin-bottom: 10px; cursor: default; }
+.hub-todo-panel--inline .hub-todo-title { font-family: "Fahkwang", serif; font-size: 17px; font-weight: 500; }
+
 @media (max-width: 640px) {
   .cols { padding-top: 16px; }
   .grid-tiles { max-width: none; }

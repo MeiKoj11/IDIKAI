@@ -22,12 +22,17 @@ let hubTasksLang = null;
 let hubTasksShowCompleted = false;
 
 function initHubTasks(language) {
+  const panel = document.getElementById("hub-todo-panel");
+  if (!panel) return; // this page doesn't have the to-do list
+
+  // language-home.html hosts the panel inline in its side column
+  // (always visible, no floating/drag/toggle) instead of the usual
+  // topbar-triggered overlay every other page uses.
+  const isInline = panel.classList.contains("hub-todo-panel--inline");
   const toggleBtn = document.getElementById("hub-todo-toggle");
-  if (!toggleBtn) return; // this page doesn't have the to-do list
 
   hubTasksLang = language;
 
-  const panel = document.getElementById("hub-todo-panel");
   const closeBtn = document.getElementById("hub-todo-close");
   const addForm = document.getElementById("hub-todo-add-form");
   const folderSelect = document.getElementById("hub-todo-folder-select");
@@ -38,7 +43,8 @@ function initHubTasks(language) {
   // click-outside-to-close behavior as the Notifications/hamburger
   // menus, AND registers it so opening one of those closes this panel
   // (and vice versa) — the two now sit close enough in the topbar that
-  // both being open at once would visually overlap.
+  // both being open at once would visually overlap. Not applicable to
+  // the inline panel, which has no toggle button and is never hidden.
   if (toggleBtn && !toggleBtn.dataset.wired) {
     toggleBtn.dataset.wired = "true";
     wireTopbarMenu(toggleBtn, panel);
@@ -70,7 +76,7 @@ function initHubTasks(language) {
     groups.addEventListener("change", handleHubTaskGroupsChange);
   }
 
-  wireHubTodoPanelDrag(panel, toggleBtn);
+  if (!isInline) wireHubTodoPanelDrag(panel, toggleBtn);
 
   renderFolderSelectOptions(folderSelect, "");
   renderHubTasks();
