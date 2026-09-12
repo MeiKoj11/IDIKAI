@@ -2,11 +2,185 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Idikai</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fahkwang:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Fahkwang:wght@400;500;600;700&family=Nunito:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet" />
+  <style>
+    /* Idikai — welcome page. Self-contained: no css/style.css needed.
+       Redesigned via Claude Design, swapped in by hand after verifying
+       no JS anywhere touches this page's classes/ids (it's a static
+       splash screen — only about.html and index.html links matter). */
+    :root {
+      --ink: #221712;
+      --paper: #ECE6D3;
+      --dark: #241A13;
+      --cream: #F3EEDD;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+
+    body.welcome-body {
+      background: var(--dark);
+      color: var(--paper);
+      font-family: "Nunito", sans-serif;
+      min-height: 100vh;
+    }
+
+    .welcome-main {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100dvh;
+      padding: 20px clamp(18px, 4vw, 36px) clamp(20px, 4vh, 38px);
+      overflow: hidden;
+    }
+    .welcome-main::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(circle at 50% 45%, rgba(236,230,211,0.05), rgba(236,230,211,0) 60%);
+      pointer-events: none;
+    }
+
+    .welcome-about-link {
+      position: relative;
+      align-self: flex-end;
+      font-size: 13.5px;
+      color: var(--paper);
+      text-decoration: none;
+      border: 1px solid rgba(236,230,211,0.42);
+      border-radius: 999px;
+      padding: 9px 21px;
+      transition: background 140ms ease, border-color 140ms ease;
+    }
+    .welcome-about-link:hover {
+      background: rgba(236,230,211,0.1);
+      border-color: var(--paper);
+    }
+
+    .welcome-spine {
+      position: absolute;
+      left: clamp(34px, 10vw, 150px);
+      top: 76px;
+      bottom: clamp(20px, 4vh, 38px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: rgba(236,230,211,0.6);
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      white-space: nowrap;
+    }
+    .welcome-spine::after {
+      content: "";
+      width: 1px;
+      flex: 1;
+      background: rgba(236,230,211,0.28);
+    }
+
+    .welcome-content {
+      position: relative;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: clamp(14px, 2.2vh, 22px);
+      min-height: 0;
+    }
+
+    .welcome-title {
+      font-family: "Fahkwang", serif;
+      font-weight: 600;
+      font-size: clamp(40px, 6.4vh, 74px);
+      line-height: 1;
+      letter-spacing: -0.005em;
+      margin: 0;
+      color: var(--cream);
+    }
+
+    .welcome-quote {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      margin: 0;
+      font-style: italic;
+      font-size: clamp(14.5px, 2.1vh, 19px);
+      line-height: 1.5;
+      max-width: 34ch;
+      text-wrap: pretty;
+    }
+    .welcome-quote-author {
+      font-style: normal;
+      font-size: clamp(12px, 1.5vh, 13.5px);
+      color: rgba(236,230,211,0.58);
+    }
+
+    .welcome-definitions {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin: 0 0 clamp(14px, 2.4vh, 22px);
+      padding-top: clamp(16px, 3vh, 26px);
+      font-size: clamp(12.5px, 1.7vh, 15px);
+      color: rgba(236,230,211,0.88);
+      text-align: center;
+    }
+    .welcome-definitions::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 40px;
+      height: 1px;
+      background: rgba(236,230,211,0.22);
+    }
+    .welcome-definitions p { margin: 0; }
+    .welcome-def-word { font-weight: 600; font-style: italic; }
+    .welcome-def-pos { font-style: normal; }
+    .welcome-def-lang {
+      font-size: 0.82em;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(236,230,211,0.6);
+    }
+
+    .welcome-start-link {
+      position: relative;
+      order: 9;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: clamp(14px, 1.8vh, 16px);
+      color: var(--paper);
+      text-decoration: none;
+      border: 1px solid rgba(236,230,211,0.48);
+      border-radius: 999px;
+      padding: 12px 27px;
+      transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+    }
+    .welcome-start-link::after { content: "→"; font-size: 1.05em; line-height: 1; }
+    .welcome-start-link:hover {
+      background: var(--paper);
+      color: var(--dark);
+      border-color: var(--paper);
+    }
+
+    @media (max-width: 640px) {
+      .welcome-spine { display: none; }
+    }
+  </style>
 </head>
 <body class="welcome-body">
   <main class="welcome-main">
@@ -19,11 +193,11 @@
         <span class="welcome-quote-author">— L. Wittgenstein</span>
       </blockquote>
     </div>
-    <a href="index.html" class="welcome-start-link">Click here to start</a>
     <div class="welcome-definitions">
       <p><span class="welcome-def-word">idioma</span> <span class="welcome-def-pos">n.</span> — language <span class="welcome-def-lang">(Spanish)</span></p>
       <p><span class="welcome-def-word">理解 rikai</span> <span class="welcome-def-pos">n.</span> — understanding <span class="welcome-def-lang">(Japanese)</span></p>
     </div>
+    <a href="index.html" class="welcome-start-link">Click here to start</a>
   </main>
 </body>
 </html>
