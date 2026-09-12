@@ -878,6 +878,11 @@ body.picker-body { background: var(--paper); }
   gap: 16px;
   max-width: 760px;
 }
+.grid-folders {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 268px), 1fr));
+  gap: 18px;
+}
 .stack { display: flex; flex-direction: column; gap: 9px; }
 .row-head { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px; }
 .grow { flex: 1; min-width: 240px; }

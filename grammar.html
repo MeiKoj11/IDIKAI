@@ -80,12 +80,21 @@
       </div>
     </div>
   </div>
-  <header class="app-header" id="grammar-header">
-    <a href="index.html" class="back-link" id="grammar-back-link" data-immersion-key="backPlain">&larr; Back</a>
-    <h1 id="grammar-heading" data-immersion-key="sectionGrammar">Grammar</h1>
-  </header>
   <main>
-    <ul id="grammar-theme-list" class="theme-list"></ul>
+    <div class="pagehead" id="grammar-header">
+      <div class="row-head">
+        <div class="grow">
+          <a href="index.html" class="back-link" id="grammar-back-link" data-immersion-key="backPlain">&larr; Back</a>
+          <h1 class="page-title" id="grammar-heading" data-immersion-key="sectionGrammar">Grammar</h1>
+          <div class="meta-row">
+            <span class="dot"></span>
+            <span class="meta-text" id="grammar-meta-text"></span>
+          </div>
+        </div>
+        <button type="button" class="btn" id="grammar-new-section-btn" data-immersion-key="newSectionButton">New section</button>
+      </div>
+    </div>
+    <div class="grid-folders" id="grammar-theme-list" style="margin-top:22px"></div>
   </main>
   <script src="js/topbar.js"></script>
   <script src="js/immersion.js"></script>

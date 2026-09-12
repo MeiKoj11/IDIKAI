@@ -41,6 +41,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const langParam = getQueryParam("lang");
   if (SUPPORTED_LANGUAGES.includes(langParam)) {
     activeGrammarLang = langParam;
+    // idikai-refresh.css scopes the --accent custom property (used by
+    // the folder cards' .dot) off body.lang-XX.
+    document.body.classList.add(`lang-${langParam}`);
     const heading = document.getElementById("grammar-heading");
     if (heading) heading.textContent = `${GRAMMAR_LANGUAGE_NAMES[langParam]} Grammar`;
     const backLink = document.getElementById("grammar-back-link");
@@ -77,12 +80,23 @@ document.addEventListener("DOMContentLoaded", () => {
     initTopbar(activeGrammarLang);
     if (typeof initHubTasks === "function") initHubTasks(activeGrammarLang);
     initAppTabs(null); // a folder list, not a single addressable unit
+    const newSectionBtn = document.getElementById("grammar-new-section-btn");
+    if (newSectionBtn) newSectionBtn.addEventListener("click", promptAddGrammarTheme);
   }
 });
 
 // ---------------------------------------------------------------------
 // grammar.html — folder list
 // ---------------------------------------------------------------------
+
+// Shared by both the pagehead "New section" button and the dashed
+// "Add section" tile at the end of the grid.
+function promptAddGrammarTheme() {
+  const name = (window.prompt("New folder name, e.g. Reflexive idioms") || "").trim();
+  if (!name) return;
+  Storage.addGrammarTheme(name, activeGrammarLang || "es");
+  renderGrammarThemeList();
+}
 
 function renderGrammarThemeList() {
   const list = document.getElementById("grammar-theme-list");
@@ -91,36 +105,36 @@ function renderGrammarThemeList() {
   const themes = Storage.getGrammarThemes(activeGrammarLang || undefined);
   list.innerHTML = "";
 
+  const totalNotes = themes.reduce((sum, t) => sum + Storage.getGrammarNotes(t.id).length, 0);
+  const metaText = document.getElementById("grammar-meta-text");
+  if (metaText) {
+    metaText.textContent = `${themes.length} section${themes.length === 1 ? "" : "s"} · ${totalNotes} note${totalNotes === 1 ? "" : "s"}`;
+  }
+
   themes.forEach((theme) => {
     const count = Storage.getGrammarNotes(theme.id).length;
-    const li = document.createElement("li");
-    li.className = `theme-item lang-${theme.language || "es"}`;
-    li.addEventListener("click", () => {
-      window.location.href = `grammar-theme.html?id=${encodeURIComponent(theme.id)}`;
-    });
+    const card = document.createElement("a");
+    card.href = `grammar-theme.html?id=${encodeURIComponent(theme.id)}`;
+    card.className = "card card-ruled card-lift";
+    card.style.cssText = "display:flex; flex-direction:column; min-height:176px";
 
-    const nameEl = document.createElement("span");
-    nameEl.className = "theme-name";
-    nameEl.textContent = theme.name;
-    li.appendChild(nameEl);
-
-    const meta = document.createElement("span");
-    meta.className = "theme-meta";
-    const countBadge = document.createElement("span");
-    countBadge.className = "word-count-badge";
-    countBadge.textContent = `${count} note${count === 1 ? "" : "s"}`;
-    meta.appendChild(countBadge);
-    li.appendChild(meta);
+    const topRow = document.createElement("div");
+    topRow.style.cssText = "display:flex; align-items:flex-start";
+    const dot = document.createElement("span");
+    dot.className = "dot";
+    topRow.appendChild(dot);
 
     const deleteBtn = document.createElement("button");
     deleteBtn.type = "button";
-    deleteBtn.className = "theme-delete-btn";
+    deleteBtn.className = "pill-row-x";
+    deleteBtn.style.marginLeft = "auto";
     deleteBtn.setAttribute("aria-label", `Delete ${theme.name}`);
     deleteBtn.textContent = "×";
     deleteBtn.addEventListener("click", (e) => {
       // The tile itself is a click-to-open link — without this the
       // click would both delete the folder AND navigate into a page
       // for a folder that no longer exists.
+      e.preventDefault();
       e.stopPropagation();
       const warning =
         count > 0
@@ -130,33 +144,51 @@ function renderGrammarThemeList() {
       Storage.deleteGrammarTheme(theme.id);
       renderGrammarThemeList();
     });
-    li.appendChild(deleteBtn);
+    topRow.appendChild(deleteBtn);
+    card.appendChild(topRow);
 
-    list.appendChild(li);
+    const nameEl = document.createElement("h2");
+    nameEl.className = "card-title";
+    nameEl.style.cssText = "font-size:22px; margin-top:12px";
+    nameEl.textContent = theme.name;
+    card.appendChild(nameEl);
+
+    const bottomRow = document.createElement("div");
+    bottomRow.style.cssText = "display:flex; align-items:center; margin-top:auto; padding-top:14px";
+    const countBadge = document.createElement("span");
+    countBadge.className = "pill-tag";
+    countBadge.textContent = `${count} note${count === 1 ? "" : "s"}`;
+    bottomRow.appendChild(countBadge);
+    const arrow = document.createElement("span");
+    arrow.className = "arrow";
+    arrow.style.marginLeft = "auto";
+    arrow.textContent = "→";
+    bottomRow.appendChild(arrow);
+    card.appendChild(bottomRow);
+
+    list.appendChild(card);
   });
 
-  // The "add a new folder" control is its own tile inside the grid,
-  // sitting alongside the folder tiles rather than a form above them.
-  const addLi = document.createElement("li");
-  addLi.className = "theme-item theme-item-add";
-  addLi.setAttribute("role", "button");
-  addLi.setAttribute("tabindex", "0");
-  addLi.setAttribute("aria-label", "Add folder");
-  addLi.textContent = "+";
-  const handleAddTile = () => {
-    const name = (window.prompt("New folder name, e.g. Reflexive idioms") || "").trim();
-    if (!name) return;
-    Storage.addGrammarTheme(name, activeGrammarLang || "es");
-    renderGrammarThemeList();
-  };
-  addLi.addEventListener("click", handleAddTile);
-  addLi.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      handleAddTile();
-    }
-  });
-  list.appendChild(addLi);
+  // The "add a new folder" control is its own dashed tile inside the
+  // grid, sitting alongside the folder tiles rather than a form above
+  // them.
+  const addCard = document.createElement("button");
+  addCard.type = "button";
+  addCard.className = "card card-dashed";
+  addCard.style.cssText =
+    "display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; min-height:176px; color:rgba(34,23,18,0.62)";
+  addCard.setAttribute("aria-label", "Add section");
+  const plus = document.createElement("span");
+  plus.style.cssText = "font-size:26px; line-height:1";
+  plus.textContent = "+";
+  addCard.appendChild(plus);
+  const label = document.createElement("span");
+  label.style.cssText = "font-size:13px; letter-spacing:0.1em; text-transform:uppercase";
+  label.textContent = "Add section";
+  label.dataset.immersionKey = "addSectionLabel";
+  addCard.appendChild(label);
+  addCard.addEventListener("click", promptAddGrammarTheme);
+  list.appendChild(addCard);
 }
 
 // ---------------------------------------------------------------------

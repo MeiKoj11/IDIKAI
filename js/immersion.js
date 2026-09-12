@@ -70,6 +70,8 @@ const IMMERSION_STRINGS = {
     ja: "クラスノート、保管庫、ヘルパーノート、自分だけのメモバブル — ドリル以外のすべて。",
     fr: "Cahier de classe, Casier de stockage, Cahier d'aide et tes propres bulles de notes — tout ce qui n'est pas un exercice.",
   },
+  newSectionButton: { es: "Nueva sección", ja: "新しいセクション", fr: "Nouvelle section" },
+  addSectionLabel: { es: "Añadir sección", ja: "セクションを追加", fr: "Ajouter une section" },
 
   // ---- Generic, reused across many pages ----
   backPlain: { es: "← Volver", ja: "← 戻る", fr: "← Retour" },
