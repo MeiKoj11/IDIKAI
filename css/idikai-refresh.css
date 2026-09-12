@@ -874,6 +874,15 @@ body.picker-body { background: var(--paper); }
   padding: 5px 10px;
   border-radius: 999px;
   border: 1.5px solid rgba(34, 23, 18, 0.4);
+  /* .chip is also used on real <button> elements (the tag-filter row) —
+     without this, style.css's global `button { background: #221712;
+     color: #ECE6D3; }` rule leaves its dark background in place (only
+     background/color are unset here, so the property survives from that
+     earlier same-specificity-ish rule), producing invisible dark text on
+     a dark chip. Same cascade issue as the topbar bug — fixed the same
+     way, by declaring the property explicitly here instead of leaving
+     it to fall through. */
+  background: transparent;
   color: rgba(34, 23, 18, 0.78);
   white-space: nowrap;
 }
