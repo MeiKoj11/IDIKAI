@@ -26,6 +26,12 @@ const GRAMMAR_LANGUAGE_NAMES = { es: "Spanish", ja: "Japanese", fr: "French" };
 // editingHelperNoteWordId pattern.
 let editingGrammarPersonalNoteId = null;
 
+// Which tag chip is active on grammar-theme.html's filter row ("All" when
+// null) — reset whenever a folder with no tagged notes renders, so a
+// stale filter can't hide everything for a folder that never had that
+// tag to begin with.
+let activeGrammarNoteTagFilter = null;
+
 // The language context for grammar.html (from ?lang=es|ja) — filters the
 // folder list and tags any folder created from this page. Grammar
 // started Spanish-only; folders saved before language tagging existed
@@ -255,8 +261,92 @@ function initGrammarThemePage() {
     japaneseTensesLink.hidden = !(themeLang === "ja" && (theme.name || "").toLowerCase() === "tenses and verb conjugations");
   }
 
+  // The "Mistakes" folder is a real Grammar folder (auto-created the
+  // first time a sentence/conjugation test saves a flagged mistake — see
+  // findOrCreateMistakesFolder in each *-sentence-test-app.js and
+  // japanese-conjugation-test-app.js), not a standalone page. Link to it
+  // by id when it exists; hide the card entirely on its own page (no
+  // self-referencing link) or when no mistake has ever been saved yet.
+  const mistakesLink = document.getElementById("grammar-mistakes-link");
+  if (mistakesLink) {
+    const mistakesTheme = Storage.getGrammarThemes(themeLang).find(
+      (t) => (t.name || "").trim().toLowerCase() === "mistakes"
+    );
+    if (mistakesTheme && mistakesTheme.id !== theme.id) {
+      const mistakeCount = Storage.getGrammarNotes(mistakesTheme.id).length;
+      mistakesLink.hidden = false;
+      mistakesLink.href = `grammar-theme.html?id=${encodeURIComponent(mistakesTheme.id)}`;
+      const countEl = document.getElementById("grammar-mistakes-count");
+      if (countEl) countEl.textContent = `${mistakeCount} logged mistake${mistakeCount === 1 ? "" : "s"}`;
+    } else {
+      mistakesLink.hidden = true;
+    }
+  }
+
+  // If none of the side cards ended up visible for this folder, collapse
+  // the two-column layout down to just the notes list rather than
+  // leaving an empty column.
+  const side = document.getElementById("grammar-theme-side");
+  if (side) {
+    const anyVisible = Array.from(side.children).some((child) => !child.hidden);
+    side.hidden = !anyVisible;
+  }
+
+  renderGrammarThemeFilterChips(theme.id);
   renderGrammarNoteList(theme.id);
   initGrammarPracticeCTA(theme);
+}
+
+// A chip row ("All" + one chip per tag currently used by a note in this
+// folder) sitting under the folder heading — lets you narrow the list
+// down without leaving the page. Only conjugation notes are tagged today
+// (always "conjugation" — see ensureDefaultConjugationCards), but this
+// reads whatever tags actually exist rather than hardcoding that one, so
+// a hand-tagged structure card's own tags show up here too.
+function renderGrammarThemeFilterChips(themeId) {
+  const container = document.getElementById("grammar-theme-filter-chips");
+  if (!container) return;
+
+  const notes = Storage.getGrammarNotes(themeId);
+  const tagSet = new Set();
+  notes.forEach((note) => (note.tags || []).forEach((tag) => tagSet.add(tag)));
+
+  container.innerHTML = "";
+
+  if (tagSet.size === 0) {
+    container.hidden = true;
+    activeGrammarNoteTagFilter = null;
+    return;
+  }
+
+  container.hidden = false;
+
+  const allChip = document.createElement("button");
+  allChip.type = "button";
+  allChip.className = activeGrammarNoteTagFilter === null ? "chip chip-active" : "chip";
+  allChip.textContent = "All";
+  allChip.dataset.immersionKey = "filterAllChip";
+  allChip.addEventListener("click", () => {
+    activeGrammarNoteTagFilter = null;
+    renderGrammarThemeFilterChips(themeId);
+    renderGrammarNoteList(themeId);
+  });
+  container.appendChild(allChip);
+
+  Array.from(tagSet)
+    .sort()
+    .forEach((tag) => {
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = activeGrammarNoteTagFilter === tag ? "chip chip-active" : "chip";
+      chip.textContent = tag;
+      chip.addEventListener("click", () => {
+        activeGrammarNoteTagFilter = tag;
+        renderGrammarThemeFilterChips(themeId);
+        renderGrammarNoteList(themeId);
+      });
+      container.appendChild(chip);
+    });
 }
 
 // ---------------------------------------------------------------------
@@ -562,14 +652,22 @@ function renderGrammarNoteList(themeId) {
   const list = document.getElementById("grammar-note-list");
   if (!list) return;
 
-  const notes = Storage.getGrammarNotes(themeId);
+  const allNotes = Storage.getGrammarNotes(themeId);
+  const notes = activeGrammarNoteTagFilter
+    ? allNotes.filter((note) => (note.tags || []).includes(activeGrammarNoteTagFilter))
+    : allNotes;
   list.innerHTML = "";
 
   if (notes.length === 0) {
     const li = document.createElement("li");
     li.className = "empty-hint";
-    li.textContent = "No notes in this folder yet.";
-    li.dataset.immersionKey = "noNotesInFolderText";
+    if (activeGrammarNoteTagFilter && allNotes.length > 0) {
+      li.textContent = "No notes with this tag.";
+      li.dataset.immersionKey = "noNotesWithTagText";
+    } else {
+      li.textContent = "No notes in this folder yet.";
+      li.dataset.immersionKey = "noNotesInFolderText";
+    }
     list.appendChild(li);
     return;
   }
@@ -605,28 +703,49 @@ function buildGrammarNoteCard(note) {
   if (note.header) return buildStructureCard(note);
 
   const li = document.createElement("li");
-  li.className = "word-item grammar-note-item";
+  li.className = "grammar-note-item";
 
+  // Collapsed state renders as one of the mockup's pill-rows (dot + title
+  // + tag chip(s) + a quick delete-x); clicking it still expands the same
+  // detail block below, exactly as it always has.
   const summary = document.createElement("div");
-  summary.className = "grammar-note-summary";
+  summary.className = "pill-row";
   summary.style.cursor = "pointer";
 
-  const sentenceEl = document.createElement("div");
-  sentenceEl.className = "grammar-note-sentence";
+  const dot = document.createElement("span");
+  dot.className = "dot dot-sm";
+  summary.appendChild(dot);
+
+  const sentenceEl = document.createElement("span");
+  sentenceEl.className = "pill-row-title";
   sentenceEl.textContent = note.sentence;
   summary.appendChild(sentenceEl);
 
   if (note.tags && note.tags.length) {
-    const tagsRow = document.createElement("div");
-    tagsRow.className = "tag-row";
+    const tagsRow = document.createElement("span");
+    tagsRow.className = "pill-row-tags";
     note.tags.forEach((tag) => {
       const pill = document.createElement("span");
-      pill.className = "tag-pill";
+      pill.className = "chip";
       pill.textContent = tag;
       tagsRow.appendChild(pill);
     });
     summary.appendChild(tagsRow);
   }
+
+  const quickDeleteBtn = document.createElement("button");
+  quickDeleteBtn.type = "button";
+  quickDeleteBtn.className = "pill-row-x";
+  quickDeleteBtn.setAttribute("aria-label", "Delete note");
+  quickDeleteBtn.textContent = "×";
+  quickDeleteBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (!confirm("Delete this note? This can't be undone.")) return;
+    Storage.deleteGrammarNote(note.id);
+    renderGrammarThemeFilterChips(note.themeId);
+    renderGrammarNoteList(note.themeId);
+  });
+  summary.appendChild(quickDeleteBtn);
 
   const detail = document.createElement("div");
   detail.className = "grammar-note-detail";
@@ -724,6 +843,7 @@ function buildGrammarNoteCard(note) {
     e.stopPropagation();
     if (!confirm("Delete this note? This can't be undone.")) return;
     Storage.deleteGrammarNote(note.id);
+    renderGrammarThemeFilterChips(note.themeId);
     renderGrammarNoteList(note.themeId);
   });
   actionsRow.appendChild(deleteBtn);
@@ -751,31 +871,54 @@ function buildGrammarNoteCard(note) {
 // live as their own collapsible sections instead.
 function buildConjugationNoteTile(note) {
   const li = document.createElement("li");
-  li.className = "word-item grammar-note-item grammar-structure-card";
-  li.style.setProperty("--card-color", grammarCardColorFor(note.id));
-  li.style.cursor = "pointer";
+  li.className = "grammar-note-item";
 
-  const headerEl = document.createElement("div");
-  headerEl.className = "grammar-card-header";
+  const row = document.createElement("div");
+  row.className = "pill-row";
+  row.style.cursor = "pointer";
+
+  const dot = document.createElement("span");
+  dot.className = "dot dot-sm";
+  row.appendChild(dot);
+
+  const headerEl = document.createElement("span");
+  headerEl.className = "pill-row-title";
   headerEl.textContent = note.header;
-  li.appendChild(headerEl);
+  row.appendChild(headerEl);
 
   if (note.tags && note.tags.length) {
-    const tagsRow = document.createElement("div");
-    tagsRow.className = "tag-row";
+    const tagsRow = document.createElement("span");
+    tagsRow.className = "pill-row-tags";
     note.tags.forEach((tag) => {
       const pill = document.createElement("span");
-      pill.className = "tag-pill";
+      pill.className = "chip";
       pill.textContent = tag;
       tagsRow.appendChild(pill);
     });
-    li.appendChild(tagsRow);
+    row.appendChild(tagsRow);
   }
 
-  li.addEventListener("click", () => {
+  const quickDeleteBtn = document.createElement("button");
+  quickDeleteBtn.type = "button";
+  quickDeleteBtn.className = "pill-row-x";
+  quickDeleteBtn.setAttribute("aria-label", "Delete note");
+  quickDeleteBtn.textContent = "×";
+  quickDeleteBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (!confirm("Delete this note? This can't be undone.")) return;
+    Storage.deleteGrammarNote(note.id);
+    renderGrammarThemeFilterChips(note.themeId);
+    renderGrammarNoteList(note.themeId);
+  });
+  row.appendChild(quickDeleteBtn);
+
+  li.appendChild(row);
+
+  row.addEventListener("click", () => {
     window.location.href = `grammar-conjugation-note.html?noteId=${encodeURIComponent(note.id)}`;
   });
-  li.addEventListener("keydown", (e) => {
+  row.tabIndex = 0;
+  row.addEventListener("keydown", (e) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       window.location.href = `grammar-conjugation-note.html?noteId=${encodeURIComponent(note.id)}`;
@@ -788,29 +931,49 @@ function buildConjugationNoteTile(note) {
 
 function buildStructureCard(note) {
   const li = document.createElement("li");
-  li.className = "word-item grammar-note-item grammar-structure-card";
-  li.style.setProperty("--card-color", grammarCardColorFor(note.id));
+  li.className = "grammar-note-item";
 
+  // Collapsed state matches the mockup's pill-row (dot + title + tag
+  // chip(s) + quick delete-x); clicking it still expands the full detail
+  // block below exactly as before.
   const summary = document.createElement("div");
-  summary.className = "grammar-note-summary";
+  summary.className = "pill-row";
   summary.style.cursor = "pointer";
 
-  const headerEl = document.createElement("div");
-  headerEl.className = "grammar-card-header";
+  const dot = document.createElement("span");
+  dot.className = "dot dot-sm";
+  summary.appendChild(dot);
+
+  const headerEl = document.createElement("span");
+  headerEl.className = "pill-row-title";
   headerEl.textContent = note.header;
   summary.appendChild(headerEl);
 
   if (note.tags && note.tags.length) {
-    const tagsRow = document.createElement("div");
-    tagsRow.className = "tag-row";
+    const tagsRow = document.createElement("span");
+    tagsRow.className = "pill-row-tags";
     note.tags.forEach((tag) => {
       const pill = document.createElement("span");
-      pill.className = "tag-pill";
+      pill.className = "chip";
       pill.textContent = tag;
       tagsRow.appendChild(pill);
     });
     summary.appendChild(tagsRow);
   }
+
+  const quickDeleteBtn = document.createElement("button");
+  quickDeleteBtn.type = "button";
+  quickDeleteBtn.className = "pill-row-x";
+  quickDeleteBtn.setAttribute("aria-label", "Delete note");
+  quickDeleteBtn.textContent = "×";
+  quickDeleteBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (!confirm("Delete this note? This can't be undone.")) return;
+    Storage.deleteGrammarNote(note.id);
+    renderGrammarThemeFilterChips(note.themeId);
+    renderGrammarNoteList(note.themeId);
+  });
+  summary.appendChild(quickDeleteBtn);
 
   const detail = document.createElement("div");
   detail.className = "grammar-note-detail";
@@ -931,6 +1094,7 @@ function buildStructureCard(note) {
     e.stopPropagation();
     if (!confirm("Delete this note? This can't be undone.")) return;
     Storage.deleteGrammarNote(note.id);
+    renderGrammarThemeFilterChips(note.themeId);
     renderGrammarNoteList(note.themeId);
   });
   actionsRow.appendChild(deleteBtn);

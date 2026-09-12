@@ -879,6 +879,24 @@ body.picker-body { background: var(--paper); }
 }
 .chip-strong { border-color: var(--red); color: var(--red); background: rgba(119, 16, 17, 0.07); }
 .chip-outline-link:hover { border-color: var(--red); color: var(--red); text-decoration: none; }
+/* A tag-filter chip you can click (grammar-theme.html's "All"/tag row) —
+   same pill shape as .chip, just interactive with an active state. */
+button.chip { cursor: pointer; }
+button.chip:hover { border-color: var(--ink); }
+.chip-active, button.chip-active {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+.chip-active:hover, button.chip-active:hover { border-color: var(--ink); }
+.grammar-theme-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid rgba(34, 23, 18, 0.18);
+}
 .badge-outline {
   font-size: 10.5px;
   letter-spacing: 0.14em;
