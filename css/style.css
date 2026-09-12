@@ -1102,6 +1102,19 @@ a.secondary:hover {
   resize: vertical;
 }
 
+.storage-locker-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.storage-locker-edit-form input {
+  padding: 0.5rem;
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+
 .empty-hint {
   color: #C0BFB2;
   font-size: 0.9rem;

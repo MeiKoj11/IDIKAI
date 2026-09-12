@@ -961,6 +961,15 @@ function addStorageLockerItem(item) {
   return entry;
 }
 
+function updateStorageLockerItem(itemId, updates) {
+  const items = readJSON(STORAGE_KEYS.storageLockerItems, []);
+  const item = items.find((i) => i.id === itemId);
+  if (!item) return null;
+  Object.assign(item, updates);
+  writeJSON(STORAGE_KEYS.storageLockerItems, items);
+  return item;
+}
+
 function deleteStorageLockerItem(itemId) {
   const items = readJSON(STORAGE_KEYS.storageLockerItems, []).filter((i) => i.id !== itemId);
   writeJSON(STORAGE_KEYS.storageLockerItems, items);
@@ -1244,6 +1253,7 @@ const Storage = {
   deletePersonalNote,
   getStorageLockerItems,
   addStorageLockerItem,
+  updateStorageLockerItem,
   deleteStorageLockerItem,
   getTasks,
   addTask,

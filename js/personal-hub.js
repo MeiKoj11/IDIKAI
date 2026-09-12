@@ -13,6 +13,7 @@ const PERSONAL_HUB_LANGUAGE_NAMES = { es: "Spanish", ja: "Japanese", fr: "French
 
 let activePersonalLang = "es";
 let editingPersonalNoteId = null;
+let editingStorageLockerId = null;
 
 function getQueryParam(name) {
   return new URLSearchParams(window.location.search).get(name);
@@ -157,6 +158,12 @@ function renderStorageLockerList() {
     const li = document.createElement("li");
     li.className = "word-item storage-locker-item" + (isFile ? " storage-locker-item-file" : "");
 
+    if (item.id === editingStorageLockerId) {
+      li.appendChild(buildStorageLockerEditForm(item));
+      list.appendChild(li);
+      return;
+    }
+
     const main = document.createElement("div");
     main.className = "word-main";
 
@@ -169,8 +176,8 @@ function renderStorageLockerList() {
     if (isFile) {
       const link = document.createElement("a");
       link.className = "word-label storage-locker-link";
-      link.textContent = item.fileName || item.title;
-      link.href = `/api/storage-locker-download?key=${encodeURIComponent(item.fileKey)}&name=${encodeURIComponent(item.fileName || item.title || "file")}`;
+      link.textContent = item.title || item.fileName;
+      link.href = `/api/storage-locker-download?key=${encodeURIComponent(item.fileKey)}&name=${encodeURIComponent(item.title || item.fileName || "file")}`;
       link.target = "_blank";
       link.rel = "noopener noreferrer";
       main.appendChild(link);
@@ -196,6 +203,14 @@ function renderStorageLockerList() {
     const actions = document.createElement("span");
     actions.className = "word-actions";
 
+    const editBtn = document.createElement("button");
+    editBtn.type = "button";
+    editBtn.className = "secondary edit-storage-locker-btn";
+    editBtn.textContent = "Rename";
+    editBtn.dataset.immersionKey = "btnEdit";
+    editBtn.dataset.itemId = item.id;
+    actions.appendChild(editBtn);
+
     const deleteBtn = document.createElement("button");
     deleteBtn.type = "button";
     deleteBtn.className = "secondary delete-storage-locker-btn";
@@ -209,7 +224,81 @@ function renderStorageLockerList() {
   });
 }
 
+function buildStorageLockerEditForm(item) {
+  const isFile = item.kind === "file";
+  const wrapper = document.createElement("div");
+  wrapper.className = "storage-locker-edit-form";
+
+  const titleInput = document.createElement("input");
+  titleInput.type = "text";
+  titleInput.value = item.title || "";
+  titleInput.className = "edit-storage-locker-title-input";
+  titleInput.setAttribute("aria-label", "Title");
+  wrapper.appendChild(titleInput);
+
+  let urlInput = null;
+  if (!isFile) {
+    urlInput = document.createElement("input");
+    urlInput.type = "text";
+    urlInput.value = item.url || "";
+    urlInput.className = "edit-storage-locker-url-input";
+    urlInput.setAttribute("aria-label", "Link");
+    wrapper.appendChild(urlInput);
+  }
+
+  const actions = document.createElement("div");
+  actions.className = "detection-actions";
+
+  const saveBtn = document.createElement("button");
+  saveBtn.type = "button";
+  saveBtn.textContent = "Save";
+  saveBtn.dataset.immersionKey = "btnSave";
+  saveBtn.addEventListener("click", () => handleSaveStorageLockerEdit(item.id, wrapper, isFile));
+  actions.appendChild(saveBtn);
+
+  const cancelBtn = document.createElement("button");
+  cancelBtn.type = "button";
+  cancelBtn.className = "secondary";
+  cancelBtn.textContent = "Cancel";
+  cancelBtn.dataset.immersionKey = "btnCancel";
+  cancelBtn.addEventListener("click", () => {
+    editingStorageLockerId = null;
+    renderStorageLockerList();
+  });
+  actions.appendChild(cancelBtn);
+
+  wrapper.appendChild(actions);
+  return wrapper;
+}
+
+function handleSaveStorageLockerEdit(itemId, wrapper, isFile) {
+  const title = wrapper.querySelector(".edit-storage-locker-title-input").value.trim();
+  if (!title) {
+    alert(isFile ? "Give this file a name." : "A saved link needs a title.");
+    return;
+  }
+  const updates = { title };
+  if (!isFile) {
+    const urlInput = wrapper.querySelector(".edit-storage-locker-url-input");
+    const url = normalizeStorageLockerUrl(urlInput.value);
+    if (!url) {
+      alert("A saved link needs a URL.");
+      return;
+    }
+    updates.url = url;
+  }
+  Storage.updateStorageLockerItem(itemId, updates);
+  editingStorageLockerId = null;
+  renderStorageLockerList();
+}
+
 function handleStorageLockerListClick(e) {
+  if (e.target.classList.contains("edit-storage-locker-btn")) {
+    editingStorageLockerId = e.target.dataset.itemId;
+    renderStorageLockerList();
+    return;
+  }
+
   if (e.target.classList.contains("delete-storage-locker-btn")) {
     const itemId = e.target.dataset.itemId;
     const item = Storage.getStorageLockerItems(activePersonalLang).find((i) => i.id === itemId);

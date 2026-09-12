@@ -1654,11 +1654,19 @@ function handleApiRoute(req, res, url) {
       return sendJSON(res, 503, { error: "File uploads aren't set up on this server yet." }) || true;
     }
     const fileKey = url.searchParams.get("key") || "";
-    const fileName = url.searchParams.get("name") || "file";
+    // The display/download name comes from the query param — it can
+    // change if the learner renames the item — but disposition (inline
+    // vs. download) is decided from the fileKey's own extension, which
+    // always matches the real stored file and never changes on rename.
+    let fileName = url.searchParams.get("name") || "file";
     if (!fileKey.startsWith(`storage-locker/${user.id}/`)) {
       return sendJSON(res, 403, { error: "Not your file." }) || true;
     }
-    const disposition = path.extname(fileName).toLowerCase() === ".pdf" ? "inline" : "attachment";
+    const keyExt = path.extname(fileKey).toLowerCase();
+    // If a rename dropped the extension (e.g. titled just "Chapter 4"),
+    // put the real one back so the downloaded file still opens correctly.
+    if (keyExt && path.extname(fileName).toLowerCase() !== keyExt) fileName += keyExt;
+    const disposition = keyExt === ".pdf" ? "inline" : "attachment";
     try {
       const presignedUrl = r2.getPresignedDownloadUrl(fileKey, fileName, disposition, 300);
       res.writeHead(302, { Location: presignedUrl });
