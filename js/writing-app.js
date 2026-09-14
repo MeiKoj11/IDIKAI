@@ -111,12 +111,14 @@ function initWritingListPage() {
   const lang = SUPPORTED_LANGUAGES.includes(langParam) ? langParam : null;
 
   if (lang) {
-    const heading = document.getElementById("writing-heading");
-    if (heading) heading.textContent = `${WRITING_LANGUAGE_NAMES[lang]} Writing`;
+    // The H1 stays the generic "Entries" — which language you're in is
+    // shown by the topbar's language label + "WRITING" section label
+    // instead (see the redesigned pagehead), matching the mockup.
     const backLink = document.getElementById("writing-back-link");
     if (backLink) backLink.href = `language-home.html?lang=${lang}`;
     const header = document.getElementById("writing-header");
     if (header) header.classList.add(`lang-${lang}`);
+    document.body.classList.add(`lang-${lang}`);
     const newEntryLink = document.getElementById("new-entry-link");
     if (newEntryLink) newEntryLink.href = `writing-entry.html?lang=${lang}`;
   }
@@ -136,6 +138,37 @@ function initWritingListPage() {
   }
 }
 
+const ENTRY_DATE_MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+
+// entry.date is stored as a plain "YYYY-MM-DD" (from <input type=date>) —
+// formatted by hand rather than via toLocaleDateString so the "12 SEP
+// 2026" shape matches the mockup regardless of the browser's locale.
+function formatEntryDate(dateStr) {
+  const parts = (dateStr || "").split("-");
+  if (parts.length !== 3) return dateStr || "";
+  const [y, m, d] = parts;
+  const month = ENTRY_DATE_MONTHS[parseInt(m, 10) - 1] || m;
+  return `${parseInt(d, 10)} ${month} ${y}`;
+}
+
+// A short plain-text preview of the entry, collapsed to one line —
+// there's no stored "excerpt" field, so this is derived from the live
+// text the same way the word count already is.
+function entrySnippet(text) {
+  const collapsed = (text || "").replace(/\s+/g, " ").trim();
+  if (!collapsed) return "";
+  return collapsed.length > 140 ? `${collapsed.slice(0, 140).trim()}…` : collapsed;
+}
+
+// "Checked" means this entry has been through Vocab check and/or
+// Grammar check at least once (correctedWords/grammarCorrectedWords
+// non-empty) — not that every bracketed word is resolved, since new
+// <brackets> can be added after a check. "Draft" is anything that
+// hasn't been checked yet at all.
+function isEntryChecked(entry) {
+  return !!((entry.correctedWords && entry.correctedWords.length) || (entry.grammarCorrectedWords && entry.grammarCorrectedWords.length));
+}
+
 function renderEntryList(lang) {
   const list = document.getElementById("entry-list");
   if (!list) return;
@@ -147,52 +180,65 @@ function renderEntryList(lang) {
   list.innerHTML = "";
 
   if (entries.length === 0) {
-    const li = document.createElement("li");
-    li.className = "empty-hint";
-    li.textContent = lang
+    const empty = document.createElement("p");
+    empty.className = "page-sub";
+    empty.textContent = lang
       ? `No ${WRITING_LANGUAGE_NAMES[lang]} entries yet — write your first one above.`
       : "No entries yet — write your first one above.";
-    list.appendChild(li);
+    list.appendChild(empty);
     return;
   }
 
   entries.forEach((entry) => {
-    const li = document.createElement("li");
-    li.className = `theme-item lang-${entry.language}`;
-    li.addEventListener("click", () => {
-      window.location.href = `writing-entry.html?id=${encodeURIComponent(entry.id)}`;
-    });
+    const card = document.createElement("a");
+    card.className = "card card-lift entry-card";
+    card.href = `writing-entry.html?id=${encodeURIComponent(entry.id)}`;
 
-    const nameEl = document.createElement("span");
-    nameEl.className = "theme-name";
-    nameEl.textContent = entry.title || "Untitled entry";
-    li.appendChild(nameEl);
+    const top = document.createElement("div");
+    top.className = "entry-card-top";
+    const dateChip = document.createElement("span");
+    dateChip.className = "chip";
+    dateChip.textContent = formatEntryDate(entry.date);
+    top.appendChild(dateChip);
+    const statusPill = document.createElement("span");
+    const checked = isEntryChecked(entry);
+    statusPill.className = checked ? "pill-tag" : "pill-tag pill-tag-outline";
+    statusPill.textContent = checked ? "CHECKED" : "DRAFT";
+    top.appendChild(statusPill);
+    card.appendChild(top);
 
-    const meta = document.createElement("span");
-    meta.className = "theme-meta";
+    const titleEl = document.createElement("h3");
+    titleEl.className = "card-title";
+    titleEl.style.marginTop = "12px";
+    titleEl.textContent = entry.title || "Untitled entry";
+    card.appendChild(titleEl);
 
-    const dateBadge = document.createElement("span");
-    dateBadge.className = "folder-badge";
-    dateBadge.textContent = entry.date || "";
-    meta.appendChild(dateBadge);
-
-    const wordBadge = document.createElement("span");
-    wordBadge.className = "folder-badge";
-    wordBadge.textContent = `${countWords(entry.text)} words`;
-    meta.appendChild(wordBadge);
-
-    if (entry.linkedPassageId) {
-      const passage = Storage.getPassage(entry.linkedPassageId);
-      if (passage) {
-        const linkBadge = document.createElement("span");
-        linkBadge.className = `lang-badge lang-badge-${entry.language}`;
-        linkBadge.textContent = `Linked: ${passage.title}`;
-        meta.appendChild(linkBadge);
-      }
+    const snippet = entrySnippet(entry.text);
+    if (snippet) {
+      const snippetEl = document.createElement("p");
+      snippetEl.className = "card-text";
+      snippetEl.textContent = snippet;
+      card.appendChild(snippetEl);
     }
 
-    li.appendChild(meta);
-    list.appendChild(li);
+    const stats = document.createElement("div");
+    stats.className = "entry-card-stats";
+
+    const wordsEl = document.createElement("span");
+    wordsEl.textContent = `${countWords(entry.text)} words`;
+    stats.appendChild(wordsEl);
+
+    const bracketedCount = extractBracketWords(entry.text).length;
+    const bracketedEl = document.createElement("span");
+    bracketedEl.textContent = bracketedCount === 0 ? "None left" : `${bracketedCount} bracketed`;
+    stats.appendChild(bracketedEl);
+
+    const linkEl = document.createElement("span");
+    linkEl.textContent = entry.linkedPassageId && Storage.getPassage(entry.linkedPassageId) ? "Linked passage" : "No link";
+    stats.appendChild(linkEl);
+
+    card.appendChild(stats);
+    list.appendChild(card);
   });
 }
 

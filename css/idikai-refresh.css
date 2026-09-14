@@ -68,6 +68,23 @@ a:hover { color: var(--ink); text-decoration: underline; }
   margin-right: auto;
 }
 
+/* Pages that also show a small section label next to the language name
+   in the topbar (currently just writing.html's "Spanish · WRITING") —
+   wraps #topbar-lang-label + a static section span and takes over the
+   margin-right:auto that pins the rest of the bar to the right, since
+   that now needs to apply to the whole pair, not the label alone. */
+.topbar-brand { display: flex; align-items: baseline; gap: 10px; margin-right: auto; min-width: 0; }
+.topbar-brand .topbar-lang-label { margin-right: 0; }
+.topbar-section-label {
+  font-family: "Nunito", sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--card);
+  opacity: 0.72;
+  white-space: nowrap;
+}
+
 .topbar-hamburger,
 .topbar-notifications,
 .topbar-todo,
@@ -888,6 +905,31 @@ body.picker-body { background: var(--paper); }
   border: 2px solid var(--ink);
   border-radius: 999px;
   padding: 4px 12px;
+}
+/* A "not yet" variant of .pill-tag — same shape, dashed and unfilled,
+   matching .card-dashed's language for "this hasn't happened yet"
+   (writing.html's "DRAFT" badge, as opposed to a checked entry's solid
+   "CHECKED" pill). */
+.pill-tag-outline {
+  color: rgba(34, 23, 18, 0.6);
+  background: transparent;
+  border: 2px dashed rgba(34, 23, 18, 0.4);
+}
+
+/* writing.html's entry cards (.grid-folders > .card.entry-card). */
+.entry-card { display: block; text-decoration: none; color: var(--ink); }
+.entry-card:hover { text-decoration: none; color: var(--ink); }
+.entry-card-top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.entry-card-stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(34, 23, 18, 0.16);
+  font-size: 12px;
+  color: rgba(34, 23, 18, 0.6);
 }
 .chip {
   display: inline-flex;

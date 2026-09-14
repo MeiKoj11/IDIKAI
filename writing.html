@@ -14,7 +14,10 @@
     <button type="button" id="topbar-hamburger" class="topbar-hamburger" aria-label="Menu" aria-haspopup="true">
       <span></span><span></span><span></span>
     </button>
-    <span id="topbar-lang-label" class="topbar-lang-label"></span>
+    <div class="topbar-brand">
+      <span id="topbar-lang-label" class="topbar-lang-label"></span>
+      <span class="topbar-section-label" data-immersion-key="sectionWriting">Writing</span>
+    </div>
     <div id="topbar-menu" class="topbar-menu" hidden>
       <div class="topbar-menu-heading" data-immersion-key="changeLanguageHeading">Change language</div>
       <button type="button" class="topbar-lang-option" data-lang="es" data-immersion-key="langNameEs">Spanish</button>
@@ -80,28 +83,23 @@
       </div>
     </div>
   </div>
-  <header class="app-header" id="writing-header">
-    <a href="index.html" class="back-link" id="writing-back-link" data-immersion-key="backPlain">&larr; Back</a>
-    <h1 id="writing-heading" data-immersion-key="sectionWriting">Writing</h1>
-  </header>
-  <main>
-    <section class="panel" id="entries-section">
-      <h2 data-immersion-key="entriesHeading">Entries</h2>
-      <p class="hint" id="entries-intro" data-immersion-key="writingEntriesIntro">
-        Write a dated diary-style entry — optionally link it to a Reading passage
-        so you can pull that text up alongside the editor to reference while you write.
-      </p>
-      <a href="#" id="new-entry-link" class="link-button" data-immersion-key="newEntryLink">+ New entry</a>
-      <ul id="entry-list" class="theme-list"></ul>
-    </section>
-    <section class="panel" id="teacher-activities-section">
-      <h2 data-immersion-key="teacherActivitiesHeading">Teacher-set activities</h2>
-      <p class="hint" data-immersion-key="writingTeacherActivitiesComingSoon">
-        Coming soon — once teachers can set writing activities, they'll show up here, and
-        entries you write for them will be visible to your teacher too. Everything above stays
-        private to you.
-      </p>
-    </section>
+  <div class="wrap-narrow pagehead" id="writing-header">
+    <a href="index.html" class="back-link" id="writing-back-link" data-immersion-key="backPlain"><span style="font-size:15px">&larr;</span> Back</a>
+    <div class="row-head" style="margin-top:8px; align-items:flex-start">
+      <div style="flex:1 1 280px; min-width:0">
+        <span class="eyebrow" data-immersion-key="sectionWriting">Writing</span>
+        <h1 class="page-title" id="writing-heading" data-immersion-key="entriesHeading">Entries</h1>
+        <p class="page-sub" id="entries-intro" data-immersion-key="writingEntriesIntro">Dated, diary-style writing. Link an entry to a Reading passage and you can pull that text up beside the editor while you write.</p>
+      </div>
+      <a href="#" id="new-entry-link" class="btn btn-red" data-immersion-key="newEntryLink">+ New entry</a>
+    </div>
+  </div>
+  <main class="wrap-narrow" style="padding-top:24px; padding-bottom:72px">
+    <div id="entry-list" class="grid-folders"></div>
+    <div class="card card-dashed" style="margin-top:20px" id="teacher-activities-section">
+      <h3 class="card-title" data-immersion-key="teacherActivitiesHeading">Teacher-set activities</h3>
+      <p class="card-text" data-immersion-key="writingTeacherActivitiesComingSoon">Coming soon. Once teachers can set writing activities they'll appear here, and entries written for them will be visible to your teacher. Everything above stays private to you.</p>
+    </div>
   </main>
   <script src="js/topbar.js"></script>
   <script src="js/immersion.js"></script>
