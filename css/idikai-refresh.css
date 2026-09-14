@@ -1405,6 +1405,28 @@ button.chip:hover { border-color: var(--ink); }
   padding: 13px 15px;
 }
 .lookup-strip.is-sticky { position: sticky; top: 70px; z-index: 20; border-radius: 14px; box-shadow: 4px 4px 0 rgba(34, 23, 18, 0.5); }
+
+/* japanese-sentence-test.html's #lookup-panel/#mistake-panel keep the
+   pre-redesign behavior of floating above the page content near the
+   bottom of the viewport (previously via legacy style.css's
+   .lookup-panel position:sticky/bottom:0 full-width bar) rather than
+   sitting inline in the document flow the way .lookup-strip.is-sticky
+   does when it's embedded in a mockup card — restyled to the mockup's
+   dark lookup-strip look, but still a floating overlay, per the
+   established "keep floating panels floating" rule. */
+#lookup-panel.lookup-strip,
+#mistake-panel.lookup-strip {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  z-index: 39;
+  width: min(560px, calc(100vw - 32px));
+  max-height: 72vh;
+  overflow-y: auto;
+  margin-top: 0;
+  box-shadow: 4px 4px 0 rgba(34, 23, 18, 0.5);
+}
 .lookup-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 .lookup-ja { font-family: "Fahkwang", serif; font-size: 21px; }
 .lookup-kana { font-size: 12.5px; opacity: 0.75; }

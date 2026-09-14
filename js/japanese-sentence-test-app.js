@@ -3,15 +3,35 @@
   -------------------------------
   japanese-sentence-test.html — the Japanese counterpart of
   spanish-sentence-test-app.js/french-sentence-test-app.js's "sentence
-  mode" Conjugation Test, now redesigned to match those two exactly:
-  same SELF-MARKING flow (fast English draft, background accurate
-  translation, self-marked tick/cross review, word-level mistake
-  flagging into the Tenses folder, conjugation-error retest quiz,
-  right-side vocab drawer, saved tests), same verb-pool config pattern
-  (most-common checkbox + per-theme checkboxes), and locked to English
-  -> Japanese only (no direction picker, no Japanese -> English or
-  Mixed) — matching Spanish/French's own EN -> target-language-only
-  design.
+  mode" Conjugation Test: same SELF-MARKING flow (fast English draft,
+  background accurate translation, self-marked tick/cross review,
+  word-level mistake flagging into the Tenses folder, conjugation-error
+  retest quiz, right-side vocab drawer, saved tests), same verb-pool
+  config pattern (most-common checkbox + per-theme checkboxes), and
+  locked to English -> Japanese only (no direction picker, no Japanese
+  -> English or Mixed) — matching Spanish/French's own EN ->
+  target-language-only design.
+
+  Screen flow (rebuilt to match the "Website redesign discussion" test
+  mockups — sentence-test-setup/-loading/-answering/-marking.html), same
+  pattern as japanese-conjugation-test-app.js's own rebuild:
+  setup -> loading -> answering (one sentence at a time, a focus card +
+  dot-row you can jump around in) -> marking (score panel + a mark-card
+  per sentence, self-marked one at a time). Unlike the conjugation test,
+  grading here is never automatic — every mark-card starts neutral until
+  the learner clicks "Got it right"/"Got it wrong" themselves.
+
+  The pre-submit answering phase and the post-submit marking phase
+  deliberately reuse the SAME per-question card element (built once by
+  buildQuestionCard, one per question, all living in
+  #tenses-test-question-list) rather than two separate renderers — the
+  answering phase just shows one card at a time (toggling `hidden`) and
+  the marking phase reveals every card's review half at once. This
+  keeps the sentence cards' stateful DOM (flagged-word datasets,
+  drag-select handlers, which side/mode each answer element is in)
+  intact across the transition instead of losing it to a fresh render —
+  see CLAUDE.md's "Current state" notes for the fuller rationale this
+  was planned against.
 
   What's genuinely different here, because Japanese conjugation itself
   works differently (see ja-conjugator.js):
@@ -24,11 +44,10 @@
     rather than shared with the ES/FR files.
   - Word-click lookup/mistake-flagging on the Japanese side is
     CHARACTER-level, not whitespace-word-level (Japanese has no spaces)
-    — ported from this page's pre-redesign version. Normal-mode
-    lookup only makes kanji clickable (kana alone isn't worth looking
-    up); mistake-flagging mode makes EVERY character clickable
-    (kanji AND kana), since a conjugation mistake often lives in the
-    kana okurigana ending, not the kanji stem.
+    — normal-mode lookup only makes kanji clickable (kana alone isn't
+    worth looking up); mistake-flagging mode makes EVERY character
+    clickable (kanji AND kana), since a conjugation mistake often lives
+    in the kana okurigana ending, not the kanji stem.
   - Furigana is captured wherever the learner types kanji by hand,
     since unlike Spanish/French there's a second "how do I read this"
     fact worth saving alongside the word itself: the vocab drawer, and
@@ -37,7 +56,8 @@
 */
 
 // ---------------------------------------------------------------------
-// Config screen (question count / verb pool / forms).
+// Config screen (question count / verb pool / forms) — same pill/
+// source-row pattern as japanese-conjugation-test-app.js.
 // ---------------------------------------------------------------------
 
 function populateTestThemeCheckboxes() {
@@ -46,14 +66,41 @@ function populateTestThemeCheckboxes() {
   wrap.innerHTML = "";
   const themes = Storage.getThemes().filter((t) => t.language === "ja");
   themes.forEach((theme) => {
-    const label = document.createElement("label");
-    label.className = "tenses-test-checkbox";
-    const input = document.createElement("input");
-    input.type = "checkbox";
-    input.value = theme.id;
-    label.appendChild(input);
-    label.appendChild(document.createTextNode(` ${theme.name}`));
-    wrap.appendChild(label);
+    const verbCount = verbsFromTheme(theme.id).length;
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "source-row";
+    row.dataset.themeId = theme.id;
+
+    const box = document.createElement("span");
+    box.className = "checkbox";
+    row.appendChild(box);
+
+    const text = document.createElement("span");
+    text.className = "source-text";
+    const name = document.createElement("span");
+    name.className = "source-name";
+    name.textContent = theme.name;
+    text.appendChild(name);
+    const hint = document.createElement("span");
+    hint.className = "source-hint";
+    hint.textContent = "Your saved theme";
+    hint.dataset.immersionKey = "yourSavedThemeText";
+    text.appendChild(hint);
+    row.appendChild(text);
+
+    const count = document.createElement("span");
+    count.className = "source-count";
+    count.textContent = `${verbCount} verb${verbCount === 1 ? "" : "s"}`;
+    row.appendChild(count);
+
+    row.addEventListener("click", () => {
+      const isOn = box.classList.toggle("is-on");
+      row.setAttribute("aria-pressed", isOn ? "true" : "false");
+      updateStartMeta();
+    });
+
+    wrap.appendChild(row);
   });
 }
 
@@ -61,9 +108,7 @@ function populateTestThemeCheckboxes() {
 // (see storage.js's getVerbWords) — mirrors spanish/french-sentence-
 // test-app.js's verbsFromTheme, but Japanese vocab words carry
 // verbClass/furigana instead of verbType, so the shape built here is
-// { kanji, reading, meaning, class } to match JaConjugator's verb shape
-// (see buildJapaneseVerbPool, which this supersedes with a per-theme
-// filter instead of "every saved verb, no matter which theme").
+// { kanji, reading, meaning, class } to match JaConjugator's verb shape.
 function verbsFromTheme(themeId) {
   const savedWords = typeof Storage !== "undefined" && Storage.getVerbWords ? Storage.getVerbWords("ja") : [];
   const seen = new Set();
@@ -89,15 +134,16 @@ function selectedVerbPool() {
     pool.push(v);
   };
 
-  const commonCheckbox = document.getElementById("tenses-test-common-verbs-checkbox");
-  if (commonCheckbox && commonCheckbox.checked) {
+  const commonBox = document.getElementById("tenses-test-common-verbs-checkbox-box");
+  if (commonBox && commonBox.classList.contains("is-on")) {
     JaConjugator.COMMON_VERBS.forEach(addVerb);
   }
 
   const wrap = document.getElementById("tenses-test-theme-checkboxes");
   if (wrap) {
-    Array.from(wrap.querySelectorAll("input[type=checkbox]:checked")).forEach((input) => {
-      verbsFromTheme(input.value).forEach(addVerb);
+    Array.from(wrap.querySelectorAll(".source-row")).forEach((row) => {
+      if (!row.querySelector(".checkbox").classList.contains("is-on")) return;
+      verbsFromTheme(row.dataset.themeId).forEach(addVerb);
     });
   }
 
@@ -105,8 +151,9 @@ function selectedVerbPool() {
 }
 
 function selectedQuestionCount() {
-  const checked = document.querySelector('input[name="tenses-test-question-count"]:checked');
-  const n = checked ? parseInt(checked.value, 10) : 20;
+  const wrap = document.getElementById("sent-test-question-count-pills");
+  const onPill = wrap ? wrap.querySelector(".select-pill.is-on") : null;
+  const n = onPill ? parseInt(onPill.dataset.count, 10) : 20;
   return n === 10 ? 10 : 20;
 }
 
@@ -115,36 +162,120 @@ function populateTestFormCheckboxes() {
   if (!wrap) return;
   wrap.innerHTML = "";
   JaConjugator.FORMS.forEach((form) => {
-    const label = document.createElement("label");
-    label.className = "tenses-test-checkbox";
-    const input = document.createElement("input");
-    input.type = "checkbox";
-    input.value = form;
-    input.checked = true;
-    label.appendChild(input);
-    label.appendChild(document.createTextNode(` ${JaConjugator.FORM_LABELS[form].split(" —")[0]}`));
-    wrap.appendChild(label);
+    const label = (JaConjugator.FORM_LABELS[form] || form).split(" —");
+    const pill = document.createElement("button");
+    pill.type = "button";
+    pill.className = "select-pill is-on";
+    pill.dataset.form = form;
+
+    const tick = document.createElement("span");
+    tick.className = "tick";
+    pill.appendChild(tick);
+    pill.appendChild(document.createTextNode(label[0]));
+    if (label[1]) {
+      const kanjiEl = document.createElement("span");
+      kanjiEl.className = "pill-kanji";
+      kanjiEl.textContent = label[1].trim();
+      pill.appendChild(kanjiEl);
+    }
+
+    pill.addEventListener("click", () => {
+      pill.classList.toggle("is-on");
+      updateStartMeta();
+    });
+
+    wrap.appendChild(pill);
   });
 }
 
 function selectedTestForms() {
   const wrap = document.getElementById("tenses-test-form-checkboxes");
   if (!wrap) return [];
-  return Array.from(wrap.querySelectorAll("input[type=checkbox]:checked")).map((i) => i.value);
+  return Array.from(wrap.querySelectorAll(".select-pill.is-on")).map((p) => p.dataset.form);
+}
+
+function formLabelParts(form) {
+  return (JaConjugator.FORM_LABELS[form] || form).split(" —");
+}
+function formLabelDisplay(form) {
+  const parts = formLabelParts(form);
+  return parts[1] ? `${parts[0]} ${parts[1].trim()}` : parts[0];
+}
+
+function updateStartMeta() {
+  const meta = document.getElementById("sent-test-start-meta");
+  if (!meta) return;
+  const count = selectedQuestionCount();
+  const forms = selectedTestForms().length;
+  meta.textContent = `${count} sentences · ${forms} form${forms === 1 ? "" : "s"}`;
+}
+
+// ---------------------------------------------------------------------
+// Screen management — setup / loading / saved-detail / quiz (answering
+// then marking, same container) / retest-quiz. The pagehead (back-link
+// + title + stage badge) is hidden during loading, retest-quiz, and the
+// pre-submit answering phase — matching the mockups, where only the
+// focused/immersive screens drop it — and shown everywhere else, with
+// the badge switching to "Self-marking" once a quiz has been submitted.
+// ---------------------------------------------------------------------
+
+let currentScreen = "setup";
+
+function showScreen(name) {
+  currentScreen = name;
+  document.getElementById("tenses-test-setup").hidden = name !== "setup";
+  document.getElementById("tenses-test-loading-screen").hidden = name !== "loading";
+  document.getElementById("tenses-test-saved-detail").hidden = name !== "saved-detail";
+  document.getElementById("tenses-test-quiz").hidden = name !== "quiz";
+  document.getElementById("tenses-test-retest-quiz").hidden = name !== "retest-quiz";
+  updatePagehead();
+}
+
+function updatePagehead() {
+  const pagehead = document.getElementById("sent-test-pagehead");
+  const badge = document.getElementById("sent-test-stage-badge");
+  if (!pagehead || !badge) return;
+  const session = sentenceTestSession;
+  const hideAlways = currentScreen === "loading" || currentScreen === "retest-quiz";
+  const answeringPhase = currentScreen === "quiz" && session && !session.submitted;
+  pagehead.hidden = hideAlways || answeringPhase;
+
+  const marking = currentScreen === "quiz" && session && session.submitted;
+  badge.textContent = marking ? "Self-marking" : "Set up";
+  badge.dataset.immersionKey = marking ? "stageSelfMarking" : "stageSetup";
+  badge.classList.toggle("is-red", marking);
+}
+
+// Toggles #tenses-test-quiz between the focused one-at-a-time layout
+// (760px, used while answering) and the wider list layout the mockup's
+// marking screen uses (880px, same width class every other wrap-narrow
+// page uses) — same element, just restyled once submitted.
+function setQuizLayout(mode) {
+  const main = document.getElementById("tenses-test-quiz");
+  if (!main) return;
+  if (mode === "marked") {
+    main.classList.remove("wrap-focus");
+    main.classList.add("wrap-narrow");
+    main.style.paddingTop = "24px";
+  } else {
+    main.classList.remove("wrap-narrow");
+    main.classList.add("wrap-focus");
+    main.style.paddingTop = "";
+  }
 }
 
 // ---------------------------------------------------------------------
 // Session / question generation — same two-pass, self-marking
-// architecture as Spanish/French (see spanish-sentence-test-app.js's
-// header comment for the full rationale): a fast/cheap model writes
-// all N English prompt sentences in one batch, a strong model
-// translates those exact sentences into Japanese in the background
-// while the learner types, and Submit reveals every question's review
-// at once for the learner to self-mark. Always English -> Japanese —
-// there's no direction picker here (locked, matching Spanish/French).
+// architecture as Spanish/French: a fast/cheap model writes all N
+// English prompt sentences in one batch, a strong model translates
+// those exact sentences into Japanese in the background while the
+// learner types, and finishing the last sentence reveals every
+// question's review at once for the learner to self-mark. Always
+// English -> Japanese — there's no direction picker here (locked,
+// matching Spanish/French).
 // ---------------------------------------------------------------------
 
-let sentenceTestSession = null; // { config, queue, cardRefs, translations, translationsPromise, translateItems, recentSentences, submitted }
+let sentenceTestSession = null; // { config, queue, cardRefs, currentIndex, translations, translationsPromise, translateItems, recentSentences, submitted }
 
 function pickQuestionSpec(config, guard) {
   const safeGuard = guard || 0;
@@ -171,18 +302,16 @@ function startTensesTestWithConfig(config) {
     config,
     queue: [],
     cardRefs: [],
+    currentIndex: 0,
     translations: null,
     translationsPromise: null,
     translateItems: null,
     recentSentences: [],
     submitted: false,
   };
-  document.getElementById("tenses-test-setup").hidden = true;
-  document.getElementById("tenses-test-saved-detail").hidden = true;
-  document.getElementById("tenses-test-retest-quiz").hidden = true;
-  document.getElementById("tenses-test-quiz").hidden = true;
   document.getElementById("tenses-test-question-list").innerHTML = "";
   document.getElementById("lookup-panel").hidden = true;
+  setQuizLayout("answering");
   loadSentenceTestBatch(sentenceTestSession);
 }
 
@@ -200,12 +329,9 @@ function startTensesTest() {
 async function loadSentenceTestBatch(session) {
   if (sentenceTestSession !== session) return;
 
-  const loadingScreen = document.getElementById("tenses-test-loading-screen");
   const errorEl = document.getElementById("tenses-test-loading-error");
   const retryBtn = document.getElementById("tenses-test-loading-retry-btn");
-
-  document.getElementById("tenses-test-quiz").hidden = true;
-  loadingScreen.hidden = false;
+  showScreen("loading");
   errorEl.hidden = true;
   retryBtn.hidden = true;
 
@@ -237,29 +363,30 @@ async function loadSentenceTestBatch(session) {
     Object.assign({}, spec, {
       englishSentence: result.sentences[i].englishSentence,
       answer: "",
+      skipped: false,
       marked: null,
       translation: null,
     })
   );
   session.recentSentences = result.sentences.map((s) => s.englishSentence);
 
-  loadingScreen.hidden = true;
-  document.getElementById("tenses-test-quiz").hidden = false;
-  const submitBtn = document.getElementById("tenses-test-submit-btn");
-  submitBtn.hidden = false;
-  submitBtn.disabled = false;
-
   session.cardRefs = [];
   renderQuestionCards(session);
-  updateSentenceTestScore();
+  session.currentIndex = 0;
+  showScreen("quiz");
+  document.getElementById("sent-test-focus-chrome").hidden = false;
+  document.getElementById("sent-test-focus-footer").hidden = false;
+  document.getElementById("tenses-test-score-panel").hidden = true;
+  document.getElementById("tenses-test-result-actions").hidden = true;
+  renderFocusCard();
 
   session.translateItems = items.map((item, i) => Object.assign({}, item, { englishSentence: session.queue[i].englishSentence }));
   fetchTranslations(session, session.translateItems);
 }
 
 // Starts (or restarts) the background accurate-translation request and
-// stashes the in-flight promise on the session so Submit can await the
-// SAME request rather than firing a duplicate one.
+// stashes the in-flight promise on the session so finishing the last
+// sentence can await the SAME request rather than firing a duplicate one.
 function fetchTranslations(session, translateItems) {
   const promise = Translate.translatePracticeSentencesBatch("ja", translateItems).then((result) => {
     if (sentenceTestSession === session && result.translations) {
@@ -287,98 +414,150 @@ function renderQuestionCards(session) {
 }
 
 // Builds one self-contained question card holding BOTH its pre-submit
-// answer box and its post-submit review section — see spanish-
-// sentence-test-app.js's buildQuestionCard for the full rationale
-// (unchanged here). Always prompts in English, always answered in
-// Japanese — direction is locked.
+// answering half (a focus-card: prompt + textarea) and its post-submit
+// review half (a mark-card: your answer / answer key / judge buttons) —
+// the same physical element throughout, matching sentence-test-
+// answering.html then sentence-test-marking.html. Always prompts in
+// English, always answered in Japanese — direction is locked.
 function buildQuestionCard(session, index) {
   const q = session.queue[index];
 
   const card = document.createElement("div");
-  card.className = "tenses-test-question-card";
+  card.className = "focus-card";
 
-  const number = document.createElement("p");
-  number.className = "tenses-test-question-number";
-  number.textContent = `Question ${index + 1}`;
-  card.appendChild(number);
+  // ---- answering half (visible pre-submit) ----
+  const answerSection = document.createElement("div");
 
-  const promptLabel = document.createElement("p");
-  promptLabel.className = "hint";
-  promptLabel.textContent = "Translate to Japanese:";
-  card.appendChild(promptLabel);
+  const kicker = document.createElement("div");
+  kicker.className = "focus-kicker";
+  const dotSm = document.createElement("span");
+  dotSm.className = "dot-sm";
+  kicker.appendChild(dotSm);
+  kicker.appendChild(document.createTextNode("Translate into Japanese"));
+  const kickerSpacer = document.createElement("span");
+  kickerSpacer.style.flex = "1";
+  kicker.appendChild(kickerSpacer);
+  const formChip = document.createElement("span");
+  formChip.className = "chip chip-accent";
+  formChip.textContent = formLabelDisplay(q.form);
+  kicker.appendChild(formChip);
+  answerSection.appendChild(kicker);
 
-  const promptEl = document.createElement("p");
-  promptEl.className = "card-practice-prompt";
-  renderClickableSentence(promptEl, q.englishSentence, "en");
-  card.appendChild(promptEl);
+  const promptEl = document.createElement("div");
+  promptEl.className = "sentence-prompt";
+  renderClickableSentence(promptEl, q.englishSentence, "en", "word");
+  answerSection.appendChild(promptEl);
+
+  const hint1 = document.createElement("div");
+  hint1.className = "sentence-hint";
+  hint1.textContent = "Tap any word you don't know.";
+  answerSection.appendChild(hint1);
 
   const revealBtn = document.createElement("button");
   revealBtn.type = "button";
-  revealBtn.className = "secondary tiny";
+  revealBtn.className = "link-btn";
+  revealBtn.style.marginTop = "14px";
   revealBtn.textContent = "Show dictionary form";
-  card.appendChild(revealBtn);
+  answerSection.appendChild(revealBtn);
 
-  const revealEl = document.createElement("p");
-  revealEl.className = "tenses-test-infinitive-reveal";
-  revealEl.hidden = true;
-  card.appendChild(revealEl);
+  const revealStrip = document.createElement("div");
+  revealStrip.className = "infinitive-strip";
+  revealStrip.hidden = true;
+  const revealWord = document.createElement("span");
+  revealWord.className = "infinitive-word";
+  const revealMeaning = document.createElement("span");
+  revealStrip.appendChild(revealWord);
+  revealStrip.appendChild(revealMeaning);
+  answerSection.appendChild(revealStrip);
 
   revealBtn.addEventListener("click", () => {
     // Deliberately verb-only, no form label — matches Spanish/French's
     // reveal (infinitive + meaning, no tense/person either), so this
     // doesn't hand the learner the answer's grammatical form.
-    revealEl.textContent = `${q.verb.kanji} (${q.verb.reading}) — ${q.verb.meaning}`;
-    revealEl.hidden = false;
+    revealWord.textContent = q.verb.reading ? `${q.verb.kanji}（${q.verb.reading}）` : q.verb.kanji;
+    revealMeaning.textContent = ` — ${q.verb.meaning}`;
+    revealStrip.hidden = false;
   });
 
-  // Pre-submit: a plain answer box — nothing is checked as you go.
-  const answerSection = document.createElement("div");
   const textarea = document.createElement("textarea");
-  textarea.className = "card-practice-input";
-  textarea.rows = 2;
-  textarea.placeholder = "Type your Japanese translation…";
+  textarea.className = "focus-textarea";
+  textarea.rows = 3;
+  textarea.placeholder = "Write your translation";
+  textarea.addEventListener("input", () => {
+    q.skipped = false;
+    if (currentScreen === "quiz" && sentenceTestSession === session && !session.submitted) renderDotRow();
+  });
   answerSection.appendChild(textarea);
+
+  const hint2 = document.createElement("div");
+  hint2.className = "sentence-hint";
+  hint2.textContent = "The answer key stays hidden until you've finished every sentence.";
+  answerSection.appendChild(hint2);
+
   card.appendChild(answerSection);
 
-  // Post-submit review — hidden until Submit reveals it.
+  // ---- review half (revealed post-submit) ----
   const reviewSection = document.createElement("div");
-  reviewSection.className = "tenses-test-review";
   reviewSection.hidden = true;
 
-  const userAnswerLabel = document.createElement("p");
-  userAnswerLabel.className = "hint";
-  userAnswerLabel.textContent = "Your answer:";
-  reviewSection.appendChild(userAnswerLabel);
+  const top = document.createElement("div");
+  top.className = "mark-top";
+  const numEl = document.createElement("span");
+  numEl.className = "mark-num";
+  numEl.textContent = String(index + 1);
+  top.appendChild(numEl);
+  const qWrap = document.createElement("div");
+  qWrap.className = "mark-q";
+  const sentenceEl = document.createElement("div");
+  sentenceEl.className = "mark-sentence";
+  sentenceEl.textContent = q.englishSentence;
+  qWrap.appendChild(sentenceEl);
+  const askedChip = document.createElement("span");
+  askedChip.className = "chip chip-accent";
+  askedChip.style.marginTop = "9px";
+  askedChip.textContent = formLabelDisplay(q.form);
+  qWrap.appendChild(askedChip);
+  top.appendChild(qWrap);
+  reviewSection.appendChild(top);
 
-  const userAnswerEl = document.createElement("p");
-  userAnswerEl.className = "card-practice-answer";
-  reviewSection.appendChild(userAnswerEl);
+  const answerBlock = document.createElement("div");
+  answerBlock.className = "mark-block";
+  const userAnswerLabel = document.createElement("span");
+  userAnswerLabel.className = "label-xs";
+  userAnswerLabel.textContent = "Your answer";
+  answerBlock.appendChild(userAnswerLabel);
+  const userAnswerEl = document.createElement("div");
+  userAnswerEl.className = "mark-answer";
+  answerBlock.appendChild(userAnswerEl);
+  reviewSection.appendChild(answerBlock);
 
-  const correctAnswerLabel = document.createElement("p");
-  correctAnswerLabel.className = "hint";
-  correctAnswerLabel.textContent = "Accurate translation:";
-  reviewSection.appendChild(correctAnswerLabel);
-
-  const correctAnswerEl = document.createElement("p");
-  correctAnswerEl.className = "card-practice-answer";
-  reviewSection.appendChild(correctAnswerEl);
+  const keyBlock = document.createElement("div");
+  keyBlock.className = "mark-key";
+  const correctAnswerLabel = document.createElement("span");
+  correctAnswerLabel.className = "label-xs";
+  correctAnswerLabel.textContent = "Answer key";
+  keyBlock.appendChild(correctAnswerLabel);
+  const correctAnswerEl = document.createElement("div");
+  correctAnswerEl.className = "key-line";
+  keyBlock.appendChild(correctAnswerEl);
+  reviewSection.appendChild(keyBlock);
 
   const judgeRow = document.createElement("div");
-  judgeRow.className = "card-practice-judge-row tenses-test-mark-row";
+  judgeRow.className = "judge-row";
   const tickBtn = document.createElement("button");
   tickBtn.type = "button";
-  tickBtn.className = "tenses-test-mark-btn tenses-test-mark-correct";
-  tickBtn.textContent = "✓ I got it right";
+  tickBtn.className = "judge";
+  tickBtn.textContent = "Got it right";
   const crossBtn = document.createElement("button");
   crossBtn.type = "button";
-  crossBtn.className = "tenses-test-mark-btn tenses-test-mark-wrong";
-  crossBtn.textContent = "✗ I got it wrong";
+  crossBtn.className = "judge";
+  crossBtn.textContent = "Got it wrong";
   judgeRow.appendChild(tickBtn);
   judgeRow.appendChild(crossBtn);
   reviewSection.appendChild(judgeRow);
 
   const mistakeHint = document.createElement("p");
-  mistakeHint.className = "hint tenses-test-mistake-hint";
+  mistakeHint.className = "sentence-hint";
   mistakeHint.textContent = "Click the specific word(s)/character(s) that were wrong, above, to flag and save a note.";
   mistakeHint.hidden = true;
   reviewSection.appendChild(mistakeHint);
@@ -390,7 +569,7 @@ function buildQuestionCard(session, index) {
 
   return {
     card,
-    refs: { textarea, answerSection, reviewSection, userAnswerEl, correctAnswerEl, tickBtn, crossBtn, mistakeHint },
+    refs: { card, textarea, answerSection, reviewSection, numEl, userAnswerEl, correctAnswerEl, tickBtn, crossBtn, mistakeHint },
   };
 }
 
@@ -411,10 +590,14 @@ function stripPunctuation(token) {
 
 // Normal-mode (not mistake-flagging) rendering, dispatched by language:
 // Japanese text is clicked character-by-character on KANJI ONLY
-// (mirroring reading-app.js's passage reader — Japanese has no spaces
-// to tokenize words on, and kana alone isn't worth a dictionary
-// lookup); English text is clicked word-by-word.
-function renderClickableSentence(container, sentence, lang) {
+// (Japanese has no spaces to tokenize words on, and kana alone isn't
+// worth a dictionary lookup); English text is clicked word-by-word.
+// `baseClass` picks the visual treatment: "word" for the sentence-
+// prompt pills (sentence-test-answering.html), "key-word" for the
+// answer-key line inside a mark-card (sentence-test-marking.html) —
+// same click/lookup behavior either way, just different chrome.
+function renderClickableSentence(container, sentence, lang, baseClass) {
+  const cls = baseClass || "word";
   container.innerHTML = "";
   if (lang === "ja") {
     Array.from(sentence || "").forEach((char) => {
@@ -423,7 +606,7 @@ function renderClickableSentence(container, sentence, lang) {
         return;
       }
       const span = document.createElement("span");
-      span.className = "clickable-word clickable-kanji";
+      span.className = `${cls} has-lookup`;
       span.textContent = char;
       span.dataset.kanji = char;
       span.addEventListener("click", () => handleJapaneseKanjiClick(span, char, sentence));
@@ -439,7 +622,7 @@ function renderClickableSentence(container, sentence, lang) {
       return;
     }
     const span = document.createElement("span");
-    span.className = "clickable-word";
+    span.className = `${cls} has-lookup`;
     span.textContent = token;
     span.dataset.word = core;
     span.addEventListener("click", () => handleEnglishWordClick(span, core));
@@ -458,7 +641,8 @@ function renderClickableSentence(container, sentence, lang) {
 // typed answer) or "accurate" (the answer key), carried along so a
 // saved mistake note can record which sentence the flagged character
 // came from.
-function renderMistakeClickableSentence(container, sentence, lang, session, index, side) {
+function renderMistakeClickableSentence(container, sentence, lang, session, index, side, baseClass) {
+  const cls = baseClass || "word";
   container.innerHTML = "";
   if (lang === "ja") {
     Array.from(sentence || "").forEach((char) => {
@@ -467,7 +651,7 @@ function renderMistakeClickableSentence(container, sentence, lang, session, inde
         return;
       }
       const span = document.createElement("span");
-      span.className = "clickable-word mistake-clickable-word";
+      span.className = `${cls} mistake-clickable-word`;
       span.textContent = char;
       span.dataset.word = char;
       span.addEventListener("click", () => handleMistakeWordClick(span, char, session, index, side));
@@ -483,7 +667,7 @@ function renderMistakeClickableSentence(container, sentence, lang, session, inde
       return;
     }
     const span = document.createElement("span");
-    span.className = "clickable-word mistake-clickable-word";
+    span.className = `${cls} mistake-clickable-word`;
     span.textContent = token;
     span.dataset.word = core;
     span.addEventListener("click", () => handleMistakeWordClick(span, core, session, index, side));
@@ -512,38 +696,44 @@ function renderReviewSentences(session, index) {
   refs.correctAnswerEl.dataset.side = "accurate";
   refs.correctAnswerEl.dataset.mode = wrong ? "mistake" : "lookup";
 
+  refs.userAnswerEl.classList.toggle("is-wrong", wrong);
+  refs.userAnswerEl.classList.toggle("is-blank", !q.answer);
+
   refs.userAnswerEl.innerHTML = "";
   if (!q.answer) {
-    refs.userAnswerEl.textContent = "(no answer)";
+    refs.userAnswerEl.textContent = "Skipped";
   } else if (wrong) {
-    renderMistakeClickableSentence(refs.userAnswerEl, q.answer, "ja", session, index, "user");
+    renderMistakeClickableSentence(refs.userAnswerEl, q.answer, "ja", session, index, "user", "key-word");
   } else {
-    renderClickableSentence(refs.userAnswerEl, q.answer, "ja");
+    renderClickableSentence(refs.userAnswerEl, q.answer, "ja", "key-word");
   }
 
   refs.correctAnswerEl.innerHTML = "";
   if (wrong) {
-    renderMistakeClickableSentence(refs.correctAnswerEl, q.translation.targetSentence, "ja", session, index, "accurate");
+    renderMistakeClickableSentence(refs.correctAnswerEl, q.translation.targetSentence, "ja", session, index, "accurate", "key-word");
   } else {
-    renderClickableSentence(refs.correctAnswerEl, q.translation.targetSentence, "ja");
+    renderClickableSentence(refs.correctAnswerEl, q.translation.targetSentence, "ja", "key-word");
   }
 }
 
 function updateSentenceTestScore() {
-  const scoreEl = document.getElementById("tenses-test-score");
-  if (!scoreEl || !sentenceTestSession) return;
   const session = sentenceTestSession;
-  if (!session.submitted) {
-    scoreEl.textContent = "";
-    return;
+  const scoreEl = document.getElementById("tenses-test-score");
+  const noteEl = document.getElementById("sent-test-score-note");
+  if (!scoreEl || !session || !session.submitted) return;
+
+  const total = session.queue.length;
+  const correct = session.queue.filter((q) => q.marked === true).length;
+  const markedCount = session.queue.filter((q) => q.marked === true || q.marked === false).length;
+  const unmarked = total - markedCount;
+
+  scoreEl.textContent = `${correct} / ${total}`;
+  if (noteEl) {
+    noteEl.textContent =
+      unmarked > 0
+        ? `${unmarked} sentence${unmarked === 1 ? "" : "s"} still need${unmarked === 1 ? "s" : ""} marking — compare each answer against the key and judge it yourself.`
+        : "Every sentence has been marked — nice work.";
   }
-  const marked = session.queue.filter((q) => q.marked === true || q.marked === false);
-  if (!marked.length) {
-    scoreEl.textContent = "Mark each answer below ↓";
-    return;
-  }
-  const correct = marked.filter((q) => q.marked === true).length;
-  scoreEl.textContent = `Score: ${correct} / ${session.queue.length}`;
 }
 
 // Self-marking click handler — no AI involved.
@@ -553,22 +743,120 @@ function markQuestionAnswer(session, index, isCorrect) {
   const refs = session.cardRefs[index];
   const wasWrong = q.marked === false;
   q.marked = isCorrect;
-  refs.tickBtn.classList.toggle("selected", isCorrect === true);
-  refs.crossBtn.classList.toggle("selected", isCorrect === false);
+
+  refs.tickBtn.classList.toggle("is-right", isCorrect === true);
+  refs.crossBtn.classList.toggle("is-wrong", isCorrect === false);
+  refs.numEl.classList.toggle("is-right", isCorrect === true);
+  refs.numEl.classList.toggle("is-wrong", isCorrect === false);
+  refs.card.classList.toggle("is-wrong", isCorrect === false);
+
   const nowWrong = isCorrect === false;
   refs.mistakeHint.hidden = !nowWrong;
   if (nowWrong !== wasWrong) renderReviewSentences(session, index);
   updateSentenceTestScore();
 }
 
-// The single Submit action: locks in every typed answer, waits for the
+// ---------------------------------------------------------------------
+// Answering navigation — one sentence at a time (focus card + dot row),
+// matching sentence-test-answering.html. All N question cards already
+// exist in the DOM (built once by renderQuestionCards); moving between
+// them is just toggling `hidden`, so nothing typed is ever lost.
+// ---------------------------------------------------------------------
+
+function renderFocusCard() {
+  const session = sentenceTestSession;
+  if (!session) return;
+  const total = session.queue.length;
+  const index = session.currentIndex;
+
+  session.cardRefs.forEach((refs, i) => {
+    refs.card.hidden = i !== index;
+  });
+
+  const progressLabel = document.getElementById("sent-test-progress-label");
+  if (progressLabel) progressLabel.textContent = `Sentence ${index + 1} of ${total}`;
+  const progressFill = document.getElementById("sent-test-progress-fill");
+  if (progressFill) progressFill.style.width = `${Math.round((index / total) * 100)}%`;
+
+  const backBtn = document.getElementById("sent-test-back-btn");
+  if (backBtn) backBtn.disabled = index === 0;
+
+  updateNextBtnLabel();
+  renderDotRow();
+
+  const refs = session.cardRefs[index];
+  if (refs && refs.textarea) refs.textarea.focus();
+}
+
+function updateNextBtnLabel() {
+  const session = sentenceTestSession;
+  const nextBtn = document.getElementById("tenses-test-submit-btn");
+  if (!session || !nextBtn) return;
+  const isLast = session.currentIndex >= session.queue.length - 1;
+  nextBtn.textContent = isLast ? "Submit answers" : "Next sentence";
+}
+
+function renderDotRow() {
+  const session = sentenceTestSession;
+  const row = document.getElementById("sent-test-dot-row");
+  if (!session || !row) return;
+  row.innerHTML = "";
+  session.queue.forEach((q, i) => {
+    const refs = session.cardRefs[i];
+    const answered = refs && refs.textarea.value.trim();
+    const dot = document.createElement("button");
+    dot.type = "button";
+    dot.className = "q-dot";
+    if (i === session.currentIndex) dot.classList.add("is-current");
+    else if (answered) dot.classList.add("is-answered");
+    else if (q.skipped) dot.classList.add("is-skipped");
+    dot.textContent = String(i + 1);
+    dot.addEventListener("click", () => goToAnsweringCard(i));
+    row.appendChild(dot);
+  });
+}
+
+function goToAnsweringCard(index) {
+  const session = sentenceTestSession;
+  if (!session) return;
+  session.currentIndex = Math.max(0, Math.min(session.queue.length - 1, index));
+  renderFocusCard();
+}
+
+function handleSentTestBack() {
+  const session = sentenceTestSession;
+  if (!session || session.currentIndex === 0) return;
+  goToAnsweringCard(session.currentIndex - 1);
+}
+
+function handleSentTestSkip() {
+  const session = sentenceTestSession;
+  if (!session) return;
+  const refs = session.cardRefs[session.currentIndex];
+  if (refs) refs.textarea.value = "";
+  session.queue[session.currentIndex].skipped = true;
+  handleSentTestAdvance();
+}
+
+function handleSentTestAdvance() {
+  const session = sentenceTestSession;
+  if (!session) return;
+  if (session.currentIndex >= session.queue.length - 1) {
+    submitSentenceTest();
+  } else {
+    session.currentIndex += 1;
+    renderFocusCard();
+  }
+}
+
+// The finishing action: locks in every typed answer, waits for the
 // accurate-translation background pass if it isn't done yet, then
-// reveals every card's review section at once.
+// reveals every card's review half at once as the marking screen.
 async function submitSentenceTest() {
   const session = sentenceTestSession;
   if (!session || !session.queue.length || session.submitted) return;
 
-  const submitBtn = document.getElementById("tenses-test-submit-btn");
+  const nextBtn = document.getElementById("tenses-test-submit-btn");
   const errorEl = document.getElementById("tenses-test-submit-error");
   errorEl.hidden = true;
 
@@ -578,57 +866,59 @@ async function submitSentenceTest() {
 
   let translations = session.translations;
   if (!translations) {
-    const defaultLabel = submitBtn.dataset.defaultLabel || submitBtn.textContent;
-    submitBtn.disabled = true;
-    submitBtn.textContent = "Finishing up your answer key…";
+    nextBtn.disabled = true;
+    nextBtn.textContent = "Finishing up your answer key…";
     const result = session.translationsPromise
       ? await session.translationsPromise
       : await fetchTranslations(session, session.translateItems);
     if (sentenceTestSession !== session) return;
-    submitBtn.disabled = false;
-    submitBtn.textContent = defaultLabel;
+    nextBtn.disabled = false;
     translations = session.translations || (result && result.translations) || null;
   }
 
   if (!translations) {
-    errorEl.textContent = "Couldn't finish preparing the answer key — your answers are saved, try submitting again.";
+    updateNextBtnLabel();
+    errorEl.textContent = "Couldn't finish preparing the answer key — your answers are saved, try again.";
     errorEl.hidden = false;
     return;
   }
 
   session.submitted = true;
   session.translations = translations;
-  submitBtn.hidden = true;
 
   session.queue.forEach((q, i) => {
     q.translation = translations[i];
     const refs = session.cardRefs[i];
     refs.answerSection.hidden = true;
+    refs.card.classList.remove("focus-card");
+    refs.card.classList.add("mark-card");
+    refs.card.hidden = false;
     renderReviewSentences(session, i);
     refs.reviewSection.hidden = false;
   });
 
+  document.getElementById("sent-test-focus-chrome").hidden = true;
+  document.getElementById("sent-test-focus-footer").hidden = true;
+  document.getElementById("tenses-test-score-panel").hidden = false;
+  setQuizLayout("marked");
+  updatePagehead();
+
   const saveBtn = document.getElementById("tenses-test-save-btn");
   saveBtn.hidden = false;
   saveBtn.disabled = false;
-  const saveStatus = document.getElementById("tenses-test-save-status");
-  saveStatus.hidden = true;
+  document.getElementById("tenses-test-save-status").hidden = true;
+  document.getElementById("tenses-test-result-actions").hidden = false;
 
   updateSentenceTestScore();
 }
 
 function backToSetup() {
-  document.getElementById("tenses-test-setup").hidden = false;
-  document.getElementById("tenses-test-saved-detail").hidden = true;
-  document.getElementById("tenses-test-retest-quiz").hidden = true;
-  document.getElementById("tenses-test-quiz").hidden = true;
-  document.getElementById("tenses-test-loading-screen").hidden = true;
+  showScreen("setup");
   document.getElementById("tenses-test-question-list").innerHTML = "";
   document.getElementById("tenses-test-submit-error").hidden = true;
-  const submitBtn = document.getElementById("tenses-test-submit-btn");
-  submitBtn.hidden = false;
-  submitBtn.disabled = false;
-  submitBtn.textContent = submitBtn.dataset.defaultLabel || submitBtn.textContent;
+  const nextBtn = document.getElementById("tenses-test-submit-btn");
+  nextBtn.disabled = false;
+  nextBtn.textContent = "Next sentence";
   const saveBtn = document.getElementById("tenses-test-save-btn");
   saveBtn.hidden = true;
   saveBtn.disabled = false;
@@ -644,15 +934,13 @@ function backToSetup() {
 // ---------------------------------------------------------------------
 // Mistakes: click-a-word/character self-marking review, wrong-marked
 // questions only. Flagging saves directly into the Grammar Bank's
-// existing "Tenses and verb conjugations" folder (tagged "Mistake"),
-// reusing the same free-form grammar-note shape and card UI Spanish/
-// French use — see spanish-sentence-test-app.js's block comment for
-// the fuller rationale, unchanged here.
+// existing "Mistakes" folder, tagged "Mistake" — see the block comment
+// above for the fuller rationale.
 //
-// The "Conjugation error" mini-form saves just the correct
-// Japanese form (+ furigana, since kanji alone doesn't tell you how to
-// read it) + its English translation as a small flashcard — quiz data
-// only, feeding the "Retest your mistakes" EN -> Japanese quiz below.
+// The "Conjugation error" mini-form saves just the correct Japanese
+// form (+ furigana, since kanji alone doesn't tell you how to read it)
+// + its English translation as a small flashcard — quiz data only,
+// feeding the "Retest your mistakes" EN -> Japanese quiz below.
 // ---------------------------------------------------------------------
 
 let activeMistakeWord = null; // { spans, word, session, index, side }
@@ -747,7 +1035,7 @@ function handleMistakePanelSave() {
 
   const folder = findOrCreateMistakesFolder("ja");
   if (!folder) return;
-  const formLabel = (JaConjugator.FORM_LABELS[q.form] || q.form).split(" —")[0];
+  const formLabel = formLabelParts(q.form)[0];
   const saved = Storage.addGrammarNote({
     themeId: folder.id,
     sentence: word,
@@ -804,7 +1092,7 @@ function handleMistakePanelSaveConjugation() {
     furigana,
     translation,
     kanji: q.verb.kanji,
-    formLabel: (JaConjugator.FORM_LABELS[q.form] || q.form).split(" —")[0],
+    formLabel: formLabelParts(q.form)[0],
   });
 
   renderRetestSection();
@@ -854,34 +1142,58 @@ function renderSavedTestsList() {
   section.hidden = tests.length === 0;
 
   tests.forEach((test) => {
-    const li = document.createElement("li");
-    li.className = "tenses-test-saved-item";
+    const row = document.createElement("a");
+    row.href = "#";
+    row.className = "pill-row";
 
-    const dateStr = new Date(test.createdAt).toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
+    const badge = document.createElement("span");
+    badge.className = "score-badge" + (test.correct < test.total * 0.6 ? " is-bad" : "");
+    badge.textContent = `${test.correct}/${test.total}`;
+    row.appendChild(badge);
+
+    const desc = document.createElement("span");
+    desc.style.fontSize = "13.5px";
+    desc.textContent = `${test.total} sentence${test.total === 1 ? "" : "s"}`;
+    row.appendChild(desc);
+
+    const spacer = document.createElement("span");
+    spacer.style.flex = "1";
+    spacer.style.minWidth = "8px";
+    row.appendChild(spacer);
+
+    const dateStr = new Date(test.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    const dateEl = document.createElement("span");
+    dateEl.className = "meta-text";
+    dateEl.style.fontSize = "12px";
+    dateEl.textContent = dateStr;
+    row.appendChild(dateEl);
+
+    const arrow = document.createElement("span");
+    arrow.className = "arrow";
+    arrow.style.fontSize = "16px";
+    arrow.textContent = "→";
+    row.appendChild(arrow);
+
+    row.addEventListener("click", (e) => {
+      e.preventDefault();
+      viewSavedTest(test.id);
     });
-
-    const openBtn = document.createElement("button");
-    openBtn.type = "button";
-    openBtn.className = "secondary";
-    openBtn.textContent = `${dateStr} — ${test.correct} / ${test.total}`;
-    openBtn.addEventListener("click", () => viewSavedTest(test.id));
-    li.appendChild(openBtn);
 
     const deleteBtn = document.createElement("button");
     deleteBtn.type = "button";
-    deleteBtn.className = "secondary tiny";
-    deleteBtn.textContent = "Delete";
-    deleteBtn.addEventListener("click", () => {
+    deleteBtn.className = "pill-row-x";
+    deleteBtn.setAttribute("aria-label", "Delete saved test");
+    deleteBtn.textContent = "×";
+    deleteBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       if (!confirm("Delete this saved test? This can't be undone.")) return;
       Storage.deleteSavedSentenceTest(test.id);
       renderSavedTestsList();
     });
-    li.appendChild(deleteBtn);
+    row.appendChild(deleteBtn);
 
-    list.appendChild(li);
+    list.appendChild(row);
   });
 }
 
@@ -889,64 +1201,70 @@ function viewSavedTest(testId) {
   const test = Storage.getSavedSentenceTest(testId);
   if (!test) return;
 
-  document.getElementById("tenses-test-setup").hidden = true;
-  document.getElementById("tenses-test-saved-detail").hidden = false;
-  document.getElementById("tenses-test-saved-detail-score").textContent = `Score: ${test.correct} / ${test.total}`;
+  showScreen("saved-detail");
+  document.getElementById("tenses-test-saved-detail-score").textContent = `${test.correct} / ${test.total}`;
 
   const list = document.getElementById("tenses-test-saved-detail-list");
   list.innerHTML = "";
 
   test.questions.forEach((q, i) => {
     const card = document.createElement("div");
-    card.className = "tenses-test-question-card";
+    card.className = "mark-card" + (q.marked === false ? " is-wrong" : "");
 
-    const number = document.createElement("p");
-    number.className = "tenses-test-question-number";
-    number.textContent = `Question ${i + 1}`;
-    card.appendChild(number);
+    const top = document.createElement("div");
+    top.className = "mark-top";
+    const num = document.createElement("span");
+    num.className = "mark-num" + (q.marked === true ? " is-right" : q.marked === false ? " is-wrong" : "");
+    num.textContent = String(i + 1);
+    top.appendChild(num);
+    const qWrap = document.createElement("div");
+    qWrap.className = "mark-q";
+    const sentenceEl = document.createElement("div");
+    sentenceEl.className = "mark-sentence";
+    sentenceEl.textContent = q.englishSentence;
+    qWrap.appendChild(sentenceEl);
+    top.appendChild(qWrap);
+    card.appendChild(top);
 
-    const promptLabel = document.createElement("p");
-    promptLabel.className = "hint";
-    promptLabel.textContent = "Translate to Japanese:";
-    card.appendChild(promptLabel);
+    const answerBlock = document.createElement("div");
+    answerBlock.className = "mark-block";
+    const userAnswerLabel = document.createElement("span");
+    userAnswerLabel.className = "label-xs";
+    userAnswerLabel.textContent = "Your answer";
+    answerBlock.appendChild(userAnswerLabel);
+    const userEl = document.createElement("div");
+    userEl.className = "mark-answer" + (q.marked === false ? " is-wrong" : "") + (!q.userAnswer ? " is-blank" : "");
+    userEl.textContent = q.userAnswer || "Skipped";
+    answerBlock.appendChild(userEl);
+    card.appendChild(answerBlock);
 
-    const promptEl = document.createElement("p");
-    promptEl.className = "card-practice-prompt";
-    promptEl.textContent = q.englishSentence;
-    card.appendChild(promptEl);
+    const keyBlock = document.createElement("div");
+    keyBlock.className = "mark-key";
+    const correctLabel = document.createElement("span");
+    correctLabel.className = "label-xs";
+    correctLabel.textContent = "Answer key";
+    keyBlock.appendChild(correctLabel);
+    const keyLine = document.createElement("div");
+    keyLine.className = "key-line";
+    keyLine.textContent = q.targetSentence;
+    keyBlock.appendChild(keyLine);
+    card.appendChild(keyBlock);
 
-    const userLabel = document.createElement("p");
-    userLabel.className = "hint";
-    userLabel.textContent = "Your answer:";
-    card.appendChild(userLabel);
-    const userEl = document.createElement("p");
-    userEl.className = "card-practice-answer";
-    userEl.textContent = q.userAnswer || "(no answer)";
-    card.appendChild(userEl);
-
-    const correctLabel = document.createElement("p");
-    correctLabel.className = "hint";
-    correctLabel.textContent = "Accurate translation:";
-    card.appendChild(correctLabel);
-    const correctEl = document.createElement("p");
-    correctEl.className = "card-practice-answer";
-    correctEl.textContent = q.targetSentence;
-    card.appendChild(correctEl);
-
-    const markEl = document.createElement("p");
-    markEl.className =
-      "tenses-test-saved-mark " +
-      (q.marked === true ? "tenses-test-saved-mark-correct" : q.marked === false ? "tenses-test-saved-mark-wrong" : "");
-    markEl.textContent = q.marked === true ? "✓ Correct" : q.marked === false ? "✗ Wrong" : "— Not marked";
-    card.appendChild(markEl);
+    if (q.marked !== true && q.marked !== false) {
+      const note = document.createElement("span");
+      note.className = "label-xs";
+      note.style.display = "block";
+      note.style.marginTop = "10px";
+      note.textContent = "Not marked";
+      card.appendChild(note);
+    }
 
     list.appendChild(card);
   });
 }
 
 function backFromSavedDetail() {
-  document.getElementById("tenses-test-saved-detail").hidden = true;
-  document.getElementById("tenses-test-setup").hidden = false;
+  showScreen("setup");
 }
 
 // ---------------------------------------------------------------------
@@ -966,7 +1284,7 @@ function renderRetestSection() {
   const mistakes = Storage.getConjugationMistakes("ja");
   section.hidden = mistakes.length === 0;
   if (countEl) {
-    countEl.textContent = `${mistakes.length} saved mistake${mistakes.length === 1 ? "" : "s"} to retest.`;
+    countEl.textContent = `${mistakes.length} saved sentence${mistakes.length === 1 ? "" : "s"}. Ones you get right are cleared from the list.`;
   }
 }
 
@@ -980,13 +1298,13 @@ function shuffleArray(arr) {
   return arr;
 }
 
-function startRetest() {
+function startRetest(e) {
+  if (e) e.preventDefault();
   const mistakes = Storage.getConjugationMistakes("ja");
   if (!mistakes.length) return;
   retestSession = { queue: shuffleArray(mistakes.slice()), current: null };
 
-  document.getElementById("tenses-test-setup").hidden = true;
-  document.getElementById("tenses-test-retest-quiz").hidden = false;
+  showScreen("retest-quiz");
   document.getElementById("tenses-test-retest-done").hidden = true;
   document.getElementById("tenses-test-retest-card").hidden = false;
   showNextRetestCard();
@@ -1010,13 +1328,13 @@ function showNextRetestCard() {
   answerEl.textContent = session.current.furigana
     ? `${session.current.targetForm}（${session.current.furigana}）`
     : session.current.targetForm;
-  answerEl.hidden = true;
+  document.getElementById("tenses-test-retest-answer-strip").hidden = true;
   document.getElementById("tenses-test-retest-buttons").hidden = true;
   document.getElementById("tenses-test-retest-show-btn").hidden = false;
 }
 
 function handleRetestShowAnswer() {
-  document.getElementById("tenses-test-retest-answer").hidden = false;
+  document.getElementById("tenses-test-retest-answer-strip").hidden = false;
   document.getElementById("tenses-test-retest-buttons").hidden = false;
   document.getElementById("tenses-test-retest-show-btn").hidden = true;
 }
@@ -1036,8 +1354,7 @@ function handleRetestAgain() {
 
 function backFromRetest() {
   retestSession = null;
-  document.getElementById("tenses-test-retest-quiz").hidden = true;
-  document.getElementById("tenses-test-setup").hidden = false;
+  showScreen("setup");
   renderRetestSection();
 }
 
@@ -1138,11 +1455,11 @@ function handleVocabDrawerSave() {
 }
 
 // ---------------------------------------------------------------------
-// Word-click lookup + Add-to-Vocab — mirrors the .lookup-panel pattern
-// from reading-app.js/spanish-sentence-test-app.js. Unlike those, a
-// clicked token here can come from either a kanji click (Japanese
-// side, via Translate.lookupKanji) or a plain word click (English
-// side, via Translate.lookupTranslation).
+// Word-click lookup + Add-to-Vocab — mirrors the .lookup-strip pattern
+// from the redesigned mockups. Unlike those, a clicked token here can
+// come from either a kanji click (Japanese side, via
+// Translate.lookupKanji) or a plain word click (English side, via
+// Translate.lookupTranslation).
 // ---------------------------------------------------------------------
 
 const NEW_THEME_VALUE = "__new_theme__";
@@ -1217,6 +1534,13 @@ function handleAddLookedUpSentenceWord() {
   }
 }
 
+function closeLookupPanel() {
+  selectedLookupToken = null;
+  const panel = document.getElementById("lookup-panel");
+  if (panel) panel.hidden = true;
+  document.querySelectorAll(".clickable-word.selected, .word.selected, .key-word.selected").forEach((el) => el.classList.remove("selected"));
+}
+
 function beginSentenceLookup(label) {
   const panel = document.getElementById("lookup-panel");
   panel.hidden = false;
@@ -1235,7 +1559,7 @@ function beginSentenceLookup(label) {
 // a lone character OR a multi-character compound/phrase — lookupKanji
 // is AI-backed and handles either.
 async function performKanjiLookup(kanji, context, span) {
-  document.querySelectorAll(".clickable-word.selected").forEach((el) => el.classList.remove("selected"));
+  document.querySelectorAll(".word.selected, .key-word.selected").forEach((el) => el.classList.remove("selected"));
   if (span) span.classList.add("selected");
   const token = `ja:${kanji}:${context}`;
   selectedLookupToken = token;
@@ -1264,7 +1588,7 @@ function handleJapaneseKanjiClick(span, kanji, context) {
 // a drag-selected multi-word English phrase (e.g. "over and over") has
 // no single span to highlight.
 async function performEnglishWordLookup(word, span) {
-  document.querySelectorAll(".clickable-word.selected").forEach((el) => el.classList.remove("selected"));
+  document.querySelectorAll(".word.selected, .key-word.selected").forEach((el) => el.classList.remove("selected"));
   if (span) span.classList.add("selected");
   const token = `en:${word}`;
   selectedLookupToken = token;
@@ -1298,11 +1622,9 @@ function handleEnglishWordClick(span, word) {
 // Drag-select a whole word/phrase (Japanese: a multi-kanji compound
 // like 学院, or any run of characters; English: multiple words like
 // "over and over") instead of being limited to one character/word per
-// click. Reuses reading-app.js's general mouseup-selection pattern, but
-// without that page's "pure kanji only" restriction — there's no
-// competing grammar-note flow here to disambiguate against, so any
-// selection of 2+ characters routes to a lookup (or, in mistake mode,
-// to flagging the whole selected group at once).
+// click. Reuses reading-app.js's general mouseup-selection pattern —
+// any selection of 2+ characters routes to a lookup (or, in mistake
+// mode, to flagging the whole selected group at once).
 // ---------------------------------------------------------------------
 
 // Every clickable-word span inside `container` that the selection
@@ -1311,7 +1633,7 @@ function handleEnglishWordClick(span, word) {
 // Range's boundary points alone don't tell you which spans in between
 // were included.
 function spansInSelectionRange(container, range) {
-  const spans = Array.from(container.querySelectorAll(".clickable-word"));
+  const spans = Array.from(container.querySelectorAll(".word, .key-word"));
   return spans.filter((span) => range.intersectsNode(span));
 }
 
@@ -1327,7 +1649,7 @@ function handleSentenceTestSelection() {
   const anchorEl = anchorNode.nodeType === Node.ELEMENT_NODE ? anchorNode : anchorNode.parentElement;
   if (!anchorEl) return;
 
-  const promptContainer = anchorEl.closest(".card-practice-prompt");
+  const promptContainer = anchorEl.closest(".sentence-prompt");
   if (promptContainer) {
     // English prompt — only a genuinely multi-word drag (contains
     // whitespace) is handled here; a single-word drag is left to that
@@ -1338,7 +1660,7 @@ function handleSentenceTestSelection() {
     return;
   }
 
-  const answerContainer = anchorEl.closest(".card-practice-answer");
+  const answerContainer = anchorEl.closest(".mark-answer, .key-line");
   if (!answerContainer) return;
   // A single-character selection is left to that character's own click
   // listener (mouse-jitter during a plain click can otherwise fire
@@ -1369,6 +1691,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!setup || !document.getElementById("tenses-test-question-list")) return; // not this page
 
   const lang = "ja"; // Japanese-only page
+  document.body.classList.add("lang-ja");
   initTopbar(lang);
   if (typeof initHubTasks === "function") initHubTasks(lang);
   initAppTabs({
@@ -1380,28 +1703,52 @@ document.addEventListener("DOMContentLoaded", () => {
 
   populateTestFormCheckboxes();
   populateTestThemeCheckboxes();
+  updateStartMeta();
 
-  const submitBtn = document.getElementById("tenses-test-submit-btn");
-  if (submitBtn) submitBtn.dataset.defaultLabel = submitBtn.textContent;
+  document.getElementById("sent-test-question-count-pills").addEventListener("click", (e) => {
+    const pill = e.target.closest(".select-pill");
+    if (!pill) return;
+    document.querySelectorAll("#sent-test-question-count-pills .select-pill").forEach((p) => p.classList.remove("is-on"));
+    pill.classList.add("is-on");
+    updateStartMeta();
+  });
+
+  document.getElementById("tenses-test-common-verbs-row").addEventListener("click", () => {
+    document.getElementById("tenses-test-common-verbs-checkbox-box").classList.toggle("is-on");
+    updateStartMeta();
+  });
 
   document.getElementById("tenses-test-forms-select-all").addEventListener("click", () => {
-    document.querySelectorAll("#tenses-test-form-checkboxes input[type=checkbox]").forEach((i) => (i.checked = true));
+    document.querySelectorAll("#tenses-test-form-checkboxes .select-pill").forEach((p) => p.classList.add("is-on"));
+    updateStartMeta();
   });
   document.getElementById("tenses-test-forms-clear").addEventListener("click", () => {
-    document.querySelectorAll("#tenses-test-form-checkboxes input[type=checkbox]").forEach((i) => (i.checked = false));
+    document.querySelectorAll("#tenses-test-form-checkboxes .select-pill").forEach((p) => p.classList.remove("is-on"));
+    updateStartMeta();
   });
+
   document.getElementById("tenses-test-start-btn").addEventListener("click", startTensesTest);
+
   const questionList = document.getElementById("tenses-test-question-list");
   if (questionList) questionList.addEventListener("mouseup", handleSentenceTestSelection);
+
   document.getElementById("tenses-test-restart-btn").addEventListener("click", backToSetup);
+  document.getElementById("sent-test-leave-btn").addEventListener("click", backToSetup);
   document.getElementById("tenses-test-loading-cancel-btn").addEventListener("click", backToSetup);
   document.getElementById("tenses-test-loading-retry-btn").addEventListener("click", retryLoadSentenceTestBatch);
-  if (submitBtn) submitBtn.addEventListener("click", submitSentenceTest);
+
+  document.getElementById("sent-test-back-btn").addEventListener("click", handleSentTestBack);
+  document.getElementById("sent-test-skip-btn").addEventListener("click", handleSentTestSkip);
+  document.getElementById("tenses-test-submit-btn").addEventListener("click", handleSentTestAdvance);
 
   const saveBtn = document.getElementById("tenses-test-save-btn");
   if (saveBtn) saveBtn.addEventListener("click", handleSaveTest);
   const savedDetailBackBtn = document.getElementById("tenses-test-saved-detail-back-btn");
   if (savedDetailBackBtn) savedDetailBackBtn.addEventListener("click", backFromSavedDetail);
+
+  document.getElementById("lookup-close-btn").addEventListener("click", closeLookupPanel);
+  const mistakeCloseBtn = document.getElementById("mistake-panel-close-btn");
+  if (mistakeCloseBtn) mistakeCloseBtn.addEventListener("click", closeMistakePanel);
   const mistakeSaveBtn = document.getElementById("mistake-panel-save-btn");
   if (mistakeSaveBtn) mistakeSaveBtn.addEventListener("click", handleMistakePanelSave);
   const mistakeRemoveBtn = document.getElementById("mistake-panel-remove-btn");
