@@ -40,6 +40,19 @@
 */
 
 const WRITING_LANGUAGE_NAMES = { es: "Spanish", ja: "Japanese", fr: "French" };
+const WRITING_LANGUAGE_NAME_KEYS = { es: "langNameEs", ja: "langNameJa", fr: "langNameFr" };
+
+// The learner's own language name ("日本語" instead of "Japanese") when
+// immersion is on, otherwise the plain English name — for the handful
+// of writing-entry strings that build a sentence around a language name
+// (the "New ___ entry" heading, alerts, placeholders).
+function displayLanguageName(langCode) {
+  const fallback = WRITING_LANGUAGE_NAMES[langCode] || langCode;
+  if (typeof t !== "function") return fallback;
+  const key = WRITING_LANGUAGE_NAME_KEYS[langCode];
+  return key ? t(key, fallback) : fallback;
+}
+
 const HELPER_NEW_THEME_VALUE = "__new_helper_theme__";
 const WRITING_GRAMMAR_NEW_FOLDER_VALUE = "__new_writing_grammar_folder__";
 let addingToVocabWordId = null;
@@ -446,7 +459,16 @@ function showViewMode() {
   if (editPanel) editPanel.hidden = true;
 
   const heading = document.getElementById("entry-heading");
-  if (heading) heading.textContent = entry.title || "Untitled entry";
+  if (heading) {
+    if (entry.title) {
+      heading.textContent = entry.title;
+      delete heading.dataset.immersionKey;
+    } else {
+      heading.textContent = "Untitled entry";
+      heading.dataset.immersionKey = "untitledEntryText";
+      retranslateImmersionElement(heading);
+    }
+  }
 
   const dateBadge = document.getElementById("view-entry-date");
   if (dateBadge) dateBadge.textContent = entry.date || "";
@@ -458,6 +480,9 @@ function showViewMode() {
       linkedBadge.hidden = false;
       linkedBadge.className = `lang-badge lang-badge-${entry.language}`;
       linkedBadge.textContent = `Linked: ${passage.title}`;
+      linkedBadge.dataset.immersionKey = "linkedBadgePrefix";
+      linkedBadge.dataset.immersionVars = JSON.stringify({ title: passage.title });
+      retranslateImmersionElement(linkedBadge);
     } else {
       linkedBadge.hidden = true;
     }
@@ -522,15 +547,28 @@ function showEditMode() {
 
   const heading = document.getElementById("entry-heading");
   if (heading) {
-    heading.textContent = entry
-      ? entry.title || "Untitled entry"
-      : `New ${WRITING_LANGUAGE_NAMES[activeEntryLang]} entry`;
+    if (entry && entry.title) {
+      heading.textContent = entry.title;
+      delete heading.dataset.immersionKey;
+      delete heading.dataset.immersionVars;
+    } else if (entry) {
+      heading.textContent = "Untitled entry";
+      heading.dataset.immersionKey = "untitledEntryText";
+      delete heading.dataset.immersionVars;
+      retranslateImmersionElement(heading);
+    } else {
+      const langName = displayLanguageName(activeEntryLang);
+      heading.textContent = `New ${langName} entry`;
+      heading.dataset.immersionKey = "newEntryHeadingTemplate";
+      heading.dataset.immersionVars = JSON.stringify({ lang: langName });
+      retranslateImmersionElement(heading);
+    }
   }
 
   // Freshly (re)entering edit mode always starts from what's actually
   // saved, so there's nothing pending yet.
   cancelPendingAutosave();
-  updateAutosaveStatus(entry ? "All changes saved" : "");
+  updateAutosaveStatus(entry ? "All changes saved" : "", entry ? "allChangesSavedStatus" : null);
 
   updateWordCount();
 }
@@ -552,7 +590,7 @@ function handleCancelEdit() {
 
 function scheduleAutosave() {
   autosaveDirty = true;
-  updateAutosaveStatus("Unsaved changes…");
+  updateAutosaveStatus("Unsaved changes…", "unsavedChangesStatus");
   if (autosaveTimer) clearTimeout(autosaveTimer);
   autosaveTimer = setTimeout(performAutosave, AUTOSAVE_DELAY_MS);
 }
@@ -627,13 +665,23 @@ function performAutosave() {
   }
 
   autosaveDirty = false;
-  updateAutosaveStatus("Saved");
+  updateAutosaveStatus("Saved", "autosaveSavedStatus");
   syncWritingEntryAppTab(Storage.getWritingEntry(activeEntryId));
 }
 
-function updateAutosaveStatus(text) {
+// `key` is the matching IMMERSION_STRINGS entry for `text`, when there
+// is one — pass null/omit for the empty-string "nothing to show" case.
+function updateAutosaveStatus(text, key) {
   const el = document.getElementById("entry-autosave-status");
-  if (el) el.textContent = text;
+  if (!el) return;
+  el.textContent = text;
+  if (key) {
+    el.dataset.immersionKey = key;
+    retranslateImmersionElement(el);
+  } else {
+    delete el.dataset.immersionKey;
+    delete el.dataset.immersionOriginal;
+  }
 }
 
 // Deliberately counts unresolved bracketed words/phrases, not total
@@ -645,14 +693,24 @@ function updateWordCount() {
   const countEl = document.getElementById("entry-word-count");
   if (!countEl) return;
   const n = extractBracketWords(textInput ? textInput.value : "").length;
-  if (n === 0) countEl.textContent = "No unknown words in this entry yet.";
-  else if (n === 1) countEl.textContent = "1 unknown word in this entry.";
-  else countEl.textContent = `${n} unknown words in this entry.`;
+  delete countEl.dataset.immersionVars;
+  if (n === 0) {
+    countEl.textContent = "No unknown words in this entry yet.";
+    countEl.dataset.immersionKey = "noUnknownWordsCountText";
+  } else if (n === 1) {
+    countEl.textContent = "1 unknown word in this entry.";
+    countEl.dataset.immersionKey = "oneUnknownWordCountText";
+  } else {
+    countEl.textContent = `${n} unknown words in this entry.`;
+    countEl.dataset.immersionKey = "unknownWordsCountText";
+    countEl.dataset.immersionVars = JSON.stringify({ n });
+  }
+  retranslateImmersionElement(countEl);
 }
 
 function renderLinkSelectOptions(select, selectedId) {
   if (!select) return;
-  select.innerHTML = '<option value="">No link</option>';
+  select.innerHTML = '<option value="" data-immersion-key="noLinkOption">No link</option>';
   Storage.getPassages()
     .filter((p) => p.language === activeEntryLang)
     .forEach((p) => {
@@ -673,7 +731,7 @@ function handleEntryDetailsSubmit(e) {
 
   const title = titleInput.value.trim();
   if (!title) {
-    alert("Give the entry a title.");
+    alert(t("giveEntryTitleAlert", "Give the entry a title."));
     return;
   }
   const date = dateInput.value || todayStr();
@@ -784,7 +842,7 @@ function handleDeleteEntry() {
     window.location.href = `writing.html?lang=${activeEntryLang}`;
     return;
   }
-  if (!confirm("Delete this entry? This can't be undone.")) return;
+  if (!confirm(t("deleteEntryConfirm", "Delete this entry? This can't be undone."))) return;
   cancelPendingAutosave(); // a pending autosave must not resurrect what we're about to delete
   Storage.deleteWritingEntry(activeEntryId);
   window.location.href = `writing.html?lang=${activeEntryLang}`;
@@ -850,6 +908,7 @@ function renderHelperWordsPanel(lang) {
     const li = document.createElement("li");
     li.className = "empty-hint";
     li.textContent = "No unknown words yet — bracket one like <word> in your writing.";
+    li.dataset.immersionKey = "noUnknownWordsHelperHint";
     list.appendChild(li);
     return;
   }
@@ -889,6 +948,7 @@ function renderHelperWordsPanel(lang) {
       const pendingEl = document.createElement("span");
       pendingEl.className = "helper-word-pending";
       pendingEl.textContent = "not checked yet";
+      pendingEl.dataset.immersionKey = "notCheckedYetHint";
       info.appendChild(pendingEl);
     }
 
@@ -901,7 +961,14 @@ function renderHelperWordsPanel(lang) {
       const theme = w.addedThemeId ? Storage.getTheme(w.addedThemeId) : null;
       const addedEl = document.createElement("span");
       addedEl.className = "helper-word-added";
-      addedEl.textContent = theme ? `✓ Added to — ${theme.name}` : "✓ Added to Vocab";
+      if (theme) {
+        addedEl.textContent = `✓ Added to — ${theme.name}`;
+        addedEl.dataset.immersionKey = "addedToVocabWithThemeText";
+        addedEl.dataset.immersionVars = JSON.stringify({ theme: theme.name });
+      } else {
+        addedEl.textContent = "✓ Added to Vocab";
+        addedEl.dataset.immersionKey = "addedToVocabDefaultText";
+      }
       actions.appendChild(addedEl);
     } else {
       const addBtn = document.createElement("button");
@@ -988,6 +1055,7 @@ function buildHelperNoteEditor(helperWord) {
   textarea.className = "helper-word-note-input";
   textarea.rows = 2;
   textarea.placeholder = "A question or note about this word (why this form, when to use it, etc.)";
+  textarea.dataset.immersionKey = "helperNoteQuestionPlaceholder";
   textarea.value = helperWord.notes || "";
   wrapper.appendChild(textarea);
 
@@ -1039,7 +1107,10 @@ function buildAddToVocabPanel(helperWord) {
   const targetInput = document.createElement("input");
   targetInput.type = "text";
   targetInput.className = "helper-add-vocab-input";
-  targetInput.placeholder = WRITING_LANGUAGE_NAMES[helperWord.language] + " word";
+  const targetLangName = displayLanguageName(helperWord.language);
+  targetInput.placeholder = `${targetLangName} word`;
+  targetInput.dataset.immersionKey = "targetWordPlaceholderTemplate";
+  targetInput.dataset.immersionVars = JSON.stringify({ lang: targetLangName });
   targetInput.value = helperWord.targetWord || "";
   targetInput.setAttribute("aria-label", "Target-language word");
   wrapper.appendChild(targetInput);
@@ -1116,7 +1187,7 @@ function renderHelperThemeOptions(select, language, selectedId) {
 // selected, so its change event never fires. handleSaveAddToVocab calls
 // this directly in that case.
 function createHelperVocabTheme(select, language) {
-  const name = prompt("Name for the new theme:");
+  const name = prompt(t("createNewThemeNamePrompt", "Name for the new theme:"));
   const existingThemes = Storage.getThemes().filter((t) => t.language === language);
   if (!name || !name.trim()) {
     renderHelperThemeOptions(select, language, existingThemes.length ? existingThemes[0].id : null);
@@ -1138,7 +1209,7 @@ function handleSaveAddToVocab(helperWord, themeSelect, targetInput, furiganaInpu
 
   const targetWord = targetInput.value.trim();
   if (!targetWord) {
-    alert(`Give it a ${WRITING_LANGUAGE_NAMES[helperWord.language]} word before saving.`);
+    alert(t("giveWordBeforeSavingAlert", `Give it a ${WRITING_LANGUAGE_NAMES[helperWord.language]} word before saving.`, { lang: displayLanguageName(helperWord.language) }));
     return;
   }
 
@@ -1150,7 +1221,7 @@ function handleSaveAddToVocab(helperWord, themeSelect, targetInput, furiganaInpu
   });
 
   if (!saved) {
-    alert("That word already exists in that theme — pick a different theme, or it's already covered.");
+    alert(t("wordAlreadyExistsAlert", "That word already exists in that theme — pick a different theme, or it's already covered."));
     return;
   }
 
@@ -1160,7 +1231,7 @@ function handleSaveAddToVocab(helperWord, themeSelect, targetInput, furiganaInpu
 }
 
 function handleDeleteHelperWord(wordId) {
-  if (!confirm("Remove this from your Helper Notebook? This doesn't touch anything already saved to your Vocab Bank.")) return;
+  if (!confirm(t("removeHelperWordConfirm", "Remove this from your Helper Notebook? This doesn't touch anything already saved to your Vocab Bank."))) return;
   Storage.deleteHelperWord(wordId);
   renderHelperWordsPanel(activeEntryLang);
 }
@@ -1169,7 +1240,7 @@ function handleDeleteHelperWord(wordId) {
 
 async function handleVocabCheckClick() {
   if (!entryPersisted) {
-    alert("Save the entry first, then run Vocab check.");
+    alert(t("saveEntryFirstVocabAlert", "Save the entry first, then run Vocab check."));
     return;
   }
   const entry = Storage.getWritingEntry(activeEntryId);
@@ -1177,7 +1248,7 @@ async function handleVocabCheckClick() {
 
   const uniqueWords = extractBracketWords(entry.text || "");
   if (uniqueWords.length === 0) {
-    alert("No < > words left to check.");
+    alert(t("noWordsToCheckAlert", "No < > words left to check."));
     return;
   }
 
@@ -1187,6 +1258,9 @@ async function handleVocabCheckClick() {
   if (status) {
     status.hidden = false;
     status.textContent = "Checking...";
+    status.dataset.immersionKey = "checkingVocabStatus";
+    delete status.dataset.immersionVars;
+    retranslateImmersionElement(status);
   }
 
   const results = {}; // lowercase word -> { targetWord, furigana }
@@ -1237,7 +1311,11 @@ async function handleVocabCheckClick() {
   if (status) {
     if (failed.length > 0) {
       status.hidden = false;
-      status.textContent = `Couldn't find a translation for: ${failed.join(", ")} — left as-is, try again later.`;
+      const failedList = failed.join(", ");
+      status.textContent = `Couldn't find a translation for: ${failedList} — left as-is, try again later.`;
+      status.dataset.immersionKey = "couldntFindTranslationStatus";
+      status.dataset.immersionVars = JSON.stringify({ words: failedList });
+      retranslateImmersionElement(status);
     } else {
       status.hidden = true;
     }
@@ -1254,14 +1332,14 @@ async function handleVocabCheckClick() {
 // one without the other.
 async function handleGrammarCheckClick() {
   if (!entryPersisted) {
-    alert("Save the entry first, then run Grammar check.");
+    alert(t("saveEntryFirstGrammarAlert", "Save the entry first, then run Grammar check."));
     return;
   }
   const entry = Storage.getWritingEntry(activeEntryId);
   if (!entry) return;
 
   if (!entry.text || !entry.text.trim()) {
-    alert("Nothing to check yet — write something first.");
+    alert(t("nothingToCheckAlert", "Nothing to check yet — write something first."));
     return;
   }
 
@@ -1277,6 +1355,9 @@ async function handleGrammarCheckClick() {
   if (status) {
     status.hidden = false;
     status.textContent = "Checking grammar...";
+    status.dataset.immersionKey = "checkingGrammarStatus";
+    delete status.dataset.immersionVars;
+    retranslateImmersionElement(status);
   }
 
   const result = await Translate.checkWritingGrammar(entry.text, activeEntryLang);
@@ -1285,7 +1366,13 @@ async function handleGrammarCheckClick() {
     if (btn) btn.disabled = false;
     if (status) {
       status.hidden = false;
-      status.textContent = `Grammar check failed: ${result.error || "the server didn't return a usable result."}`;
+      const errorText = result.error || "the server didn't return a usable result.";
+      status.textContent = `Grammar check failed: ${errorText}`;
+      status.dataset.immersionKey = "grammarCheckFailedStatus";
+      status.dataset.immersionVars = JSON.stringify({
+        error: result.error ? errorText : t("grammarCheckFailedFallback", errorText),
+      });
+      retranslateImmersionElement(status);
     }
     return;
   }
@@ -1323,6 +1410,9 @@ async function handleGrammarCheckClick() {
     if (corrections.length === 0) {
       status.hidden = false;
       status.textContent = "No grammar issues found — looks good!";
+      status.dataset.immersionKey = "noGrammarIssuesStatus";
+      delete status.dataset.immersionVars;
+      retranslateImmersionElement(status);
     } else {
       status.hidden = true; // what changed is visible in red, plus the notes list below
     }
@@ -1401,6 +1491,7 @@ function renderGrammarNotesPanel(entry) {
       const addedEl = document.createElement("span");
       addedEl.className = "helper-word-added";
       addedEl.textContent = "✓ Added to Grammar";
+      addedEl.dataset.immersionKey = "addedToGrammarDefaultText";
       actions.appendChild(addedEl);
     } else if (note.id) {
       const addBtn = document.createElement("button");
@@ -1451,6 +1542,8 @@ function buildAddToGrammarPanel(note) {
     const conceptHint = document.createElement("p");
     conceptHint.className = "hint grammar-concept-hint";
     conceptHint.textContent = `Recognized pattern: ${concept.label} — suggested a matching folder below so you can practice this later.`;
+    conceptHint.dataset.immersionKey = "recognizedPatternHint";
+    conceptHint.dataset.immersionVars = JSON.stringify({ label: concept.label });
     wrapper.appendChild(conceptHint);
   }
 
@@ -1526,7 +1619,7 @@ function renderGrammarFolderOptions(select, language, selectedId, concept) {
 // a recognized concept, the prompt is pre-filled with its label and the
 // new folder is tagged with practiceConcept so it becomes practice-able.
 function createGrammarFolderFromWriting(select, language, concept) {
-  const name = prompt("Name for the new Grammar folder:", concept ? concept.label : "");
+  const name = prompt(t("createNewGrammarFolderPrompt", "Name for the new Grammar folder:"), concept ? concept.label : "");
   const existingThemes = Storage.getGrammarThemes(language);
   if (!name || !name.trim()) {
     renderGrammarFolderOptions(select, language, existingThemes.length ? existingThemes[0].id : null, concept);
@@ -1744,7 +1837,7 @@ function handleEntryTabPlusClick() {
   const openIds = new Set(openReadingTabIds);
   const available = Storage.getPassages().filter((p) => p.language === activeEntryLang && !openIds.has(p.id));
   if (available.length === 0) {
-    alert("No more passages to open — save one from the Reading section first, or every passage in this language is already open.");
+    alert(t("noMorePassagesAlert", "No more passages to open — save one from the Reading section first, or every passage in this language is already open."));
     return;
   }
 

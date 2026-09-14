@@ -481,12 +481,45 @@ const IMMERSION_STRINGS = {
 
   // ---- Writing app dynamic UI ----
   autosaveSavedStatus: { es: "Guardado", ja: "保存しました", fr: "Enregistré" },
+  allChangesSavedStatus: { es: "Todos los cambios guardados", ja: "すべての変更が保存されました", fr: "Toutes les modifications sont enregistrées" },
   unsavedChangesStatus: { es: "Cambios sin guardar…", ja: "未保存の変更…", fr: "Modifications non enregistrées…" },
   addToVocabButton: { es: "Añadir al vocabulario", ja: "単語帳に追加", fr: "Ajouter au vocabulaire" },
   addNotePlusButton: { es: "+ Nota", ja: "+ メモ", fr: "+ Note" },
   editNoteButton: { es: "Editar nota", ja: "メモを編集", fr: "Modifier la note" },
   addToGrammarButton: { es: "Añadir a Gramática", ja: "文法に追加", fr: "Ajouter à Grammaire" },
+  untitledEntryText: { es: "Entrada sin título", ja: "無題のエントリー", fr: "Entrée sans titre" },
+  newEntryHeadingTemplate: { es: "Nueva entrada en {lang}", ja: "新しい{lang}のエントリー", fr: "Nouvelle entrée en {lang}" },
   noWritingYetText: { es: "Todavía no hay escritura — haz clic en Editar para añadir algo.", ja: "まだ文章がありません — 「編集」をクリックして書き始めてください。", fr: "Pas encore de texte — clique sur Modifier pour en ajouter." },
+  linkedBadgePrefix: { es: "Enlazado: {title}", ja: "リンク済み：{title}", fr: "Lié : {title}" },
+  noUnknownWordsCountText: { es: "Todavía no hay palabras desconocidas en esta entrada.", ja: "このエントリーにはまだ未知の単語がありません。", fr: "Pas encore de mots inconnus dans cette entrée." },
+  oneUnknownWordCountText: { es: "1 palabra desconocida en esta entrada.", ja: "このエントリーには未知の単語が1つあります。", fr: "1 mot inconnu dans cette entrée." },
+  unknownWordsCountText: { es: "{n} palabras desconocidas en esta entrada.", ja: "このエントリーには未知の単語が{n}個あります。", fr: "{n} mots inconnus dans cette entrée." },
+  noUnknownWordsHelperHint: { es: "Todavía no hay palabras desconocidas — encierra una como <word> en tu escrito.", ja: "まだ未知の単語はありません — 文章の中で<word>のように山括弧で囲んでください。", fr: "Pas encore de mot inconnu — mets-en un entre chevrons comme <word> dans ton texte." },
+  notCheckedYetHint: { es: "aún no revisado", ja: "まだチェックされていません", fr: "pas encore vérifié" },
+  addedToVocabDefaultText: { es: "✓ Añadido al vocabulario", ja: "✓ 単語帳に追加済み", fr: "✓ Ajouté au vocabulaire" },
+  addedToVocabWithThemeText: { es: "✓ Añadido a — {theme}", ja: "✓ 追加済み — {theme}", fr: "✓ Ajouté à — {theme}" },
+  helperNoteQuestionPlaceholder: { es: "Una pregunta o nota sobre esta palabra (por qué esta forma, cuándo usarla, etc.)", ja: "この単語についての質問やメモ（なぜこの形か、いつ使うか、など）", fr: "Une question ou une note sur ce mot (pourquoi cette forme, quand l'utiliser, etc.)" },
+  giveEntryTitleAlert: { es: "Ponle un título a la entrada.", ja: "エントリーにタイトルを付けてください。", fr: "Donne un titre à l'entrée." },
+  createNewThemeNamePrompt: { es: "Nombre del nuevo tema:", ja: "新しいテーマの名前：", fr: "Nom du nouveau thème :" },
+  giveWordBeforeSavingAlert: { es: "Escribe una palabra en {lang} antes de guardar.", ja: "保存する前に{lang}の単語を入力してください。", fr: "Indique un mot en {lang} avant d'enregistrer." },
+  wordAlreadyExistsAlert: { es: "Esa palabra ya existe en ese tema — elige otro tema, o ya está cubierta.", ja: "その単語はそのテーマにすでに存在します — 別のテーマを選ぶか、すでに登録済みです。", fr: "Ce mot existe déjà dans ce thème — choisis un autre thème, ou il est déjà couvert." },
+  removeHelperWordConfirm: { es: "¿Eliminar esto de tu Cuaderno de ayuda? Esto no afecta nada que ya esté guardado en tu Banco de vocabulario.", ja: "これをヘルパーノートから削除しますか？すでに単語帳に保存されているものには影響しません。", fr: "Retirer ceci de ton Cahier d'aide ? Cela ne touche pas ce qui est déjà enregistré dans ta Banque de vocabulaire." },
+  saveEntryFirstVocabAlert: { es: "Guarda la entrada primero, luego ejecuta la revisión de vocabulario.", ja: "先にエントリーを保存してから、語彙チェックを実行してください。", fr: "Enregistre d'abord l'entrée, puis lance la vérification de vocabulaire." },
+  saveEntryFirstGrammarAlert: { es: "Guarda la entrada primero, luego ejecuta la revisión de gramática.", ja: "先にエントリーを保存してから、文法チェックを実行してください。", fr: "Enregistre d'abord l'entrée, puis lance la vérification de grammaire." },
+  noWordsToCheckAlert: { es: "No quedan palabras entre < > por revisar.", ja: "チェックする<>の単語が残っていません。", fr: "Il ne reste aucun mot entre < > à vérifier." },
+  checkingVocabStatus: { es: "Revisando...", ja: "チェック中…", fr: "Vérification..." },
+  couldntFindTranslationStatus: { es: "No se encontró traducción para: {words} — se dejó tal cual, inténtalo de nuevo más tarde.", ja: "次の単語の翻訳が見つかりませんでした：{words} — そのままにしてあります。後でもう一度試してください。", fr: "Traduction introuvable pour : {words} — laissé tel quel, réessaie plus tard." },
+  nothingToCheckAlert: { es: "Todavía no hay nada que revisar — escribe algo primero.", ja: "まだチェックするものがありません — まず何か書いてください。", fr: "Rien à vérifier pour l'instant — écris d'abord quelque chose." },
+  checkingGrammarStatus: { es: "Revisando gramática...", ja: "文法をチェック中…", fr: "Vérification de la grammaire..." },
+  grammarCheckFailedStatus: { es: "La revisión de gramática falló: {error}", ja: "文法チェックに失敗しました：{error}", fr: "Échec de la vérification de grammaire : {error}" },
+  grammarCheckFailedFallback: { es: "el servidor no devolvió un resultado utilizable.", ja: "サーバーから使用可能な結果が返されませんでした。", fr: "le serveur n'a pas renvoyé de résultat utilisable." },
+  noGrammarIssuesStatus: { es: "No se encontraron problemas de gramática — ¡se ve bien!", ja: "文法の問題は見つかりませんでした — いい感じです！", fr: "Aucun problème de grammaire trouvé — c'est bon !" },
+  addedToGrammarDefaultText: { es: "✓ Añadido a Gramática", ja: "✓ 文法に追加済み", fr: "✓ Ajouté à Grammaire" },
+  recognizedPatternHint: { es: "Patrón reconocido: {label} — se sugirió una carpeta correspondiente abajo para que puedas practicarlo más tarde.", ja: "認識されたパターン：{label} — 後で練習できるように、下に該当するフォルダを提案しました。", fr: "Schéma reconnu : {label} — un dossier correspondant est suggéré ci-dessous pour que tu puisses t'entraîner plus tard." },
+  deleteEntryConfirm: { es: "¿Eliminar esta entrada? No se puede deshacer.", ja: "このエントリーを削除しますか？元に戻せません。", fr: "Supprimer cette entrée ? Cette action est irréversible." },
+  targetWordPlaceholderTemplate: { es: "palabra en {lang}", ja: "{lang}の単語", fr: "mot en {lang}" },
+  createNewGrammarFolderPrompt: { es: "Nombre de la nueva carpeta de Gramática:", ja: "新しい文法フォルダの名前：", fr: "Nom du nouveau dossier de Grammaire :" },
+  noMorePassagesAlert: { es: "No hay más textos para abrir — guarda uno desde la sección de Lectura primero, o ya están abiertos todos los textos en este idioma.", ja: "これ以上開ける文章がありません — まずリーディングのセクションで文章を保存するか、この言語のすべての文章がすでに開かれています。", fr: "Il n'y a plus de texte à ouvrir — enregistre-en un depuis la section Lecture, ou tous les textes de cette langue sont déjà ouverts." },
 
   // ---- Vocab app dynamic UI ----
   extractingStatus: { es: "Extrayendo...", ja: "抽出中…", fr: "Extraction..." },
@@ -561,8 +594,55 @@ function setImmersionText(el, stringKey, lang) {
   if (el.dataset.immersionOriginal === undefined) {
     el.dataset.immersionOriginal = readAttr(el, attr);
   }
-  writeAttr(el, attr, entry[lang]);
+  // A handful of elements carry dynamic content (a count, a name, a
+  // server error) baked into their English text — those set
+  // data-immersion-vars (JSON) alongside data-immersion-key so the
+  // {token} placeholders in the dictionary string can be swapped back
+  // in after translation, e.g. {n} unknown words / Linked: {title}.
+  let value = entry[lang];
+  if (el.dataset.immersionVars) {
+    try {
+      const vars = JSON.parse(el.dataset.immersionVars);
+      Object.keys(vars).forEach((k) => {
+        value = value.split(`{${k}}`).join(vars[k]);
+      });
+    } catch (e) {
+      /* malformed vars — fall back to the untouched template */
+    }
+  }
+  writeAttr(el, attr, value);
   if (attr === "textContent") el.classList.add("immersion-text");
+}
+
+// For text a page's own JS rebuilds in place on an element that
+// already existed at load (a word count, an autosave status, a badge)
+// rather than a freshly-created/appended node — the MutationObserver
+// above only fires on new nodes, so after setting the new English
+// text + data-immersion-key (+ data-immersion-vars for a templated
+// string), call this once to translate that one element immediately
+// if immersion is currently on. Safe to call unconditionally; it's a
+// no-op when immersion is off (the English text just set stays put).
+function retranslateImmersionElement(el) {
+  if (!el || !el.dataset.immersionKey) return;
+  delete el.dataset.immersionOriginal; // recapture the English text just set
+  const lang = document.body.dataset.immersionLang;
+  if (lang) setImmersionText(el, el.dataset.immersionKey, lang);
+}
+
+// For one-off dynamic text that isn't attached to a persistent element
+// at all — an alert()/confirm()/prompt() message, or a string being
+// assembled before it's ever put in the DOM. Returns the current
+// target-language string (with {token} substitution) when immersion is
+// on and the dictionary has it, otherwise the English fallback passed
+// in — so call sites read naturally even before any translation work
+// is added for a given key.
+function t(stringKey, fallbackEnglish, vars) {
+  const lang = document.body.dataset.immersionLang;
+  const entry = lang && IMMERSION_STRINGS[stringKey];
+  if (!entry || !entry[lang]) return fallbackEnglish;
+  let value = entry[lang];
+  if (vars) Object.keys(vars).forEach((k) => { value = value.split(`{${k}}`).join(vars[k]); });
+  return value;
 }
 
 function revertImmersionText(el) {
@@ -740,7 +820,17 @@ function initImmersion(lang) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { initImmersion, applyImmersion, isImmersionEnabled, setImmersionEnabled, IMMERSION_STRINGS };
+  module.exports = {
+    initImmersion,
+    applyImmersion,
+    isImmersionEnabled,
+    setImmersionEnabled,
+    IMMERSION_STRINGS,
+    t,
+    retranslateImmersionElement,
+  };
 } else {
   window.initImmersion = initImmersion;
+  window.t = t;
+  window.retranslateImmersionElement = retranslateImmersionElement;
 }

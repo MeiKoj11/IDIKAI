@@ -1656,4 +1656,61 @@ button.chip:hover { border-color: var(--ink); }
 .save-mistake:hover { background: transparent; color: var(--red); }
 .save-box { display: block; width: 15px; height: 15px; border-radius: 4px; border: 2px solid var(--red); background: transparent; }
 
+/* ---------- Writing entry: Helper Notebook vocab list ------------------ */
+/* The bracketed-word info (English word / resolved target word / furigana)
+   was inheriting style.css's old dark-theme .helper-word-target/-furigana
+   colors (#C0BFB2, meant for light-on-dark), which read as washed-out gray
+   on the new light card. Recolored to match .corrected-word's red — the
+   same red a Vocab-check correction gets in the entry text itself, so a
+   word here and its match in the entry read as the same "thing".
+   Add to Vocab / +Note / Delete (.helper-word-actions button) are
+   deliberately left alone — only the word info itself changes color. */
+.helper-word-item .word-label,
+.helper-word-target,
+.helper-word-furigana {
+  color: #B3261E;
+}
+
+/* ---------- Writing/Speaking entry: "Reference while you write/speak" -- */
+/* This panel's tab strip + content box were still the legacy dark
+   #entry-tab-strip (#221712 black) / .entry-tab-content (#5F0D0E maroon)
+   pairing, clashing with the redesigned beige page around them. Recolored
+   to the same paper/ink look as the entry's own text box
+   (.writing-view-text-box) so the panel reads as part of the page rather
+   than a leftover dark box; the heading itself uses the design system's
+   red like other section titles. Shared by writing-entry.html and
+   speaking-entry.html (#entry-reading-panel/#entry-tab-strip/
+   #entry-tab-content are the same ids on both pages). */
+#entry-reading-panel > h2 {
+  color: var(--red);
+}
+#entry-tab-strip {
+  background: var(--card);
+  border-bottom: 2px solid var(--ink);
+  border-radius: 8px 8px 0 0;
+}
+#entry-tab-strip .vocab-tab {
+  background: var(--paper);
+  color: var(--ink);
+}
+#entry-tab-strip .vocab-tab:hover {
+  background: var(--card);
+}
+#entry-tab-strip .vocab-tab.active {
+  background: var(--card);
+  color: var(--ink);
+  font-weight: 600;
+  border-top-color: var(--red);
+}
+#entry-tab-content {
+  background: var(--paper);
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+}
+#entry-tab-content h3 {
+  color: var(--ink);
+}
+
 .result-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 20px 0 72px; }
