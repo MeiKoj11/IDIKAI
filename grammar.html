@@ -85,7 +85,10 @@
       <div class="row-head">
         <div class="grow">
           <a href="index.html" class="back-link" id="grammar-back-link" data-immersion-key="backPlain">&larr; Back</a>
-          <h1 class="page-title" id="grammar-heading" data-immersion-key="sectionGrammar">Grammar</h1>
+          <div class="title-with-howto">
+            <h1 class="page-title" id="grammar-heading" data-immersion-key="sectionGrammar">Grammar</h1>
+            <button type="button" class="howto-btn" id="grammar-howto-btn" data-howto-trigger="grammar-howto-overlay" aria-haspopup="dialog" data-immersion-key="howtoButton">How to use</button>
+          </div>
           <div class="meta-row">
             <span class="dot"></span>
             <span class="meta-text" id="grammar-meta-text"></span>
@@ -94,10 +97,23 @@
         <button type="button" class="btn" id="grammar-new-section-btn" data-immersion-key="newSectionButton">New section</button>
       </div>
     </div>
+    <div class="howto-overlay" id="grammar-howto-overlay" role="dialog" aria-modal="true" aria-labelledby="grammar-howto-title" hidden>
+      <div class="howto-modal">
+        <div class="howto-modal-head">
+          <h2 class="howto-modal-title" id="grammar-howto-title" data-immersion-key="howtoModalTitle">How to use this page</h2>
+          <button type="button" class="howto-modal-close" aria-label="Close" data-howto-close>&times;</button>
+        </div>
+        <div class="howto-modal-body">
+          <p data-immersion-key="howtoBodyGrammar1">At some point a textbook is needed to learn the basics of grammar. Fluency builds up through repetition, but before you get a feel for the language, some framework is necessary.</p>
+          <p data-immersion-key="howtoBodyGrammar2">Some examples are already given, but you're encouraged to create your own notes for separate grammar points. When a grammar point comes up often enough for AI to recognise it, a test can be generated for extra practice.</p>
+        </div>
+      </div>
+    </div>
     <div class="grid-folders" id="grammar-theme-list" style="margin-top:22px"></div>
   </main>
   <script src="js/topbar.js"></script>
   <script src="js/immersion.js"></script>
+  <script src="js/howto.js"></script>
   <script src="js/app-tabs.js"></script>
   <script src="js/storage.js"></script>
   <script src="js/hub-tasks.js"></script>

@@ -88,10 +88,26 @@
     <div class="row-head" style="margin-top:8px; align-items:flex-start">
       <div style="flex:1 1 280px; min-width:0">
         <span class="eyebrow" data-immersion-key="sectionWriting">Writing</span>
-        <h1 class="page-title" id="writing-heading" data-immersion-key="entriesHeading">Entries</h1>
+        <div class="title-with-howto">
+          <h1 class="page-title" id="writing-heading" data-immersion-key="entriesHeading">Entries</h1>
+          <button type="button" class="howto-btn" id="writing-howto-btn" data-howto-trigger="writing-howto-overlay" aria-haspopup="dialog" data-immersion-key="howtoButton">How to use</button>
+        </div>
         <p class="page-sub" id="entries-intro" data-immersion-key="writingEntriesIntro">Dated, diary-style writing. Link an entry to a Reading passage and you can pull that text up beside the editor while you write.</p>
       </div>
       <a href="#" id="new-entry-link" class="btn btn-red" data-immersion-key="newEntryLink">+ New entry</a>
+    </div>
+  </div>
+  <div class="howto-overlay" id="writing-howto-overlay" role="dialog" aria-modal="true" aria-labelledby="writing-howto-title" hidden>
+    <div class="howto-modal">
+      <div class="howto-modal-head">
+        <h2 class="howto-modal-title" id="writing-howto-title" data-immersion-key="howtoModalTitle">How to use this page</h2>
+        <button type="button" class="howto-modal-close" aria-label="Close" data-howto-close>&times;</button>
+      </div>
+      <div class="howto-modal-body">
+        <p data-immersion-key="howtoBodyWriting1">Blogging in your target language is one of the most helpful but overlooked ways to build fluency. Writing your own sentences, consistently, does wonders for your speaking — and everyday vocab gets picked up along the way.</p>
+        <p data-immersion-key="howtoBodyWriting2">Vocab and grammar checks are both done by AI. Vocab checks work by dictionary reference, though your own personal notes are encouraged too. Grammar checks are available but should be used with caution — the nuances and natural feel of a language are things best taught by a native speaker, so don't lean on them too heavily.</p>
+        <p data-immersion-key="howtoBodyWriting3">Plenty of organisational features are built in too: vocab checks after writing, reference passages you can call up alongside your entry, personal notes and a notes-to-teacher box, and mistakes that can be saved and moved into Vocab to be tested on later.</p>
+      </div>
     </div>
   </div>
   <main class="wrap-narrow" style="padding-top:24px; padding-bottom:72px">
@@ -103,6 +119,7 @@
   </main>
   <script src="js/topbar.js"></script>
   <script src="js/immersion.js"></script>
+  <script src="js/howto.js"></script>
   <script src="js/app-tabs.js"></script>
   <script src="js/storage.js"></script>
   <script src="js/hub-tasks.js"></script>

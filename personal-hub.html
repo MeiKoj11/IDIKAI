@@ -83,7 +83,21 @@
   <header class="app-header" id="personal-hub-header">
     <a href="index.html" class="back-link" id="personal-hub-back-link" data-immersion-key="backPlain">&larr; Back</a>
     <h1 id="personal-hub-heading" data-immersion-key="sectionPersonalHub">Main Hub</h1>
+    <button type="button" class="howto-btn" id="personal-hub-howto-btn" data-howto-trigger="personal-hub-howto-overlay" aria-haspopup="dialog" data-immersion-key="howtoButton">How to use</button>
   </header>
+  <div class="howto-overlay" id="personal-hub-howto-overlay" role="dialog" aria-modal="true" aria-labelledby="personal-hub-howto-title" hidden>
+    <div class="howto-modal">
+      <div class="howto-modal-head">
+        <h2 class="howto-modal-title" id="personal-hub-howto-title" data-immersion-key="howtoModalTitle">How to use this page</h2>
+        <button type="button" class="howto-modal-close" aria-label="Close" data-howto-close>&times;</button>
+      </div>
+      <div class="howto-modal-body">
+        <p data-immersion-key="howtoBodyPersonalHub1">This is a general space for you, with a class notebook and a storage locker.</p>
+        <p data-immersion-key="howtoBodyPersonalHub2">The class notebook is an online notebook for general lessons and notes. Anything important you write can be added to any section — new grammar rules or vocab, for example — and an option to save a note will pop up whenever you're in Grammar or Vocab.</p>
+        <p data-immersion-key="howtoBodyPersonalHub3">The storage locker is for saving PDFs or any other ad hoc material. It can be opened any time.</p>
+      </div>
+    </div>
+  </div>
   <main>
     <!-- Class Notebook launcher: a clickable notebook icon that opens
          the full-page book view (class-notebook.html) — a separate
@@ -219,6 +233,7 @@
   </main>
   <script src="js/topbar.js"></script>
   <script src="js/immersion.js"></script>
+  <script src="js/howto.js"></script>
   <script src="js/app-tabs.js"></script>
   <script src="js/storage.js"></script>
   <script src="js/hub-tasks.js"></script>

@@ -1714,3 +1714,94 @@ button.chip:hover { border-color: var(--ink); }
 }
 
 .result-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 20px 0 72px; }
+
+
+/* ---------- "How to use" help button + modal ------------------------------
+   A small red pill button placed next to a page's <h1> (Personal Hub,
+   Writing, Grammar, Vocab, Reading). Clicking it opens a centered modal
+   in front of the page (no navigation) explaining how that section works.
+   Generic + reusable: any page can add a .howto-btn with
+   data-howto-trigger="<overlay-id>" plus a matching .howto-overlay — see
+   js/howto.js for the (also generic) open/close wiring.                  */
+
+.howto-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: "Nunito", sans-serif;
+  font-weight: 700;
+  font-size: 12.5px;
+  background: var(--red);
+  color: var(--paper);
+  border: 2px solid var(--red);
+  border-radius: 999px;
+  padding: 8px 16px;
+  cursor: pointer;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+.howto-btn:hover { background: #5c0c0d; border-color: #5c0c0d; color: var(--paper); }
+
+/* Sits a howto-btn on the same line as an <h1> regardless of whatever
+   layout (flex row header, or a stacked pagehead column) the page
+   already uses around its title. */
+.title-with-howto { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+.howto-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(34, 23, 18, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 1000;
+}
+.howto-overlay[hidden] { display: none; }
+
+body.howto-open { overflow: hidden; }
+
+.howto-modal {
+  background: var(--paper);
+  border: 5px solid var(--red);
+  border-radius: 14px;
+  max-width: 560px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 26px 28px 30px;
+  box-shadow: 8px 8px 0 rgba(34, 23, 18, 0.18);
+  color: #000;
+}
+.howto-modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+.howto-modal-title {
+  font-family: "Fahkwang", serif;
+  font-size: 21px;
+  line-height: 1.2;
+  color: #000;
+  margin: 0;
+}
+.howto-modal-close {
+  background: var(--ink);
+  color: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  flex: 0 0 auto;
+  font-family: "Nunito", sans-serif;
+}
+.howto-modal-close:hover { background: var(--red); border-color: var(--red); }
+.howto-modal-body { color: #000; font-size: 14.5px; line-height: 1.6; }
+.howto-modal-body p { margin: 0 0 14px; }
+.howto-modal-body p:last-child { margin-bottom: 0; }

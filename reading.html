@@ -83,7 +83,21 @@
   <header class="app-header" id="reading-header">
     <a href="index.html" class="back-link" id="reading-back-link" data-immersion-key="backPlain">&larr; Back</a>
     <h1 id="reading-heading" data-immersion-key="sectionReading">Reading</h1>
+    <button type="button" class="howto-btn" id="reading-howto-btn" data-howto-trigger="reading-howto-overlay" aria-haspopup="dialog" data-immersion-key="howtoButton">How to use</button>
   </header>
+  <div class="howto-overlay" id="reading-howto-overlay" role="dialog" aria-modal="true" aria-labelledby="reading-howto-title" hidden>
+    <div class="howto-modal">
+      <div class="howto-modal-head">
+        <h2 class="howto-modal-title" id="reading-howto-title" data-immersion-key="howtoModalTitle">How to use this page</h2>
+        <button type="button" class="howto-modal-close" aria-label="Close" data-howto-close>&times;</button>
+      </div>
+      <div class="howto-modal-body">
+        <p data-immersion-key="howtoBodyReading1">The most natural way to learn a language — picking up everyday expressions, nuance, and slang — is by reading news, blog posts, and other media in your target language.</p>
+        <p data-immersion-key="howtoBodyReading2">Copy and paste text, or upload a screenshot, and read through as normal. When a new word or phrase comes up, just highlight it to see the meaning and save it straight to your vocab bank for later testing.</p>
+        <p data-immersion-key="howtoBodyReading3">Watch out — if a highlighted word or phrase is already saved in your vocab bank, it'll be flagged so you give it an extra thought. You know this one!</p>
+      </div>
+    </div>
+  </div>
   <main>
     <section class="panel" id="passages-section">
       <h2 data-immersion-key="passagesHeading">Passages</h2>
@@ -124,6 +138,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/7.0.0/tesseract.min.js"></script>
   <script src="js/topbar.js"></script>
   <script src="js/immersion.js"></script>
+  <script src="js/howto.js"></script>
   <script src="js/app-tabs.js"></script>
   <script src="js/storage.js"></script>
   <script src="js/hub-tasks.js"></script>

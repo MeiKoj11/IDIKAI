@@ -83,7 +83,19 @@
   <header class="app-header">
     <a href="index.html" class="back-link" id="vocab-back-link" data-immersion-key="backPlain">&larr; Back</a>
     <h1 data-immersion-key="sectionVocab">Vocab Bank</h1>
+    <button type="button" class="howto-btn" id="vocab-howto-btn" data-howto-trigger="vocab-howto-overlay" aria-haspopup="dialog" data-immersion-key="howtoButton">How to use</button>
   </header>
+  <div class="howto-overlay" id="vocab-howto-overlay" role="dialog" aria-modal="true" aria-labelledby="vocab-howto-title" hidden>
+    <div class="howto-modal">
+      <div class="howto-modal-head">
+        <h2 class="howto-modal-title" id="vocab-howto-title" data-immersion-key="howtoModalTitle">How to use this page</h2>
+        <button type="button" class="howto-modal-close" aria-label="Close" data-howto-close>&times;</button>
+      </div>
+      <div class="howto-modal-body">
+        <p data-immersion-key="howtoBodyVocab1">Standard vocab flashcard practice. It's a great way to start a language session — refresh your memory with some vocab first. Remember, fluency builds up with repetition.</p>
+      </div>
+    </div>
+  </div>
   <main>
     <section class="panel" id="themes-section">
       <h2 data-immersion-key="themesHeading">Themes</h2>
@@ -102,6 +114,7 @@
   </main>
   <script src="js/topbar.js"></script>
   <script src="js/immersion.js"></script>
+  <script src="js/howto.js"></script>
   <script src="js/app-tabs.js"></script>
   <script src="js/storage.js"></script>
   <script src="js/hub-tasks.js"></script>
