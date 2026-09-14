@@ -108,7 +108,14 @@ function renderGrammarThemeList() {
   const list = document.getElementById("grammar-theme-list");
   if (!list) return;
 
-  const themes = Storage.getGrammarThemes(activeGrammarLang || undefined);
+  // The "Mistakes" folder is a real Grammar theme (auto-created by the
+  // sentence/conjugation tests — see findOrCreateMistakesFolder), but it
+  // should only ever be reached from where the mistakes were made (e.g.
+  // the Japanese sentence test's own Mistakes panel/link), not shown as
+  // a regular folder tile here on the Grammar hub.
+  const themes = Storage.getGrammarThemes(activeGrammarLang || undefined).filter(
+    (t) => (t.name || "").trim().toLowerCase() !== "mistakes"
+  );
   list.innerHTML = "";
 
   const totalNotes = themes.reduce((sum, t) => sum + Storage.getGrammarNotes(t.id).length, 0);

@@ -393,6 +393,7 @@ main { max-width: 1080px; margin: 0 auto; padding: 22px 20px 72px; }
   border-radius: 16px;
   box-shadow: var(--shadow);
   padding: 20px;
+  color: var(--ink);
 }
 
 button, .button {
@@ -1788,6 +1789,9 @@ body.howto-open { overflow: hidden; }
   margin: 0;
 }
 .howto-modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: var(--ink);
   color: var(--paper);
   border: 2px solid var(--ink);
@@ -1795,6 +1799,7 @@ body.howto-open { overflow: hidden; }
   width: 32px;
   height: 32px;
   min-width: 32px;
+  padding: 0;
   font-size: 18px;
   line-height: 1;
   cursor: pointer;
@@ -1805,3 +1810,32 @@ body.howto-open { overflow: hidden; }
 .howto-modal-body { color: #000; font-size: 14.5px; line-height: 1.6; }
 .howto-modal-body p { margin: 0 0 14px; }
 .howto-modal-body p:last-child { margin-bottom: 0; }
+
+
+/* ---------- Conjugation/sentence-test setup screen readability -----------
+   style.css (legacy dark theme) set these to a cream color for a dark
+   background; the setup card is light now (.panel), so override to ink. */
+.tenses-test-group-heading,
+.tenses-test-section-head {
+  color: var(--ink);
+}
+
+
+/* ---------- Writing entry: color pass (boxes + helper labels) ------------
+   The entry text boxes, the writing textarea, and the Helper Notebook's
+   own textareas had no accent color at all; and "Helper Notebook" /
+   "Vocab from brackets" / "Notes for yourself" / "Questions for your
+   teacher" were plain, uncolored headings. Both now use the same brand
+   red used elsewhere (buttons, page accents). Shared across all three
+   languages since writing-entry.html has no per-language triplet. */
+.writing-view-text-box {
+  border: 2px solid var(--red);
+}
+.writing-textarea,
+.helper-notes-textarea {
+  border: 2px solid var(--red);
+}
+.writing-helper-panel h2,
+.helper-section-title {
+  color: var(--red);
+}
