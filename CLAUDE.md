@@ -209,10 +209,44 @@ As of the most recent session, done and committed:
   info (date pill, snippet, bracketed-word count, CHECKED/DRAFT status) is
   derived from existing entry fields, not new storage — see that function's
   comments for exactly how "CHECKED" is defined. **`writing-entry.html`
-  (the actual editor) has no mockup and is untouched** — next candidate for
-  the direct-restyle-no-export approach above, if/when Mei wants it done.
+  (the actual editor) still has no mockup/visual rebuild** — but see below,
+  it did get a non-visual fix pass this session.
+- **Writing entry immersion + color fixes** (`js/immersion.js`,
+  `js/writing-app.js`, `css/idikai-refresh.css`, `cd80859`) — NOT a mockup
+  rebuild, a direct fix pass from Mei's feedback on the real running page
+  (screenshots of `writing-entry.html`). Three things:
+  1. Immersion coverage: `js/immersion.js`'s translation engine used to
+     only handle *static* text (`data-immersion-key` + a MutationObserver
+     for freshly-created nodes). Extended it with `data-immersion-vars`
+     (JSON, for `{token}` substitution) + `retranslateImmersionElement(el)`
+     (for text a page rebuilds on an *existing* node — a word count, an
+     autosave status — where the observer never fires) + a `t(key,
+     fallbackEnglish, vars)` helper (for one-off `alert()`/`confirm()`/
+     `prompt()` strings). ~30 new `IMMERSION_STRINGS` keys added, covering
+     writing-entry's page heading, Helper Notebook empty-state/badges,
+     word counts, autosave status, and every Vocab-check/Grammar-check
+     alert. `writing-app.js` got a `displayLanguageName(langCode)` helper
+     so language-name-in-a-sentence strings ("New ___ entry") use the
+     learner's own language name, not the English one. **This pattern
+     (vars + retranslateImmersionElement + t()) is now the template for
+     closing the same "known gap" on any other page** — grep a page's JS
+     for `.textContent = "` / `alert(`/`confirm(`/`prompt(` with English
+     text and no `data-immersion-key` nearby to find candidates.
+  2. Helper Notebook vocab-list word info (English word / resolved target
+     word / furigana) was inheriting style.css's old dark-theme color
+     (`#C0BFB2`, meant for light-on-dark) — read as washed-out gray on the
+     new light card. Recolored to `.corrected-word`'s red (`#B3261E`) so a
+     word here and its match in the entry text read as the same thing.
+     Add to Vocab/+Note/Delete deliberately left alone.
+  3. "Reference while you write" panel (`#entry-reading-panel`/
+     `#entry-tab-strip`/`#entry-tab-content`) was still the legacy dark tab
+     strip (`#221712`) + maroon content box (`#5F0D0E`) — recolored to the
+     same paper/ink look as the entry's own text box
+     (`.writing-view-text-box`), heading in `var(--red)`. Same ids are used
+     by `speaking-entry.html`'s "Read while you speak" panel, so that page
+     picked up the same fix for free without being touched directly.
 
 Backlog: a growing stack of local commits not yet pushed (`git log
 --oneline` vs `git log origin/main..HEAD` if a remote is configured) — always
 remind Mei to `git push` from her own Terminal, then check the Render deploy.
-As of this session: 6 local commits ahead of `origin/main`.
+As of this session: 8 local commits ahead of `origin/main`.
