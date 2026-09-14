@@ -246,6 +246,19 @@ As of the most recent session, done and committed:
      by `speaking-entry.html`'s "Read while you speak" panel, so that page
      picked up the same fix for free without being touched directly.
 
+- **"How to use" help modals** (`css/idikai-refresh.css`, `js/howto.js`
+  (new), `js/immersion.js`, `personal-hub.html`, `writing.html`,
+  `grammar.html`, `vocab.html`, `reading.html`, `f462000`) — a small red
+  pill button (`.howto-btn`) next to each of these five pages' `<h1>`,
+  labelled "How to use". Clicking it opens a centered, in-front-of-page
+  modal (`.howto-overlay` / `.howto-modal` — beige card, thick red
+  border, black text; no navigation) with Mei's own explanation of that
+  section. `js/howto.js` is a small generic controller (matches any
+  `data-howto-trigger="<overlay-id>"` button to its overlay, closes on
+  ×/backdrop/Escape) — reuse it for any future page that wants the same
+  pattern rather than writing new JS. All button/title/body text has
+  `data-immersion-key`s with real es/ja/fr translations already added.
+
 Backlog: a growing stack of local commits not yet pushed (`git log
 --oneline` vs `git log origin/main..HEAD` if a remote is configured) — always
 remind Mei to `git push` from her own Terminal, then check the Render deploy.
