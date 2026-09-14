@@ -76,13 +76,45 @@ rule.** Also watch for the same pattern with `position`/`top`/`left`/
 `.app-topbar` rule never reset the old `.topbar-hamburger` etc.'s leftover
 `position: absolute` corner-pinning.
 
-## Mockup-integration workflow (established pattern)
+## Restyling pages going forward: direct, no new export (decided this session)
 
-When Mei says a new Claude-Design export is ready:
-1. Find and unzip the `*.zip` (check repo root and `Downloads/` — she
-   sometimes drops it directly in `Lang_Learning_Web/`). Read any
-   `README*.txt` inside — recent exports have included one explaining what
-   each mockup file corresponds to.
+Mei decided explicitly (to save Claude Design credits + tokens) that **new
+mockup exports are no longer the default** for remaining un-restyled pages.
+idikai-refresh.css now covers the vast majority of layout/component needs
+already (cards, pills, chips, grids, buttons, the test-mode focus/mark-card
+system, dashed cards, etc.) — `writing.html`'s full rebuild (see below)
+needed only 3 small new CSS additions on top of entirely-existing
+primitives, which is the proof this works. **Default going forward: restyle
+a page directly by applying existing idikai-refresh.css classes to its old
+markup, without waiting for a new Claude Design export.** Only fall back to
+asking Mei for a fresh export if a page genuinely needs a layout/component
+idikai-refresh.css has nothing close to yet. When in doubt about a specific
+page's intended look, ask rather than invent.
+
+## Mockup-integration workflow (for when Mei DOES send a new export)
+
+Two export formats have shown up so far — check which one you've got before
+doing anything else:
+
+- **Flat mockup.css zips** (the original format — `mockups/*.html` +
+  `css/mockup.css`, readable static markup, no JS). Workflow below.
+- **Claude Design canvas "Bundled Page" single-file exports** (e.g.
+  `newwriting.html`) — a self-extracting `<div id="dc-root">…data-dc-tpl…`
+  page with everything (fonts, assets) packed inline; the raw file is NOT
+  readable source, it's a JS unpacker. **You must render it to see it**:
+  Playwright/Chromium is preinstalled in the cloud sandbox
+  (`/opt/pw-browsers/chromium-*/chrome-linux/chrome`) — `page.goto('file://…')`,
+  wait for `#__bundler_loading` to detach, then `page.content()` (for markup/
+  inline-style values) and a full-page screenshot (for the actual visual
+  reference — more reliable than parsing the unpacked DOM, since it's all
+  inline styles with generated `data-dc-tpl` ids, no semantic classes to
+  read off). These land in `Downloads/` (unzipped exports also sometimes
+  land there, not just the repo root) — check both locations when Mei says
+  one's ready and you don't see it in the repo root.
+
+Once you can see the mockup (either format):
+1. Find/unzip or render it as above. Read any `README*.txt` inside a zip —
+   recent exports have included one explaining what each file corresponds to.
 2. Port any genuinely new CSS classes from the mockup's own `css/*.css` into
    `idikai-refresh.css` (check for name collisions with existing classes
    first — grep before adding). Apply the button-background fix proactively
@@ -155,28 +187,32 @@ this file and `git log` are the project's shared memory across sessions.
 
 ## Current state / in-progress work
 
-As of the most recent session: mid-rebuild of `japanese-sentence-test.html` +
-`js/japanese-sentence-test-app.js` to match the new test-mockup screens
-(sentence-test-setup/-loading/-answering/-marking.html). The **conjugation
-test** (`japanese-conjugation-test.html`) rebuild is done and committed
-(`3aaefc9`). The **sentence test** is larger (~1450 lines of JS) and was
-paused mid-implementation — plan on record: restyle setup/loading fully;
-convert the pre-submit answering phase from "all N cards on one page" to
-one-at-a-time (reuse the conjugation-test's screen-navigation pattern, but
-keep the *same* per-card DOM built once via `renderQuestionCards`/
-`buildQuestionCard`, just toggling `hidden` per card, rather than
-re-rendering from scratch — the sentence cards carry stateful DOM
-(flagged-word datasets, drag-select handlers) that's safer left alone);
-restyle the post-submit marked screen into `.score-panel`/`.mark-card`
-layout reusing the *same* element refs (`userAnswerEl`/`correctAnswerEl`/
-`tickBtn`/`crossBtn`) rather than a parallel renderer; leave the floating
-`#lookup-panel`/`#mistake-panel`/`#vocab-drawer` as floating panels
-(restyled to the mockup's dark `.lookup-strip`/`.theme-chip` look) rather
-than moving them inline per-card, since that's a much higher-risk rework of
-a hardened feature for a visual-only mockup detail the mockup's own README
-says isn't fully specified. Not yet extended to Spanish/French — Mei asked
-specifically for "the japanese grammar tests."
+As of the most recent session, done and committed:
+- **Conjugation test** (`japanese-conjugation-test.html`, `3aaefc9`).
+- **Sentence test** (`japanese-sentence-test.html` + `js/japanese-sentence-
+  test-app.js`, `a22cc17`) — matches the test-mockup screens (sentence-
+  test-setup/-loading/-answering/-marking.html): pill/source-row setup;
+  one-sentence-at-a-time answering reusing the *same* per-card DOM (just
+  toggling `hidden`) rather than re-rendering, so the flagged-word/drag-
+  select state is never at risk; marking restyled into `.score-panel`/
+  `.mark-card` reusing the same `userAnswerEl`/`correctAnswerEl`/`tickBtn`/
+  `crossBtn` refs; `#lookup-panel`/`#mistake-panel`/`#vocab-drawer` kept as
+  floating panels (now `position:fixed` centered near the bottom, restyled
+  to `.lookup-strip`/`.theme-chip`) rather than moved inline. Neither test
+  has been extended to Spanish/French yet — Mei asked specifically for "the
+  japanese grammar tests," ask before doing the other two languages.
+- **Writing entry list** (`writing.html` + the list-page half of
+  `js/writing-app.js`, `3583fd1`) — matches a Claude Design canvas export
+  (`newwriting.html`, the new single-file "Bundled Page" format, see above).
+  This page is shared across all three languages (no per-language triplet),
+  so one rebuild covers Spanish/Japanese/French together. New per-card
+  info (date pill, snippet, bracketed-word count, CHECKED/DRAFT status) is
+  derived from existing entry fields, not new storage — see that function's
+  comments for exactly how "CHECKED" is defined. **`writing-entry.html`
+  (the actual editor) has no mockup and is untouched** — next candidate for
+  the direct-restyle-no-export approach above, if/when Mei wants it done.
 
 Backlog: a growing stack of local commits not yet pushed (`git log
 --oneline` vs `git log origin/main..HEAD` if a remote is configured) — always
 remind Mei to `git push` from her own Terminal, then check the Render deploy.
+As of this session: 6 local commits ahead of `origin/main`.
