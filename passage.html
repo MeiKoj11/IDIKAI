@@ -80,9 +80,10 @@
       </div>
     </div>
   </div>
-  <header class="app-header">
-    <a href="reading.html" class="back-link" data-immersion-key="backToPassages">&larr; Back to Passages</a>
+  <header class="app-header" id="passage-header">
+    <a href="reading.html" class="back-link" id="passage-back-link" data-immersion-key="backToPassages">&larr; Back to Passages</a>
     <h1 id="passage-title-heading">Passage</h1>
+    <span id="passage-lang-badge" class="pill-tag"></span>
     <button type="button" id="toggle-vocab-notes-panel" class="secondary header-right-btn"><span data-immersion-key="vocabNotesPrefix">Vocab notes (</span><span id="vocab-note-count">0</span>)</button>
     <button type="button" id="toggle-grammar-panel" class="secondary header-right-btn"><span data-immersion-key="grammarNotesPrefix">Grammar notes (</span><span id="grammar-note-count">0</span>)</button>
   </header>
@@ -213,6 +214,7 @@
     <select id="add-to-theme-select"></select>
     <button type="button" id="add-to-theme-new-theme-btn" class="secondary" data-immersion-key="newThemeButtonPlus">+ New theme</button>
     <button type="button" id="add-looked-up-word" hidden data-immersion-key="addToThemeButton">Add to theme</button>
+    <button type="button" id="save-word-as-grammar-note" class="secondary" hidden data-immersion-key="saveAsGrammarNoteButton">Save as grammar note</button>
   </div>
   <div id="kanji-panel" class="lookup-panel" hidden>
     <strong id="kanji-char"></strong>

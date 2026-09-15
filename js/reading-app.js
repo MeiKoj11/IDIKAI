@@ -53,6 +53,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (backLink) backLink.href = `language-home.html?lang=${langParam}`;
     const header = document.getElementById("reading-header");
     if (header) header.classList.add(`lang-${langParam}`);
+    // The "Saved passages" button must carry the current language through,
+    // otherwise reading-saved.js has no ?lang= to filter on and shows
+    // every language's passages lumped together.
+    const savedPassagesLink = document.getElementById("saved-passages-link");
+    if (savedPassagesLink) savedPassagesLink.href = `reading-saved.html?lang=${langParam}`;
     const textLabel = document.getElementById("passage-text-label");
     if (textLabel) textLabel.textContent = `Text (${READING_LANGUAGE_NAMES[langParam]})`;
     const intro = document.getElementById("passages-intro");
@@ -104,6 +109,17 @@ document.addEventListener("DOMContentLoaded", () => {
     currentPassage = Storage.getPassage(passageId);
     if (currentPassage) {
       document.getElementById("passage-title-heading").textContent = currentPassage.title;
+      // Passage reader had no language indicator at all — just the
+      // passage's own title — so it was impossible to tell which
+      // language you were reading in at a glance. A small badge next
+      // to the title fixes that, and the back link now carries the
+      // language through too so going back doesn't lose it.
+      const langBadge = document.getElementById("passage-lang-badge");
+      if (langBadge) langBadge.textContent = (READING_LANGUAGE_NAMES[currentPassage.language] || currentPassage.language).toUpperCase();
+      const passageBackLink = document.getElementById("passage-back-link");
+      if (passageBackLink) passageBackLink.href = `reading.html?lang=${currentPassage.language}`;
+      const passageHeader = document.getElementById("passage-header");
+      if (passageHeader) passageHeader.classList.add(`lang-${currentPassage.language}`);
       const readerHint = document.getElementById("reader-hint");
       if (readerHint) {
         readerHint.textContent =
@@ -135,6 +151,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const addBtn = document.getElementById("add-looked-up-word");
   if (addBtn) addBtn.addEventListener("click", handleAddLookedUpWord);
+
+  const saveWordGrammarBtn = document.getElementById("save-word-as-grammar-note");
+  if (saveWordGrammarBtn) saveWordGrammarBtn.addEventListener("click", handleSaveWordAsGrammarNoteClick);
 
   const lookupExamplesBtn = document.getElementById("lookup-generate-examples-btn");
   if (lookupExamplesBtn) lookupExamplesBtn.addEventListener("click", handleGenerateLookupExamplesClick);
@@ -867,6 +886,8 @@ async function handleWordClick(span, word) {
   lookupResultEl.dataset.immersionKey = "lookingUpStatus";
   document.getElementById("lookup-grammar").textContent = "";
   document.getElementById("add-looked-up-word").hidden = true;
+  const saveWordGrammarResetBtn = document.getElementById("save-word-as-grammar-note");
+  if (saveWordGrammarResetBtn) saveWordGrammarResetBtn.hidden = true;
 
   // A fresh lookup invalidates any examples generated for whatever word
   // was shown here before.
@@ -906,6 +927,17 @@ async function handleWordClick(span, word) {
   document.getElementById("add-looked-up-word").dataset.english = result.translation;
   document.getElementById("add-looked-up-word").hidden = false;
   if (examplesBtn) examplesBtn.hidden = false;
+
+  // A single clicked word can just as easily be worth a grammar note
+  // (an inflected verb form, an odd usage) as a vocab entry — offer
+  // both here too, same as the drag-select phrase flow already does,
+  // instead of only ever offering "Add to theme".
+  const saveWordGrammarBtn = document.getElementById("save-word-as-grammar-note");
+  if (saveWordGrammarBtn) {
+    saveWordGrammarBtn.dataset.word = word;
+    saveWordGrammarBtn.dataset.translation = result.translation;
+    saveWordGrammarBtn.hidden = false;
+  }
 
   if (result.conjugationInfo) {
     document.getElementById("lookup-grammar").textContent = formatConjugationInfo(result.conjugationInfo);
@@ -1282,6 +1314,20 @@ async function showGrammarPanel(phrase) {
     }
   }
   saveBtn.hidden = false;
+}
+
+function handleSaveWordAsGrammarNoteClick() {
+  const btn = document.getElementById("save-word-as-grammar-note");
+  openGrammarSidePanel("grammar");
+  showSideNoteForm({
+    sentence: btn.dataset.word || "",
+    translation: btn.dataset.translation || "",
+    structure: "",
+    explanation: "",
+  });
+
+  const bottomPanel = document.getElementById("lookup-panel");
+  if (bottomPanel) bottomPanel.hidden = true;
 }
 
 function handleSaveGrammarPhraseAsVocabClick() {
