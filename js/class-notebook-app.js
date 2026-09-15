@@ -57,6 +57,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const rightTextarea = document.getElementById("notebook-right-textarea");
   leftTextarea.addEventListener("input", () => scheduleClassNotebookSave("left"));
   rightTextarea.addEventListener("input", () => scheduleClassNotebookSave("right"));
+  leftTextarea.addEventListener("focus", () => { lastFocusedNotebookPage = "left"; });
+  rightTextarea.addEventListener("focus", () => { lastFocusedNotebookPage = "right"; });
+
+  initNotebookToolbar();
 
   const prevBtn = document.getElementById("notebook-prev-btn");
   const nextBtn = document.getElementById("notebook-next-btn");
@@ -95,8 +99,8 @@ function renderClassNotebookSpread(spreadIndex) {
 
   const leftTextarea = document.getElementById("notebook-left-textarea");
   const rightTextarea = document.getElementById("notebook-right-textarea");
-  leftTextarea.value = left.content || "";
-  rightTextarea.value = right.content || "";
+  leftTextarea.innerHTML = left.content || "";
+  rightTextarea.innerHTML = right.content || "";
 
   const leftNumber = document.getElementById("notebook-left-page-number");
   const rightNumber = document.getElementById("notebook-right-page-number");
@@ -115,7 +119,7 @@ function scheduleClassNotebookSave(which) {
     if (leftSaveTimeout) clearTimeout(leftSaveTimeout);
     leftSaveTimeout = setTimeout(() => {
       const textarea = document.getElementById("notebook-left-textarea");
-      Storage.updateClassNotebookPage(leftPageId, textarea.value);
+      Storage.updateClassNotebookPage(leftPageId, textarea.innerHTML);
       leftSaveTimeout = null;
       setClassNotebookSaveStatus("Saved");
     }, CLASS_NOTEBOOK_SAVE_DELAY_MS);
@@ -123,7 +127,7 @@ function scheduleClassNotebookSave(which) {
     if (rightSaveTimeout) clearTimeout(rightSaveTimeout);
     rightSaveTimeout = setTimeout(() => {
       const textarea = document.getElementById("notebook-right-textarea");
-      Storage.updateClassNotebookPage(rightPageId, textarea.value);
+      Storage.updateClassNotebookPage(rightPageId, textarea.innerHTML);
       rightSaveTimeout = null;
       setClassNotebookSaveStatus("Saved");
     }, CLASS_NOTEBOOK_SAVE_DELAY_MS);
@@ -139,12 +143,12 @@ function flushClassNotebookSaves() {
   if (leftSaveTimeout) {
     clearTimeout(leftSaveTimeout);
     leftSaveTimeout = null;
-    if (leftTextarea && leftPageId) Storage.updateClassNotebookPage(leftPageId, leftTextarea.value);
+    if (leftTextarea && leftPageId) Storage.updateClassNotebookPage(leftPageId, leftTextarea.innerHTML);
   }
   if (rightSaveTimeout) {
     clearTimeout(rightSaveTimeout);
     rightSaveTimeout = null;
-    if (rightTextarea && rightPageId) Storage.updateClassNotebookPage(rightPageId, rightTextarea.value);
+    if (rightTextarea && rightPageId) Storage.updateClassNotebookPage(rightPageId, rightTextarea.innerHTML);
   }
 }
 
@@ -169,4 +173,58 @@ function goToPrevSpread() {
 function goToNextSpread() {
   flushClassNotebookSaves();
   renderClassNotebookSpread(currentSpreadIndex + 1);
+}
+
+let lastFocusedNotebookPage = "left";
+
+function getNotebookThemeId(getThemes, addTheme) {
+  const themes = getThemes(classNotebookLang);
+  const existing = themes.find((t) => (t.name || "").trim().toLowerCase() === "from class notebook");
+  if (existing) return existing.id;
+  return addTheme("From Class Notebook", classNotebookLang).id;
+}
+
+function initNotebookToolbar() {
+  const boldBtn = document.getElementById("notebook-bold-btn");
+  const underlineBtn = document.getElementById("notebook-underline-btn");
+  const highlightBtn = document.getElementById("notebook-highlight-btn");
+  const newVocabBtn = document.getElementById("notebook-new-vocab-btn");
+  const newGrammarBtn = document.getElementById("notebook-new-grammar-btn");
+
+  // mousedown + preventDefault keeps the caret/selection inside the
+  // contenteditable page intact, so execCommand still has something
+  // to act on once the click actually fires.
+  [boldBtn, underlineBtn, highlightBtn].forEach((btn) => {
+    if (btn) btn.addEventListener("mousedown", (e) => e.preventDefault());
+  });
+
+  if (boldBtn) boldBtn.addEventListener("click", () => document.execCommand("bold"));
+  if (underlineBtn) underlineBtn.addEventListener("click", () => document.execCommand("underline"));
+  if (highlightBtn) highlightBtn.addEventListener("click", () => document.execCommand("hiliteColor", false, "#ffe066"));
+
+  if (newVocabBtn) {
+    newVocabBtn.addEventListener("click", () => {
+      const english = window.prompt("English word / meaning:");
+      if (!english) return;
+      const targetLang = window.prompt("Word in the target language:");
+      if (!targetLang) return;
+      const themeId = getNotebookThemeId(
+        () => Storage.getThemes().filter((t) => (t.language || "es") === classNotebookLang),
+        Storage.addTheme
+      );
+      Storage.addWordIfNotDuplicate(themeId, { english, targetLang, furigana: "", notes: "" });
+      window.alert("Saved to Vocab Bank — From Class Notebook.");
+    });
+  }
+
+  if (newGrammarBtn) {
+    newGrammarBtn.addEventListener("click", () => {
+      const header = window.prompt("Grammar point (short title):");
+      if (!header) return;
+      const explanation = window.prompt("Explanation:") || "";
+      const themeId = getNotebookThemeId(Storage.getGrammarThemes, Storage.addGrammarTheme);
+      Storage.addGrammarNote({ themeId, header, explanation, examples: [], variants: [], tags: [] });
+      window.alert("Saved to Grammar — From Class Notebook.");
+    });
+  }
 }

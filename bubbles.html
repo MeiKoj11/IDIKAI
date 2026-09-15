@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Class Notebook</title>
+  <title>Your Bubbles</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fahkwang:wght@400;500;600;700&family=Nunito:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/idikai-refresh.css" />
 </head>
-<body class="class-notebook-body">
+<body>
   <div id="app-topbar" class="app-topbar">
     <button type="button" id="topbar-hamburger" class="topbar-hamburger" aria-label="Menu" aria-haspopup="true">
       <span></span><span></span><span></span>
@@ -77,53 +77,29 @@
       </div>
     </div>
   </div>
-  <header class="app-header class-notebook-header" id="class-notebook-header">
-    <a href="personal-hub.html" class="back-link" id="class-notebook-back-link" data-immersion-key="backToMainHub">&larr; Back to Main Hub</a>
-    <h1 id="class-notebook-heading" data-immersion-key="classNotebookHeading">Class Notebook</h1>
+  <header class="app-header" id="bubbles-header">
+    <a href="personal-hub.html" class="back-link" id="bubbles-back-link" data-immersion-key="backToMainHub">&larr; Back to Main Hub</a>
+    <h1 id="bubbles-heading" data-immersion-key="bubblesHeading">Your bubbles</h1>
   </header>
-  <main class="class-notebook-main">
-    <div class="notebook-toolbar" id="notebook-toolbar">
-      <button type="button" class="notebook-toolbar-btn" id="notebook-bold-btn" data-immersion-key="notebookBoldButton" title="Bold"><b>B</b></button>
-      <button type="button" class="notebook-toolbar-btn" id="notebook-underline-btn" data-immersion-key="notebookUnderlineButton" title="Underline"><u>U</u></button>
-      <button type="button" class="notebook-toolbar-btn" id="notebook-highlight-btn" data-immersion-key="notebookHighlightButton" title="Highlight">H</button>
-      <span class="notebook-toolbar-spacer"></span>
-      <button type="button" class="notebook-toolbar-action" id="notebook-new-vocab-btn" data-immersion-key="notebookNewVocabButton">New vocab</button>
-      <button type="button" class="notebook-toolbar-action" id="notebook-new-grammar-btn" data-immersion-key="notebookNewGrammarButton">New grammar</button>
+  <main>
+    <div class="pagehead" id="bubbles-pagehead">
+      <span class="eyebrow" id="bubbles-eyebrow"></span>
     </div>
-    <div class="notebook-book" id="notebook-book">
-      <div class="notebook-page notebook-page-left" id="notebook-page-left">
-        <div
-          class="notebook-page-textarea notebook-page-editable"
-          id="notebook-left-textarea"
-          contenteditable="true"
-          data-placeholder="Write your notes here…"
-        ></div>
-        <div class="notebook-page-footer notebook-page-footer-left">
-          <button type="button" id="notebook-prev-btn" class="notebook-nav-btn" data-immersion-key="notebookPrevPage" hidden>&larr; Previous page</button>
-          <span class="notebook-page-number" id="notebook-left-page-number"></span>
-        </div>
-      </div>
-      <div class="notebook-spine" aria-hidden="true"></div>
-      <div class="notebook-page notebook-page-right" id="notebook-page-right">
-        <div
-          class="notebook-page-textarea notebook-page-editable"
-          id="notebook-right-textarea"
-          contenteditable="true"
-          data-placeholder="Write your notes here…"
-        ></div>
-        <div class="notebook-page-footer notebook-page-footer-right">
-          <span class="notebook-page-number" id="notebook-right-page-number"></span>
-          <button type="button" id="notebook-next-btn" class="notebook-nav-btn" data-immersion-key="notebookNextPage">Next page &rarr;</button>
-        </div>
-      </div>
+
+    <div class="bubble-toolbar">
+      <button type="button" id="new-bubble-btn" class="btn" data-immersion-key="newBubbleButton">+ New bubble</button>
+      <span class="bubble-count-text" id="bubble-count-text"></span>
     </div>
-    <p class="notebook-save-status" id="notebook-save-status" hidden></p>
+
+    <div class="bubble-canvas" id="bubble-canvas"></div>
   </main>
   <script src="js/topbar.js"></script>
   <script src="js/immersion.js"></script>
+  <script src="js/howto.js"></script>
   <script src="js/app-tabs.js"></script>
   <script src="js/storage.js"></script>
   <script src="js/hub-tasks.js"></script>
-  <script src="js/class-notebook-app.js"></script>
+  <script src="js/translate.js"></script>
+  <script src="js/bubbles.js"></script>
 </body>
 </html>

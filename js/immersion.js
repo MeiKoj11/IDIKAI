@@ -533,6 +533,13 @@ const IMMERSION_STRINGS = {
   // ---- Main Hub dynamic UI ----
   noBubblesYetText: { es: "Todavía no hay burbujas — añade una arriba.", ja: "まだバブルがありません — 上で追加してください。", fr: "Pas encore de bulles — ajoutes-en une ci-dessus." },
 
+  // ---- Main Hub tiles (new 3-tile landing page) ----
+  mainHubTitle: { es: "Todo lo que no es un simulacro", ja: "これは訓練ではない、すべて", fr: "Tout ce qui n'est pas un exercice" },
+  makeYourOwnBubbleHeading: { es: "Crea tu propia burbuja", ja: "自分のバブルを作る", fr: "Crée ta propre bulle" },
+  mainHubNotebookDesc: { es: "Notas de clase, escritas a mano sobre la marcha.", ja: "授業のメモを、その場で手書きで。", fr: "Notes de cours, écrites à la main au fur et à mesure." },
+  mainHubStorageDesc: { es: "Documentos y archivos guardados de clase.", ja: "授業で配られた資料やファイル。", fr: "Documents et fichiers conservés du cours." },
+  mainHubBubbleDesc: { es: "Notas sueltas, fijadas donde quieras.", ja: "自由なメモを、好きな場所に。", fr: "Notes libres, épinglées où tu veux." },
+
   // ---- "How to use" help modal (Personal Hub / Writing / Grammar / Vocab / Reading) ----
   howtoButton: { es: "Cómo usarlo", ja: "使い方", fr: "Comment l'utiliser" },
   howtoModalTitle: { es: "Cómo usar esta página", ja: "このページの使い方", fr: "Comment utiliser cette page" },
@@ -553,6 +560,29 @@ const IMMERSION_STRINGS = {
   howtoBodyReading1: { es: "La forma más natural de aprender un idioma — captando expresiones cotidianas, matices y jerga — es leyendo noticias, publicaciones de blogs y otros contenidos en tu idioma meta.", ja: "言語を自然に学ぶ一番の方法は、学習中の言語でニュースやブログ記事、その他のメディアを読むことです — 日常的な表現やニュアンス、スラングが自然に身につきます。", fr: "La façon la plus naturelle d'apprendre une langue — en captant des expressions courantes, des nuances et de l'argot — est de lire des actualités, des articles de blog et d'autres contenus dans ta langue cible." },
   howtoBodyReading2: { es: "Copia y pega un texto, o sube una captura de pantalla, y léelo con normalidad. Cuando aparezca una palabra o frase nueva, simplemente selecciónala para ver su significado y guardarla directamente en tu banco de vocabulario para practicarla más tarde.", ja: "テキストをコピー＆ペーストするか、スクリーンショットをアップロードして、普通に読み進めてください。新しい単語やフレーズが出てきたら、それをハイライトするだけで意味が表示され、そのまま単語バンクに保存して後でテストできます。", fr: "Copie-colle un texte, ou téléverse une capture d'écran, puis lis normalement. Quand un mot ou une expression nouvelle apparaît, il suffit de le surligner pour voir sa signification et l'enregistrer directement dans ta banque de vocabulaire pour t'entraîner plus tard." },
   howtoBodyReading3: { es: "Ojo — si una palabra o frase que seleccionas ya está guardada en tu banco de vocabulario, se marcará para que le des una vuelta extra. ¡Esta ya te la sabes!", ja: "注意 — ハイライトした単語やフレーズがすでに単語バンクに保存されている場合は、もう一度よく考えるようにフラグが表示されます。これは知っているはずですよ！", fr: "Attention — si un mot ou une expression que tu surlignes est déjà enregistré dans ta banque de vocabulaire, il sera signalé pour que tu y réfléchisses un peu plus. Celui-là, tu le connais déjà !" },
+
+  // ---- Storage Locker (dedicated page) ----
+  addDocumentButton: { es: "+ Añadir documento", ja: "+ 資料を追加", fr: "+ Ajouter un document" },
+  lockerTitlePlaceholder: { es: "Título", ja: "タイトル", fr: "Titre" },
+  lockerUrlPlaceholder: { es: "https://…", ja: "https://…", fr: "https://…" },
+  lockerNotePlaceholder: { es: "Nota (opcional)", ja: "メモ（任意）", fr: "Note (optionnel)" },
+  lockerSave: { es: "Guardar", ja: "保存", fr: "Enregistrer" },
+  lockerCancel: { es: "Cancelar", ja: "キャンセル", fr: "Annuler" },
+  lockerLinksHeading: { es: "Enlaces", ja: "リンク", fr: "Liens" },
+  lockerDocumentsHeading: { es: "Documentos", ja: "資料", fr: "Documents" },
+  lockerSearchLinks: { es: "Buscar enlaces…", ja: "リンクを検索…", fr: "Rechercher des liens…" },
+  lockerSearchDocuments: { es: "Buscar documentos…", ja: "資料を検索…", fr: "Rechercher des documents…" },
+
+  // ---- Bubbles (dedicated page) ----
+  bubblesHeading: { es: "Tus burbujas", ja: "あなたのバブル", fr: "Tes bulles" },
+  newBubbleButton: { es: "+ Nueva burbuja", ja: "+ 新しいバブル", fr: "+ Nouvelle bulle" },
+
+  // ---- Class Notebook toolbar ----
+  notebookBoldButton: { es: "Negrita", ja: "太字", fr: "Gras" },
+  notebookUnderlineButton: { es: "Subrayado", ja: "下線", fr: "Souligné" },
+  notebookHighlightButton: { es: "Resaltar", ja: "ハイライト", fr: "Surligner" },
+  notebookNewVocabButton: { es: "+ Nuevo vocabulario", ja: "+ 新しい単語", fr: "+ Nouveau vocabulaire" },
+  notebookNewGrammarButton: { es: "+ Nueva gramática", ja: "+ 新しい文法", fr: "+ Nouvelle grammaire" },
 };
 
 function isImmersionEnabled() {

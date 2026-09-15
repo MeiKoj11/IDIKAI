@@ -99,137 +99,34 @@
     </div>
   </div>
   <main>
-    <!-- Class Notebook launcher: a clickable notebook icon that opens
-         the full-page book view (class-notebook.html) — a separate
-         page, not a panel here, since it takes over the whole screen
-         while open. See class-notebook.html for the notebook itself. -->
-    <section class="panel class-notebook-launcher-panel" id="class-notebook-launcher-panel">
-      <h2 data-immersion-key="classNotebookLauncherHeading">Class Notebook</h2>
-      <p class="hint" data-immersion-key="classNotebookLauncherIntro">
-        Open a notebook to take notes during a lesson — write freely, page by page, and sort anything useful into
-        Grammar or Vocab later.
-      </p>
-      <a href="class-notebook.html" id="class-notebook-launcher-link" class="class-notebook-launcher-link">
-        <span class="class-notebook-launcher-icon" aria-hidden="true">📔</span>
-        <span data-immersion-key="openClassNotebookButton">Open Class Notebook</span>
+    <div class="pagehead" id="main-hub-pagehead">
+      <span class="eyebrow" id="main-hub-eyebrow"></span>
+      <h1 class="page-title" data-immersion-key="mainHubTitle">Everything that isn't a drill</h1>
+    </div>
+
+    <div class="grid-tiles" id="main-hub-tiles" style="margin-top:22px">
+      <a href="class-notebook.html" id="main-hub-notebook-tile" class="card card-lift card-border-red main-hub-tile">
+        <span class="tile-icon-circle" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="1.5"></rect><line x1="8" y1="8" x2="16" y2="8"></line><line x1="8" y1="12" x2="16" y2="12"></line><line x1="8" y1="16" x2="13" y2="16"></line></svg>
+        </span>
+        <h2 class="card-title" data-immersion-key="classNotebookLauncherHeading">Class Notebook</h2>
+        <p class="card-text" data-immersion-key="mainHubNotebookDesc">Lesson notes, written by hand as you go.</p>
       </a>
-    </section>
-
-    <!-- Storage Locker: saved title+link entries — a PDF hosted
-         elsewhere, a Word doc, any page worth keeping handy. Click a
-         title to open its link in a new tab. Phase 1 is links only, no
-         file upload yet. -->
-    <section class="panel" id="storage-locker-panel">
-      <h2 data-immersion-key="storageLockerHeading">Storage Locker</h2>
-      <p class="hint" data-immersion-key="storageLockerIntro">
-        Save a link to a PDF, Word doc, or anything else worth keeping handy — give it a title, paste the link, and
-        it opens in a new tab whenever you need it.
-      </p>
-      <div class="storage-locker-actions">
-        <button type="button" id="add-storage-locker-btn" data-immersion-key="addLinkButton">+ Add link</button>
-      </div>
-      <div id="storage-locker-form-wrap" hidden>
-        <form id="storage-locker-form" class="stacked-form">
-          <label>
-            <span data-immersion-key="titleLabel">Title</span>
-            <input type="text" id="storage-locker-title" placeholder="e.g. Chapter 4 homework" required data-immersion-key="storageLockerTitlePlaceholder" />
-          </label>
-          <label>
-            <span data-immersion-key="linkLabel">Link</span>
-            <input type="text" id="storage-locker-url" placeholder="https://..." required data-immersion-key="storageLockerUrlPlaceholder" />
-          </label>
-          <div class="detection-actions">
-            <button type="submit" data-immersion-key="btnSave">Save</button>
-            <button type="button" id="cancel-storage-locker" class="secondary" data-immersion-key="btnCancel">Cancel</button>
-          </div>
-        </form>
-      </div>
-
-      <!-- Drag-and-drop / file-picker upload — real files, stored in
-           Cloudflare R2, kept completely separate from the links above
-           (different item "kind", same list). -->
-      <div id="storage-locker-dropzone" class="storage-locker-dropzone" tabindex="0" role="button" aria-label="Upload a PDF or Word document">
-        <p class="storage-locker-dropzone-text" data-immersion-key="storageLockerDropzoneText">
-          Drag a PDF or Word doc here, or click to choose a file
-        </p>
-        <input type="file" id="storage-locker-file-input" accept=".pdf,.doc,.docx" hidden />
-      </div>
-      <p id="storage-locker-upload-status" class="storage-locker-upload-status" hidden></p>
-
-      <ul id="storage-locker-list" class="word-list storage-locker-list"></ul>
-    </section>
-
-    <!-- Helper Notebook: two quick reminder lists (Late / Homework) plus
-         a standing pair of notes fields — distinct from the freeform
-         bubbles below, which you create yourself one at a time. -->
-    <section class="panel" id="helper-notebook-hub-panel">
-      <h2 data-immersion-key="helperNotebookHeading">Helper Notebook</h2>
-
-      <div class="helper-hub-reminder-row">
-        <span class="helper-hub-reminder-label" data-immersion-key="hubLateLabel">Late</span>
-        <div class="helper-hub-reminder-actions">
-          <button type="button" class="secondary helper-hub-reminder-add-btn" data-category="late" aria-label="Add a late item">+</button>
-          <button type="button" class="secondary helper-hub-reminder-view-btn" data-category="late" aria-label="Show late items">☰</button>
-        </div>
-      </div>
-      <form class="helper-hub-reminder-add-form" id="helper-hub-late-add-form" data-category="late" hidden>
-        <input type="text" placeholder="e.g. Chapter 4 reading" autocomplete="off" data-immersion-key="hubLatePlaceholder" />
-        <button type="submit" data-immersion-key="btnAdd">Add</button>
-        <button type="button" class="secondary helper-hub-reminder-add-cancel" data-immersion-key="btnCancel">Cancel</button>
-      </form>
-      <ul class="helper-hub-reminder-list" id="helper-hub-late-list" hidden></ul>
-
-      <div class="helper-hub-reminder-row">
-        <span class="helper-hub-reminder-label" data-immersion-key="hubHomeworkLabel">Homework</span>
-        <div class="helper-hub-reminder-actions">
-          <button type="button" class="secondary helper-hub-reminder-add-btn" data-category="homework" aria-label="Add a homework item">+</button>
-          <button type="button" class="secondary helper-hub-reminder-view-btn" data-category="homework" aria-label="Show homework items">☰</button>
-        </div>
-      </div>
-      <form class="helper-hub-reminder-add-form" id="helper-hub-homework-add-form" data-category="homework" hidden>
-        <input type="text" placeholder="e.g. Worksheet 3" autocomplete="off" data-immersion-key="hubHomeworkPlaceholder" />
-        <button type="submit" data-immersion-key="btnAdd">Add</button>
-        <button type="button" class="secondary helper-hub-reminder-add-cancel" data-immersion-key="btnCancel">Cancel</button>
-      </form>
-      <ul class="helper-hub-reminder-list" id="helper-hub-homework-list" hidden></ul>
-
-      <div class="helper-hub-notes-group">
-        <label class="helper-hub-note-label">
-          <span data-immersion-key="notesToSelfLabel">Notes to self</span>
-          <textarea id="helper-hub-self-note" rows="4" placeholder="Anything for future you…" data-immersion-key="notesToSelfPlaceholder"></textarea>
-        </label>
-        <label class="helper-hub-note-label">
-          <span data-immersion-key="notesToTeacherLabel">Notes to teacher</span>
-          <textarea id="helper-hub-teacher-note" rows="4" placeholder="Questions or notes for a teacher (once connected)…" data-immersion-key="notesToTeacherPlaceholder"></textarea>
-        </label>
-      </div>
-    </section>
-
-    <section class="panel" id="personal-hub-panel">
-      <h2 data-immersion-key="yourBubblesHeading">Your bubbles</h2>
-      <p class="hint" id="personal-hub-intro" data-immersion-key="personalHubIntro">
-        A free space for anything that doesn't fit anywhere else — a to-do list, a random idea, whatever. Make as
-        many bubbles as you want.
-      </p>
-      <button type="button" id="add-personal-note-btn" data-immersion-key="addBubbleButton">+ Add bubble</button>
-      <div id="personal-note-form-wrap" hidden>
-        <form id="personal-note-form" class="stacked-form">
-          <label>
-            <span data-immersion-key="titleLabel">Title</span>
-            <input type="text" id="personal-note-title" placeholder="e.g. To-do list" required data-immersion-key="personalNoteTitlePlaceholder" />
-          </label>
-          <label>
-            <span data-immersion-key="notesLabel">Notes</span>
-            <textarea id="personal-note-content" rows="6" placeholder="Write anything here..." data-immersion-key="writeAnythingPlaceholder"></textarea>
-          </label>
-          <div class="detection-actions">
-            <button type="submit" data-immersion-key="btnSave">Save</button>
-            <button type="button" id="cancel-personal-note" class="secondary" data-immersion-key="btnCancel">Cancel</button>
-          </div>
-        </form>
-      </div>
-      <ul id="personal-note-list" class="word-list personal-note-list"></ul>
-    </section>
+      <a href="storage-locker.html" id="main-hub-storage-tile" class="card card-lift card-border-red main-hub-tile">
+        <span class="tile-icon-circle" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path><line x1="12" y1="15" x2="12" y2="18"></line></svg>
+        </span>
+        <h2 class="card-title" data-immersion-key="storageLockerHeading">Storage Locker</h2>
+        <p class="card-text" data-immersion-key="mainHubStorageDesc">Handouts and files kept from class.</p>
+      </a>
+      <a href="bubbles.html" id="main-hub-bubbles-tile" class="card card-lift card-border-red main-hub-tile">
+        <span class="tile-icon-circle" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4H6.5A2.5 2.5 0 0 1 4 13.5v-8Z"></path><line x1="12" y1="6.5" x2="12" y2="11.5"></line><line x1="9.5" y1="9" x2="14.5" y2="9"></line></svg>
+        </span>
+        <h2 class="card-title" data-immersion-key="makeYourOwnBubbleHeading">Make your own bubble</h2>
+        <p class="card-text" data-immersion-key="mainHubBubbleDesc">Loose notes, pinned wherever you like.</p>
+      </a>
+    </div>
   </main>
   <script src="js/topbar.js"></script>
   <script src="js/immersion.js"></script>
@@ -238,7 +135,6 @@
   <script src="js/storage.js"></script>
   <script src="js/hub-tasks.js"></script>
   <script src="js/translate.js"></script>
-  <script src="js/helper-notebook-hub.js"></script>
-  <script src="js/personal-hub.js"></script>
+  <script src="js/main-hub.js"></script>
 </body>
 </html>
