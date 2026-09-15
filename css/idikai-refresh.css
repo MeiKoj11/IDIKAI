@@ -896,6 +896,35 @@ body.picker-body { background: var(--paper); }
 .card-title { font-size: 21px; line-height: 1.18; text-wrap: pretty; }
 .card-text { font-size: 13.5px; line-height: 1.5; margin: 6px 0 0; color: rgba(34, 23, 18, 0.78); }
 .card-red .card-text { color: rgba(243, 238, 221, 0.92); }
+/* ---------- Grammar conjugation-note page (Explanation/Examples/Test) --- */
+/* style.css still styles these for the old dark theme (cream text on a
+   translucent-black box); override both background AND text color
+   together here so nothing goes invisible on the light .panel. */
+.conj-note-section {
+  background: var(--paper);
+  border: 1px solid rgba(34, 23, 18, 0.3);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+.conj-note-section:last-of-type { margin-bottom: 0; }
+.conj-note-section > summary {
+  font-family: "Fahkwang", serif;
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--ink);
+}
+.conj-note-section[open] > summary { margin-bottom: 10px; }
+.conj-note-explanation, .grammar-card-explanation { color: var(--ink); }
+.grammar-card-example {
+  background: var(--card);
+  border-left: 3px solid var(--red);
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+.grammar-card-example-target { color: var(--ink); }
+.grammar-card-example-translation { color: rgba(34, 23, 18, 0.68); }
+
 
 .pill-tag {
   display: inline-flex;
@@ -1926,6 +1955,15 @@ body.howto-open { overflow: hidden; }
 .locker-item-note { font-size: 12.5px; color: rgba(34, 23, 18, 0.75); margin-top: 3px; }
 .locker-item-actions { flex: 0 0 auto; display: flex; gap: 12px; padding-top: 3px; }
 .locker-empty { font-size: 13.5px; color: rgba(34, 23, 18, 0.55); padding: 8px 0; }
+.reading-progress-wrap { display: flex; flex-direction: column; gap: 5px; flex: 0 0 150px; }
+.reading-progress-track { height: 6px; border-radius: 4px; background: rgba(34, 23, 18, 0.14); overflow: hidden; }
+.reading-progress-fill { height: 100%; background: var(--red); }
+.reading-progress-label { font-size: 11px; color: rgba(34, 23, 18, 0.65); }
+#passage-list.locker-list > .locker-item { flex-wrap: wrap; }
+@media (max-width: 640px) {
+  .reading-progress-wrap { flex-basis: 100%; order: 3; }
+}
+
 .locker-add-form {
   display: flex;
   flex-direction: column;

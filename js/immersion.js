@@ -588,6 +588,13 @@ const IMMERSION_STRINGS = {
   notebookHighlightButton: { es: "Resaltar", ja: "ハイライト", fr: "Surligner" },
   notebookNewVocabButton: { es: "+ Nuevo vocabulario", ja: "+ 新しい単語", fr: "+ Nouveau vocabulaire" },
   notebookNewGrammarButton: { es: "+ Nueva gramática", ja: "+ 新しい文法", fr: "+ Nouvelle grammaire" },
+  addTextButton: { es: "+ Añadir texto", ja: "＋ テキストを追加", fr: "+ Ajouter un texte" },
+  newestFirstLabel: { es: "Más recientes primero", ja: "新しい順", fr: "Plus récents d'abord" },
+  continueReadingButton: { es: "Continuar", ja: "続きから", fr: "Continuer" },
+  reReadButton: { es: "Releer", ja: "再読", fr: "Relire" },
+  readButton: { es: "Leer", ja: "読む", fr: "Lire" },
+  notStartedStatus: { es: "Sin empezar", ja: "未読", fr: "Non commencé" },
+  finishedStatus: { es: "Terminado", ja: "読了", fr: "Terminé" },
 };
 
 function isImmersionEnabled() {

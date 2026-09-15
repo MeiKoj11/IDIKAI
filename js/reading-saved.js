@@ -24,6 +24,20 @@ function readingSavedWordCount(text, lang) {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
 
+// Rough length label for the list's meta line — mirrors the "Short /
+// Medium / Long" categories from the design mockup without needing a
+// stored field, derived straight from the same count already shown.
+function readingSavedLengthLabel(count) {
+  if (count < 120) return "Short";
+  if (count < 400) return "Medium";
+  return "Long";
+}
+
+function readingSavedDateLabel(timestamp) {
+  if (!timestamp) return "";
+  return new Date(timestamp).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "2-digit" });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const list = document.getElementById("passage-list");
   if (!list) return; // not this page
@@ -33,6 +47,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const backLink = document.getElementById("reading-saved-back-link");
   if (backLink && readingSavedLang) backLink.href = `reading.html?lang=${readingSavedLang}`;
+
+  const addBtn = document.getElementById("reading-saved-add-btn");
+  if (addBtn && readingSavedLang) addBtn.href = `reading.html?lang=${readingSavedLang}`;
 
   const heading = document.getElementById("reading-saved-heading");
   if (heading && readingSavedLang) {
@@ -98,45 +115,101 @@ function renderReadingSavedList() {
   }
   list.innerHTML = "";
 
+  const countLabel = document.getElementById("reading-saved-count");
+  if (countLabel) countLabel.textContent = `${passages.length} TEXT${passages.length === 1 ? "" : "S"}`;
+
   if (passages.length === 0) {
     const li = document.createElement("li");
-    li.className = "empty-hint";
+    li.className = "locker-empty";
     li.textContent = "No saved passages yet.";
     li.dataset.immersionKey = "noSavedPassagesYetText";
     list.appendChild(li);
     return;
   }
 
-  passages.forEach((p) => {
-    const li = document.createElement("li");
-    li.className = `theme-item lang-${p.language}`;
-    li.addEventListener("click", () => {
-      window.location.href = `passage.html?id=${encodeURIComponent(p.id)}`;
+  passages
+    .slice()
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+    .forEach((p) => {
+      list.appendChild(buildReadingSavedItem(p));
     });
+}
 
-    const nameEl = document.createElement("span");
-    nameEl.className = "theme-name";
-    nameEl.textContent = p.title;
-    li.appendChild(nameEl);
+function buildReadingSavedItem(p) {
+  const li = document.createElement("li");
+  li.className = `locker-item lang-${p.language}`;
 
-    const meta = document.createElement("span");
-    meta.className = "theme-meta";
+  const body = document.createElement("div");
+  body.className = "locker-item-body";
 
-    const folder = p.folderId ? Storage.getReadingFolder(p.folderId) : null;
-    if (folder) {
-      const folderBadge = document.createElement("span");
-      folderBadge.className = "folder-badge";
-      folderBadge.textContent = folder.name;
-      meta.appendChild(folderBadge);
-    }
-
-    const countBadge = document.createElement("span");
-    countBadge.className = "word-count-badge";
-    const count = readingSavedWordCount(p.text, p.language);
-    countBadge.textContent = p.language === "ja" ? `${count} characters` : `${count} words`;
-    meta.appendChild(countBadge);
-    li.appendChild(meta);
-
-    list.appendChild(li);
+  const titleBtn = document.createElement("button");
+  titleBtn.type = "button";
+  titleBtn.className = "locker-item-title";
+  titleBtn.style.cssText = "background:transparent; border:none; padding:0; font-size:15px; cursor:pointer; text-align:left";
+  titleBtn.textContent = p.title;
+  titleBtn.addEventListener("click", () => {
+    window.location.href = `passage.html?id=${encodeURIComponent(p.id)}`;
   });
+  body.appendChild(titleBtn);
+
+  const sub = document.createElement("div");
+  sub.className = "locker-item-sub";
+  const count = readingSavedWordCount(p.text, p.language);
+  const countText = p.language === "ja" ? `${count} characters` : `${count} words`;
+  const folder = p.folderId ? Storage.getReadingFolder(p.folderId) : null;
+  const subParts = [readingSavedLengthLabel(count), countText];
+  if (folder) subParts.push(folder.name);
+  const dateLabel = readingSavedDateLabel(p.createdAt);
+  if (dateLabel) subParts.push(dateLabel);
+  sub.textContent = subParts.join(" · ");
+  body.appendChild(sub);
+
+  li.appendChild(body);
+
+  const progressWrap = document.createElement("div");
+  progressWrap.className = "reading-progress-wrap";
+  const track = document.createElement("div");
+  track.className = "reading-progress-track";
+  const fill = document.createElement("div");
+  fill.className = "reading-progress-fill";
+  const pct = typeof p.readProgress === "number" ? p.readProgress : 0;
+  fill.style.width = `${p.finishedAt ? 100 : pct}%`;
+  track.appendChild(fill);
+  progressWrap.appendChild(track);
+  const label = document.createElement("span");
+  label.className = "reading-progress-label";
+  if (p.finishedAt) {
+    label.textContent = "Finished";
+    label.dataset.immersionKey = "finishedStatus";
+  } else if (pct > 0) {
+    label.textContent = `${pct}% read`;
+  } else {
+    label.textContent = "Not started";
+    label.dataset.immersionKey = "notStartedStatus";
+  }
+  progressWrap.appendChild(label);
+  li.appendChild(progressWrap);
+
+  const actions = document.createElement("div");
+  actions.className = "locker-item-actions";
+  const actionBtn = document.createElement("button");
+  actionBtn.type = "button";
+  actionBtn.className = "secondary";
+  if (p.finishedAt) {
+    actionBtn.textContent = "Re-read";
+    actionBtn.dataset.immersionKey = "reReadButton";
+  } else if (pct > 0) {
+    actionBtn.textContent = "Continue";
+    actionBtn.dataset.immersionKey = "continueReadingButton";
+  } else {
+    actionBtn.textContent = "Read";
+    actionBtn.dataset.immersionKey = "readButton";
+  }
+  actionBtn.addEventListener("click", () => {
+    window.location.href = `passage.html?id=${encodeURIComponent(p.id)}`;
+  });
+  actions.appendChild(actionBtn);
+  li.appendChild(actions);
+
+  return li;
 }

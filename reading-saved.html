@@ -77,17 +77,25 @@
       </div>
     </div>
   </div>
-  <header class="app-header" id="reading-saved-header">
-    <a href="reading.html" class="back-link" id="reading-saved-back-link" data-immersion-key="backToReading">&larr; Back to Reading</a>
-    <h1 id="reading-saved-heading" data-immersion-key="savedPassagesHeading">Saved Passages</h1>
-  </header>
   <main>
+    <div class="pagehead" id="reading-saved-header">
+      <a href="reading.html" class="back-link" id="reading-saved-back-link" data-immersion-key="backToReading">&larr; Back to Reading</a>
+      <div class="row-head" style="margin-top:8px">
+        <h1 class="page-title grow" style="font-size:clamp(26px,4vw,38px)" id="reading-saved-heading" data-immersion-key="savedPassagesHeading">Saved Passages</h1>
+        <a href="reading.html" id="reading-saved-add-btn" class="button" style="text-decoration:none" data-immersion-key="addTextButton">+ Add text</a>
+      </div>
+    </div>
+
     <section class="panel" id="saved-passages-section">
-      <label id="passage-folder-filter-label">
-        <span data-immersion-key="filterByFolderLabel">Filter by folder</span>
-        <select id="passage-folder-filter"></select>
-      </label>
-      <ul id="passage-list" class="theme-list"></ul>
+      <div class="locker-panel-head">
+        <label id="passage-folder-filter-label" style="display:flex; align-items:baseline; gap:8px">
+          <span class="hint" data-immersion-key="filterByFolderLabel">Filter by folder</span>
+          <select id="passage-folder-filter"></select>
+          <span class="locker-count" id="reading-saved-count"></span>
+        </label>
+        <span class="hint" data-immersion-key="newestFirstLabel">Newest first</span>
+      </div>
+      <ul id="passage-list" class="locker-list"></ul>
     </section>
   </main>
   <script src="js/topbar.js"></script>

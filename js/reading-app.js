@@ -105,6 +105,41 @@ document.addEventListener("DOMContentLoaded", () => {
   if (escalateBtn) escalateBtn.addEventListener("click", handleEscalateToClaudeOcr);
 
   const passageId = new URLSearchParams(window.location.search).get("id");
+
+// ---------------------------------------------------------------------
+// Reading progress — powers the "45% read" / "Finished" state shown on
+// the Saved Passages list (reading-saved.js). Tracked as a simple
+// whole-page scroll percentage rather than isolating the text block,
+// since the reader page is essentially just the passage from top to
+// bottom; debounced so scrolling doesn't spam writes to storage.
+function initReadingProgressTracking(passage) {
+  if (!passage) return;
+  let saveTimer = null;
+
+  function computeAndSave() {
+    const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+    const pct = scrollable > 4 ? Math.min(100, Math.max(0, Math.round((window.scrollY / scrollable) * 100))) : 100;
+    const updates = { readProgress: pct };
+    if (pct >= 97 && !passage.finishedAt) {
+      updates.finishedAt = Date.now();
+    }
+    Object.assign(passage, updates);
+    Storage.updatePassage(passage.id, updates);
+  }
+
+  window.addEventListener(
+    "scroll",
+    () => {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(computeAndSave, 400);
+    },
+    { passive: true }
+  );
+  // Record an initial data point so simply opening a passage registers
+  // as "started" even before any scrolling happens.
+  setTimeout(computeAndSave, 300);
+}
+
   if (passageId) {
     currentPassage = Storage.getPassage(passageId);
     if (currentPassage) {
@@ -142,6 +177,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (reviewBtn) {
         reviewBtn.hidden = !(currentPassage.language === "ja" && Array.isArray(currentPassage.furiganaLookups) && currentPassage.furiganaLookups.length > 0);
       }
+      initReadingProgressTracking(currentPassage);
     } else {
       const notFoundEl = document.getElementById("passage-text-display");
       notFoundEl.textContent = "Passage not found.";
