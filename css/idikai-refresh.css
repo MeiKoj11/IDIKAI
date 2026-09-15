@@ -2068,3 +2068,52 @@ body.howto-open { overflow: hidden; }
   content: attr(data-placeholder);
   color: rgba(34, 23, 18, 0.4);
 }
+
+/* ---------- Reading: image dropzone (fills with header red) -------------- */
+.image-dropzone {
+  background: var(--red);
+  border: 2px dashed var(--paper);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 32px 20px;
+}
+.image-dropzone.dragover { background: #5c0c0d; border-color: var(--paper); }
+.dropzone-hint {
+  margin: 0;
+  font-family: "Fahkwang", sans-serif;
+  font-size: clamp(20px, 3vw, 26px);
+  font-weight: 700;
+  color: var(--ink);
+  text-align: center;
+  line-height: 1.25;
+}
+.file-choose-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  color: var(--ink);
+  font-family: "Nunito", sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  border: 2px solid var(--ink);
+  border-radius: 9px;
+  padding: 10px 20px;
+  cursor: pointer;
+}
+.file-choose-label:hover { background: var(--paper); }
+.file-choose-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

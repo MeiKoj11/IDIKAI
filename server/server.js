@@ -321,13 +321,26 @@ a multi-kanji compound (possibly larger than what was selected/clicked, if it's 
 bigger compound), or the kanji stem of a verb/adjective with okurigana. Respond with ONLY a JSON
 object (no markdown, no code fences, no explanation) with exactly this shape:
 
-{ "word": string, "furigana": string, "meaning": string, "kanjiMeaning": string or null }
+{ "word": string, "furigana": string, "meaning": string, "kanjiMeaning": string or null,
+  "dictionaryForm": string or null, "dictionaryFormEnglish": string or null }
 
-"word" is the dictionary form of the word/compound containing the clicked/selected kanji, written
-the normal way (include any okurigana for verbs/adjectives, e.g. "食べる" not just "食").
-"furigana" is that word's reading written entirely in hiragana.
+STAY PRECISE — this is the most important rule. "word" must be either exactly the input
+character(s), or the smallest compound/inflected form that input is genuinely, grammatically part
+of at that exact position in the sentence (e.g. a single kanji that's the first half of a two-kanji
+compound sitting right next to it, or a verb stem plus its own okurigana). NEVER expand "word" to
+cover a larger phrase, a following particle/verb that is a separate word, or the rest of the
+sentence — if the input is already a complete word or compound on its own, "word" is exactly that
+input, nothing more and nothing less. When genuinely unsure whether the input is part of a bigger
+compound, prefer the smaller, more literal reading over a larger guess.
+
+"furigana" is that word's reading written entirely in hiragana. NEVER leave this blank or omit it
+— every response has a hiragana reading for "word", with no exceptions, including when
+"kanjiMeaning" is also filled in (in that case "furigana" is still the reading of the FULL word/
+compound named in "word", not just the one clicked character).
+
 "meaning" is a concise, natural English meaning of that word or compound — not just the isolated
 kanji's meaning if it's actually part of a compound with a different combined meaning.
+
 "kanjiMeaning" is ONLY filled in when exactly ONE kanji character was given as input (not a
 multi-character selection) AND that character is part of a larger word/compound (i.e. "word" is
 longer than the single input character) — in that case, give that one character's own standalone
@@ -337,6 +350,14 @@ combined meaning "class, lesson"). A compound's overall meaning is very often un
 different from any one of its individual kanji's meanings — don't just repeat "meaning" here. If
 the input was already a multi-character selection, or if "word" IS just that one single character
 (a standalone single-kanji word with no larger compound), set "kanjiMeaning" to null.
+
+"dictionaryForm" and "dictionaryFormEnglish" are filled in whenever "word" is a verb or i-adjective
+given in a conjugated/inflected form (has okurigana beyond the plain dictionary ending, e.g. past,
+negative, te-form, potential, conditional, etc). "dictionaryForm" is that word's plain dictionary/
+infinitive form (e.g. "扱った" -> "扱う", "食べられない" -> "食べる"), and "dictionaryFormEnglish" is a
+short English gloss of that base form (e.g. "to handle", "to eat"). Never skip this for a verb —
+if "word" is already in its dictionary form, or isn't a verb/adjective, set both to null.
+
 Always fill in "word" with your best answer — never leave it empty, even if you're not fully
 certain; give your best reading of the character(s) in that context instead.`;
 
@@ -397,7 +418,11 @@ explanation) with exactly this shape:
 { "translation": string, "furigana": string or null, "dictionaryForm": string or null,
   "dictionaryFormEnglish": string or null, "structure": string, "explanation": string }
 
-"translation" is a natural, idiomatic English translation of the phrase.
+"translation" is a natural, idiomatic English translation of EXACTLY the given phrase — the
+substring the learner actually selected, no more and no less. If a surrounding sentence is
+provided for context, use it only to translate the phrase correctly (resolve ambiguity, pick the
+right sense of a word, etc) — never let "translation" grow to cover more of that surrounding
+sentence than what was actually selected.
 
 "furigana" is ONLY ever the hiragana reading of the phrase, and ONLY when the phrase is Japanese —
 convert any katakana in the reading to hiragana too, and give the reading for the WHOLE phrase (not

@@ -228,7 +228,7 @@ document.addEventListener("DOMContentLoaded", () => {
       label: currentPassage.title || "Untitled passage",
       href: `passage.html?id=${encodeURIComponent(currentPassage.id)}`,
     });
-  } else if (document.getElementById("passage-list") && activeReadingLang) {
+  } else if (document.getElementById("new-passage-form") && activeReadingLang) {
     initAppTabs({
       section: "reading",
       language: activeReadingLang,
@@ -999,6 +999,19 @@ function displayKanjiResult(kanji, result) {
     charMeaningEl.textContent = "";
     meaningEl.textContent = result.meaning || "";
   }
+
+  const dictFormEl = document.getElementById("kanji-dictionary-form");
+  if (dictFormEl) {
+    if (result.dictionaryForm) {
+      dictFormEl.hidden = false;
+      dictFormEl.textContent = result.dictionaryFormEnglish
+        ? `Dictionary form: ${result.dictionaryForm} (${result.dictionaryFormEnglish})`
+        : `Dictionary form: ${result.dictionaryForm}`;
+    } else {
+      dictFormEl.hidden = true;
+      dictFormEl.textContent = "";
+    }
+  }
 }
 
 // Shared by both a single-kanji click and a drag-selected kanji
@@ -1017,6 +1030,8 @@ async function runKanjiLookup(kanji, context) {
   document.getElementById("kanji-char").textContent = kanji;
   document.getElementById("kanji-furigana").textContent = "";
   document.getElementById("kanji-char-meaning").hidden = true;
+  const dictFormResetEl = document.getElementById("kanji-dictionary-form");
+  if (dictFormResetEl) { dictFormResetEl.hidden = true; dictFormResetEl.textContent = ""; }
   const kanjiMeaningEl = document.getElementById("kanji-meaning");
   kanjiMeaningEl.textContent = "Looking up…";
   kanjiMeaningEl.dataset.immersionKey = "lookingUpStatus";
@@ -1045,6 +1060,8 @@ async function runKanjiLookup(kanji, context) {
   addBtn.dataset.furigana = result.furigana || "";
   addBtn.dataset.meaning = result.meaning || "";
   addBtn.dataset.sourceExcerpt = kanji;
+  addBtn.dataset.infinitive = result.dictionaryForm || "";
+  addBtn.dataset.infinitiveEnglish = result.dictionaryFormEnglish || "";
   showBtn.dataset.word = kanji;
 
   recordFuriganaLookupFromKanjiResult(kanji, result);
@@ -1075,6 +1092,8 @@ async function runKanjiLookup(kanji, context) {
     revealBtn.dataset.furigana = result.furigana || "";
     revealBtn.dataset.meaning = result.meaning || "";
     revealBtn.dataset.kanjiMeaning = result.kanjiMeaning || "";
+    revealBtn.dataset.dictionaryForm = result.dictionaryForm || "";
+    revealBtn.dataset.dictionaryFormEnglish = result.dictionaryFormEnglish || "";
   } else {
     // New word: nothing to test yet, so just show it.
     displayKanjiResult(kanji, result);
@@ -1090,6 +1109,8 @@ function handleRevealKanjiMeaning() {
     furigana: btn.dataset.furigana || "",
     meaning: btn.dataset.meaning || "",
     kanjiMeaning: btn.dataset.kanjiMeaning || "",
+    dictionaryForm: btn.dataset.dictionaryForm || "",
+    dictionaryFormEnglish: btn.dataset.dictionaryFormEnglish || "",
   });
   btn.hidden = true;
 }
@@ -1121,6 +1142,9 @@ function handleAddKanjiToVocabClick() {
     furigana: addBtn.dataset.furigana || "",
     meaning: addBtn.dataset.meaning || "",
     sourceExcerpt: addBtn.dataset.sourceExcerpt || addBtn.dataset.word || "",
+    infinitive: addBtn.dataset.infinitive
+      ? `${addBtn.dataset.infinitive}${addBtn.dataset.infinitiveEnglish ? ` (${addBtn.dataset.infinitiveEnglish})` : ""}`
+      : "",
   });
 
   const bottomPanel = document.getElementById("kanji-panel");
