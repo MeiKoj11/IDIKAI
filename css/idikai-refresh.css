@@ -2190,59 +2190,95 @@ body.howto-open { overflow: hidden; }
    on it, rather than leaving it on the old dark-theme value by accident. */
 #themes-section {
   background: var(--card);
-  border: 2px solid var(--red);
+  border: 2px solid #6A3B21;
   box-shadow: 4px 4px 0 rgba(34, 23, 18, 0.88);
 }
-#themes-section > h2 { color: #6A3B21; }
+#themes-section > h2 { color: var(--ink); }
 #themes-section > .hint { color: #4A3226; }
 #theme-list > li.theme-item {
-  background: #5C3220;
-  border: 2px solid var(--red);
-  border-left: 5px solid var(--red);
+  background: var(--red);
+  border: 2px solid #6A3B21;
+  border-left: 5px solid #6A3B21;
   box-shadow: 3px 3px 0 rgba(34, 23, 18, 0.85);
   background-image: none;
-  color: #F3EEDD;
+  color: var(--card);
 }
 #theme-list > li.theme-item:hover {
-  background: #6A3B21;
-  border-color: #9B2A26;
+  background: #8B1D1E;
+  border-color: #6A3B21;
   box-shadow: 4px 4px 0 rgba(34, 23, 18, 0.9);
 }
 #theme-list > li.theme-item.lang-es,
 #theme-list > li.theme-item.lang-ja,
 #theme-list > li.theme-item.lang-fr {
-  border-left-color: var(--red);
+  border-left-color: #6A3B21;
 }
 #theme-list > li.theme-item.active {
-  background: var(--red);
-  border-color: var(--ink);
+  background: #8B1D1E;
+  border-color: #6A3B21;
 }
 #theme-list .theme-name { color: #F7F2E4; }
-#theme-list .theme-meta { color: #F3EEDD; }
-#theme-list .lang-badge,
+#theme-list .theme-meta { color: var(--card); }
+#theme-list .theme-name {
+  background: var(--card);
+  color: var(--ink);
+  border: 2px solid #6A3B21;
+  border-radius: 999px;
+  padding: 7px 17px;
+  align-self: flex-start;
+  font-weight: 700;
+}
+#theme-list .lang-badge {
+  color: var(--ink);
+  background: var(--card);
+  border: 2px solid #6A3B21;
+}
 #theme-list .word-count-badge {
-  color: #5C3220;
-  background: #F3EEDD;
-  border: 1.5px solid var(--red);
+  color: var(--card);
+  background: #5C3220;
+  border: 2px solid #6A3B21;
 }
 #theme-list .delete-theme-btn {
-  color: #F3EEDD;
+  color: var(--card);
   background: transparent;
-  border: 1.5px solid rgba(243, 238, 221, 0.6);
+  border: none;
+  text-decoration: underline;
 }
 #theme-list .delete-theme-btn:hover {
-  color: #F3EEDD;
+  color: var(--card);
   background: var(--red);
-  border-color: #F3EEDD;
+  border-color: var(--card);
 }
 #theme-list > li.theme-item-add {
   background: var(--card);
   color: var(--red);
-  border: 2px dashed var(--red);
+  border: 2px dashed #6A3B21;
   box-shadow: none;
 }
 #theme-list > li.theme-item-add:hover {
   background: #E4DCC4;
   border-color: #5C3220;
   color: #5C3220;
+}
+
+/* ---------- Reading passage popups — secondary-button contrast fix ------ */
+/* #lookup-panel/#grammar-panel/#kanji-panel (passage.html) never migrated
+   off style.css's dark #221712 background. button.secondary now defaults
+   to color: var(--ink) on a transparent background — and var(--ink) is
+   that exact same #221712 — so "Save as grammar note" / "Add to vocab
+   deck" / "Add to theme" etc. rendered in a color identical to the panel
+   behind them: present, unhidden, and completely invisible. This restores
+   contrast without touching the panels' own dark background. */
+.lookup-panel .secondary,
+.grammar-panel .secondary,
+.kanji-panel .secondary {
+  color: var(--paper);
+  border-color: var(--paper);
+}
+.lookup-panel .secondary:hover,
+.grammar-panel .secondary:hover,
+.kanji-panel .secondary:hover {
+  background: rgba(236, 230, 211, 0.12);
+  color: var(--paper);
+  border-color: var(--paper);
 }
