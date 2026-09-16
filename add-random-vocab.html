@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Vocab Bank — Themes</title>
+  <title>Add Random Vocab</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fahkwang:wght@400;500;600;700&family=Nunito:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet" />
@@ -81,48 +81,48 @@
     </div>
   </div>
   <header class="app-header">
-    <a href="index.html" class="back-link" id="vocab-back-link" data-immersion-key="backPlain">&larr; Back</a>
-    <h1 data-immersion-key="sectionVocab">Vocab Bank</h1>
-    <button type="button" class="howto-btn" id="vocab-howto-btn" data-howto-trigger="vocab-howto-overlay" aria-haspopup="dialog" data-immersion-key="howtoButton">How to use</button>
-    <a href="add-random-vocab.html" id="add-random-vocab-link" class="howto-btn header-right-btn" data-immersion-key="addRandomVocabButton">+ Add random vocab</a>
+    <a href="vocab.html" id="random-vocab-back-link" class="back-link" data-immersion-key="backPlain">&larr; Back</a>
+    <h1 id="random-vocab-heading" data-immersion-key="addRandomVocabHeading">Add Random Vocab</h1>
   </header>
-  <div class="howto-overlay" id="vocab-howto-overlay" role="dialog" aria-modal="true" aria-labelledby="vocab-howto-title" hidden>
-    <div class="howto-modal">
-      <div class="howto-modal-head">
-        <h2 class="howto-modal-title" id="vocab-howto-title" data-immersion-key="howtoModalTitle">How to use this page</h2>
-        <button type="button" class="howto-modal-close" aria-label="Close" data-howto-close>&times;</button>
+
+  <main id="random-vocab-root">
+    <section class="panel" id="random-vocab-import-panel">
+      <h2 data-immersion-key="importVocabListHeading">Import a vocab list</h2>
+      <p class="hint" data-immersion-key="randomVocabHint">
+        Paste any list of words/phrases that doesn't belong to one theme — mixed sources,
+        random finds, whatever's piled up. Extract it, then use the dropdown next to each
+        one to file it into an existing theme or a brand-new one before saving.
+      </p>
+      <div class="stacked-form">
+        <textarea id="random-vocab-text" rows="6" placeholder="Paste your vocab list here..." data-immersion-key="pasteVocabListPlaceholder"></textarea>
+        <button type="button" id="random-vocab-extract-btn" data-immersion-key="extractFlashcardsButton">Extract flashcards</button>
       </div>
-      <div class="howto-modal-body">
-        <p data-immersion-key="howtoBodyVocab1">Standard vocab flashcard practice. It's a great way to start a language session — refresh your memory with some vocab first. Remember, fluency builds up with repetition.</p>
+      <p id="random-vocab-status" class="hint" hidden></p>
+
+      <div id="random-vocab-review" hidden>
+        <div class="bulk-import-review-header">
+          <span id="random-vocab-review-count"></span>
+          <div class="bulk-import-review-actions">
+            <button type="button" id="random-vocab-select-all" class="secondary" data-immersion-key="selectAllButton">Select all</button>
+            <button type="button" id="random-vocab-select-none" class="secondary" data-immersion-key="selectNoneButton">Select none</button>
+          </div>
+        </div>
+        <p class="hint" data-immersion-key="assignToThemeHint">Each row's last dropdown is the theme it'll be saved into.</p>
+        <ul id="random-vocab-list" class="bulk-import-list"></ul>
+        <div class="bulk-import-save-row">
+          <button type="button" id="random-vocab-save-btn" data-immersion-key="saveSelectedButton">Save selected</button>
+          <button type="button" id="random-vocab-discard-btn" class="secondary" data-immersion-key="discardButton">Discard</button>
+        </div>
       </div>
-    </div>
-  </div>
-  <main>
-    <section class="panel" id="themes-section">
-      <h2 data-immersion-key="themesHeading">Themes</h2>
-      <p class="hint" data-immersion-key="themesHint">Themes are your folders — e.g. "School", "Verbs", "Food". Click a theme to open it.</p>
-      <form id="new-theme-form" class="inline-form">
-        <input type="text" id="new-theme-name" placeholder="Theme name" required data-immersion-key="themeNamePlaceholder" />
-        <select id="new-theme-language">
-          <option value="es" data-immersion-key="langNameEs">Spanish</option>
-          <option value="ja" data-immersion-key="langNameJa">Japanese</option>
-          <option value="fr" data-immersion-key="langNameFr">French</option>
-        </select>
-        <button type="submit" data-immersion-key="addThemeButton">Add theme</button>
-      </form>
-      <ul id="theme-list" class="theme-list"></ul>
+      <p id="random-vocab-save-status" class="hint" hidden></p>
     </section>
   </main>
   <script src="js/topbar.js"></script>
   <script src="js/immersion.js"></script>
-  <script src="js/howto.js"></script>
   <script src="js/app-tabs.js"></script>
   <script src="js/storage.js"></script>
   <script src="js/hub-tasks.js"></script>
   <script src="js/translate.js"></script>
-  <script src="js/spanish-verb-data.js"></script>
-  <script src="js/spanish-conjugator.js"></script>
-  <script src="js/srs.js"></script>
-  <script src="js/vocab-app.js"></script>
+  <script src="js/add-random-vocab-app.js"></script>
 </body>
 </html>

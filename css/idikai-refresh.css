@@ -2155,3 +2155,19 @@ body.howto-open { overflow: hidden; }
   white-space: nowrap;
   border: 0;
 }
+
+/* ---------- Add Random Vocab — per-row theme picker -------------------- */
+/* Sits inside .bulk-import-row (style.css) alongside the existing
+   target-lang/English/furigana <input>s, which already get flex:1 there
+   — give the select its own sane width instead of shrinking to fit. */
+.bulk-import-theme-select {
+  flex: 0 0 auto;
+  min-width: 140px;
+  font-family: "Nunito", sans-serif;
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid rgba(34, 23, 18, 0.35);
+  border-radius: 6px;
+  padding: 6px 8px;
+}

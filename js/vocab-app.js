@@ -169,6 +169,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (vocabBackLink) vocabBackLink.href = `language-home.html?lang=${activeLangFilter}`;
     const newThemeLangSelect = document.getElementById("new-theme-language");
     if (newThemeLangSelect) newThemeLangSelect.value = activeLangFilter;
+    const addRandomVocabLink = document.getElementById("add-random-vocab-link");
+    if (addRandomVocabLink) addRandomVocabLink.href = `add-random-vocab.html?lang=${activeLangFilter}`;
   }
 
   // "View Vocab" (theme.html's third bubble) reaches this same page

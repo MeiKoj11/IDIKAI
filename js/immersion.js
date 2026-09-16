@@ -595,6 +595,14 @@ const IMMERSION_STRINGS = {
   readButton: { es: "Leer", ja: "読む", fr: "Lire" },
   notStartedStatus: { es: "Sin empezar", ja: "未読", fr: "Non commencé" },
   finishedStatus: { es: "Terminado", ja: "読了", fr: "Terminé" },
+  addRandomVocabButton: { es: "+ Añadir vocab. suelto", ja: "＋ ランダムな単語を追加", fr: "+ Ajouter du vocab. divers" },
+  addRandomVocabHeading: { es: "Añadir vocabulario suelto", ja: "ランダムな単語を追加", fr: "Ajouter du vocabulaire divers" },
+  randomVocabHint: {
+    es: "Pega cualquier lista de palabras/frases que no pertenezca a un solo tema — fuentes mixtas, hallazgos sueltos, lo que se haya acumulado. Extráela y luego usa el menú desplegable junto a cada una para archivarla en un tema existente o uno nuevo antes de guardar.",
+    ja: "一つのテーマに属さない単語やフレーズのリストを貼り付けてください — 出所が混在していたり、たまったものなど何でも構いません。抽出したら、それぞれの項目の横にあるプルダウンで、保存前に既存のテーマか新しいテーマに振り分けられます。",
+    fr: "Colle n'importe quelle liste de mots/expressions qui n'appartient pas à un seul thème — sources mélangées, trouvailles diverses, ce qui s'est accumulé. Extrais-la, puis utilise le menu déroulant à côté de chaque élément pour le classer dans un thème existant ou un nouveau avant d'enregistrer.",
+  },
+  assignToThemeHint: { es: "El último menú de cada fila es el tema en el que se guardará.", ja: "各行の最後のプルダウンが保存先のテーマです。", fr: "Le dernier menu de chaque ligne est le thème dans lequel l'élément sera enregistré." },
 };
 
 function isImmersionEnabled() {
