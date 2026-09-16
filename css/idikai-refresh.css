@@ -2171,3 +2171,78 @@ body.howto-open { overflow: hidden; }
   border-radius: 6px;
   padding: 6px 8px;
 }
+
+/* ---------- Vocab word list — bulk-select checkbox ---------------------- */
+/* Groups the new checkbox with .word-main inside one wrapper so
+   .word-item (style.css: display:flex; justify-content:space-between)
+   still only ever sees two children — this wrapper and .word-actions —
+   exactly as before, on every page that reuses .word-item (Storage
+   Locker included), whether or not a given row has a checkbox. */
+.word-left { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
+.word-select-checkbox { flex: 0 0 auto; margin-top: 3px; }
+
+/* ---------- Vocab Bank theme list — red/brown colour pass --------------- */
+/* #themes-section/#theme-list only exist on vocab.html, so this can't
+   collide with grammar.html's own #grammar-theme-list. .theme-item was
+   never migrated off style.css's dark-theme default (background:
+   #771011 with no explicit text color) — this gives it its own
+   deliberately-brown palette plus text colors that are actually legible
+   on it, rather than leaving it on the old dark-theme value by accident. */
+#themes-section {
+  background: var(--card);
+  border: 2px solid var(--red);
+  box-shadow: 4px 4px 0 rgba(34, 23, 18, 0.88);
+}
+#themes-section > h2 { color: #6A3B21; }
+#themes-section > .hint { color: #4A3226; }
+#theme-list > li.theme-item {
+  background: #5C3220;
+  border: 2px solid var(--red);
+  border-left: 5px solid var(--red);
+  box-shadow: 3px 3px 0 rgba(34, 23, 18, 0.85);
+  background-image: none;
+  color: #F3EEDD;
+}
+#theme-list > li.theme-item:hover {
+  background: #6A3B21;
+  border-color: #9B2A26;
+  box-shadow: 4px 4px 0 rgba(34, 23, 18, 0.9);
+}
+#theme-list > li.theme-item.lang-es,
+#theme-list > li.theme-item.lang-ja,
+#theme-list > li.theme-item.lang-fr {
+  border-left-color: var(--red);
+}
+#theme-list > li.theme-item.active {
+  background: var(--red);
+  border-color: var(--ink);
+}
+#theme-list .theme-name { color: #F7F2E4; }
+#theme-list .theme-meta { color: #F3EEDD; }
+#theme-list .lang-badge,
+#theme-list .word-count-badge {
+  color: #5C3220;
+  background: #F3EEDD;
+  border: 1.5px solid var(--red);
+}
+#theme-list .delete-theme-btn {
+  color: #F3EEDD;
+  background: transparent;
+  border: 1.5px solid rgba(243, 238, 221, 0.6);
+}
+#theme-list .delete-theme-btn:hover {
+  color: #F3EEDD;
+  background: var(--red);
+  border-color: #F3EEDD;
+}
+#theme-list > li.theme-item-add {
+  background: var(--card);
+  color: var(--red);
+  border: 2px dashed var(--red);
+  box-shadow: none;
+}
+#theme-list > li.theme-item-add:hover {
+  background: #E4DCC4;
+  border-color: #5C3220;
+  color: #5C3220;
+}

@@ -533,6 +533,8 @@ const IMMERSION_STRINGS = {
   moveCopyButton: { es: "Mover/Copiar", ja: "移動／コピー", fr: "Déplacer/Copier" },
   moveButton: { es: "Mover", ja: "移動", fr: "Déplacer" },
   copyButton: { es: "Copiar", ja: "コピー", fr: "Copier" },
+  moveSelectedButton: { es: "Mover selección", ja: "選択したものを移動", fr: "Déplacer la sélection" },
+  copySelectedButton: { es: "Copiar selección", ja: "選択したものをコピー", fr: "Copier la sélection" },
   addThemeWithWordsFirstText: { es: "Primero añade un tema con algunas palabras.", ja: "まず単語のあるテーマを追加してください。", fr: "Ajoute d'abord un thème avec quelques mots." },
 
   // ---- Main Hub dynamic UI ----

@@ -179,6 +179,19 @@
           </select>
         </label>
       </div>
+      <div class="bulk-import-review-header" id="word-list-bulk-bar" hidden>
+        <label style="display:flex; align-items:center; gap:6px; cursor:pointer">
+          <input type="checkbox" id="word-select-all-checkbox" />
+          <span data-immersion-key="selectAllButton">Select all</span>
+        </label>
+        <span id="word-bulk-selected-count" class="hint"></span>
+        <div class="bulk-import-review-actions">
+          <select id="word-bulk-theme-select" class="bulk-import-theme-select" aria-label="Move/copy selected to"></select>
+          <button type="button" id="word-bulk-move-btn" class="secondary" data-immersion-key="moveSelectedButton">Move selected</button>
+          <button type="button" id="word-bulk-copy-btn" class="secondary" data-immersion-key="copySelectedButton">Copy selected</button>
+        </div>
+      </div>
+      <p id="word-bulk-status" class="hint" hidden></p>
       <ul id="word-list" class="word-list"></ul>
     </section>
     <section class="panel" id="conjugation-tables-panel" hidden>

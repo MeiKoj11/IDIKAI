@@ -37,6 +37,11 @@ let pendingDetection = null;
 let editingWordId = null;
 // id of the word currently showing its inline move/copy panel, or null.
 let movingWordId = null;
+// Ids of words checked via the bulk-select checkboxes in the word list,
+// for the "Move selected"/"Copy selected" bar — lets several words be
+// filed into another theme (or merged into one) in one go, instead of
+// one at a time through the per-word Move/Copy panel above.
+let selectedWordIds = new Set();
 // How the word list is currently ordered — "newest" (createdAt
 // descending), "target-az" (alphabetical by targetLang), or
 // "english-az" (alphabetical by english). Defaults to newest-first,
@@ -213,6 +218,13 @@ document.addEventListener("DOMContentLoaded", () => {
   on("bulk-import-discard-btn", "click", handleBulkImportDiscard);
 
   on("word-list", "click", handleWordListClick);
+  on("word-select-all-checkbox", "change", handleWordSelectAllChange);
+  on("word-bulk-move-btn", "click", handleWordBulkMove);
+  on("word-bulk-copy-btn", "click", handleWordBulkCopy);
+  on("word-bulk-theme-select", "change", (e) => {
+    if (e.target.value !== MOVE_NEW_THEME_VALUE) return;
+    createMoveDestinationTheme(e.target);
+  });
 
   document.querySelectorAll('input[name="quiz-mode"]').forEach((radio) => {
     radio.addEventListener("change", handleQuizModeChange);
@@ -933,12 +945,20 @@ function renderWordList() {
   const words = sortedWordsForDisplay(Storage.getWords(activeTheme.id));
   list.innerHTML = "";
 
+  // Drop any selected id that's no longer in this list (deleted, or
+  // moved out to another theme by a previous bulk action).
+  const currentIds = new Set(words.map((w) => w.id));
+  Array.from(selectedWordIds).forEach((id) => {
+    if (!currentIds.has(id)) selectedWordIds.delete(id);
+  });
+
   if (words.length === 0) {
     const li = document.createElement("li");
     li.className = "empty-hint";
     li.textContent = "No words yet — add one above.";
     li.dataset.immersionKey = "noWordsYetText";
     list.appendChild(li);
+    updateWordBulkBar();
     return;
   }
 
@@ -992,7 +1012,26 @@ function renderWordList() {
       main.appendChild(examplesWrap);
     }
 
-    li.appendChild(main);
+    const leftWrap = document.createElement("div");
+    leftWrap.className = "word-left";
+
+    if (word.id !== movingWordId) {
+      const selectCheckbox = document.createElement("input");
+      selectCheckbox.type = "checkbox";
+      selectCheckbox.className = "word-select-checkbox";
+      selectCheckbox.dataset.wordId = word.id;
+      selectCheckbox.checked = selectedWordIds.has(word.id);
+      selectCheckbox.setAttribute("aria-label", "Select word");
+      selectCheckbox.addEventListener("change", () => {
+        if (selectCheckbox.checked) selectedWordIds.add(word.id);
+        else selectedWordIds.delete(word.id);
+        updateWordBulkBar();
+      });
+      leftWrap.appendChild(selectCheckbox);
+    }
+
+    leftWrap.appendChild(main);
+    li.appendChild(leftWrap);
 
     if (word.id === movingWordId) {
       li.appendChild(buildMovePanel(word));
@@ -1029,6 +1068,123 @@ function renderWordList() {
 
     list.appendChild(li);
   });
+
+  updateWordBulkBar();
+}
+
+// ---------------------------------------------------------------------
+// Bulk move/copy — "Move selected"/"Copy selected" bar above the word
+// list. Complements the per-word Move/Copy panel (below) for filing (or
+// merging) several words into another theme of the same language at
+// once, using the same destination-select + duplicate-checking helpers.
+// ---------------------------------------------------------------------
+
+function updateWordBulkBar() {
+  const bar = document.getElementById("word-list-bulk-bar");
+  if (!bar) return;
+  const checkboxes = document.querySelectorAll("#word-list .word-select-checkbox");
+
+  if (checkboxes.length === 0) {
+    bar.hidden = true;
+    return;
+  }
+  bar.hidden = false;
+
+  const countEl = document.getElementById("word-bulk-selected-count");
+  if (countEl) countEl.textContent = selectedWordIds.size ? `${selectedWordIds.size} selected` : "";
+
+  const selectAllCheckbox = document.getElementById("word-select-all-checkbox");
+  if (selectAllCheckbox) {
+    selectAllCheckbox.checked = selectedWordIds.size > 0 && selectedWordIds.size === checkboxes.length;
+    selectAllCheckbox.indeterminate = selectedWordIds.size > 0 && selectedWordIds.size < checkboxes.length;
+  }
+
+  const themeSelect = document.getElementById("word-bulk-theme-select");
+  if (themeSelect && activeTheme) {
+    const previousValue = themeSelect.value;
+    renderMoveThemeOptions(themeSelect, previousValue || undefined);
+  }
+
+  const moveBtn = document.getElementById("word-bulk-move-btn");
+  const copyBtn = document.getElementById("word-bulk-copy-btn");
+  if (moveBtn) moveBtn.disabled = selectedWordIds.size === 0;
+  if (copyBtn) copyBtn.disabled = selectedWordIds.size === 0;
+}
+
+function handleWordSelectAllChange(e) {
+  const checked = e.target.checked;
+  document.querySelectorAll("#word-list .word-select-checkbox").forEach((cb) => {
+    cb.checked = checked;
+    if (checked) selectedWordIds.add(cb.dataset.wordId);
+    else selectedWordIds.delete(cb.dataset.wordId);
+  });
+  updateWordBulkBar();
+}
+
+function showWordBulkStatus(text) {
+  const statusEl = document.getElementById("word-bulk-status");
+  if (!statusEl) return;
+  statusEl.hidden = false;
+  statusEl.textContent = text;
+}
+
+function handleWordBulkMove() {
+  if (selectedWordIds.size === 0) {
+    alert("Select at least one word first.");
+    return;
+  }
+  const select = document.getElementById("word-bulk-theme-select");
+  const targetThemeId = resolveMoveDestinationThemeId(select);
+  if (!targetThemeId) return;
+
+  let moved = 0;
+  let skipped = 0;
+  Array.from(selectedWordIds).forEach((wordId) => {
+    const result = Storage.moveWordToTheme(wordId, targetThemeId);
+    if (result.success) {
+      moved++;
+      selectedWordIds.delete(wordId);
+    } else {
+      skipped++;
+    }
+  });
+
+  const destTheme = Storage.getTheme(targetThemeId);
+  const destName = destTheme ? destTheme.name : "that theme";
+  let statusText = `Moved ${moved} word${moved === 1 ? "" : "s"} to "${destName}".`;
+  if (skipped) statusText += ` ${skipped} left behind (already in "${destName}").`;
+  showWordBulkStatus(statusText);
+
+  renderWordList();
+}
+
+function handleWordBulkCopy() {
+  if (selectedWordIds.size === 0) {
+    alert("Select at least one word first.");
+    return;
+  }
+  const select = document.getElementById("word-bulk-theme-select");
+  const targetThemeId = resolveMoveDestinationThemeId(select);
+  if (!targetThemeId) return;
+
+  let copied = 0;
+  let skipped = 0;
+  Array.from(selectedWordIds).forEach((wordId) => {
+    const result = Storage.copyWordToTheme(wordId, targetThemeId);
+    if (result.success) {
+      copied++;
+    } else {
+      skipped++;
+    }
+  });
+
+  const destTheme = Storage.getTheme(targetThemeId);
+  const destName = destTheme ? destTheme.name : "that theme";
+  let statusText = `Copied ${copied} word${copied === 1 ? "" : "s"} to "${destName}".`;
+  if (skipped) statusText += ` ${skipped} skipped (already in "${destName}").`;
+  showWordBulkStatus(statusText);
+
+  renderWordList();
 }
 
 // Lets a word be filed into a different theme of the SAME language (a
