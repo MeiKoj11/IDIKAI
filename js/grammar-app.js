@@ -1734,6 +1734,12 @@ let cardLastClassifiedKey = ""; // header+explanation+examples snapshot, to skip
 // pattern you disagreed with never silently gets saved anyway.
 let cardGrammarLabelConfirmed = false;
 
+// A fresh "Identify this pattern" result may include a cleaned-up
+// Structure template suggestion — held here until the learner explicitly
+// applies it (see renderCardClassifyStatus's "Use this" button), never
+// auto-applied over what they typed.
+let cardStructureSuggestion = null;
+
 function makeEmptyExample() {
   return { id: Storage.uid(), target: "", translation: "", checked: false, corrected: "", note: "", checking: false, checkError: null, lastCheckedText: "" };
 }
@@ -1764,8 +1770,27 @@ function applyNoteFormMode() {
 function cardClassifyKey() {
   const header = (document.getElementById("card-header").value || "").trim();
   const explanation = (document.getElementById("card-explanation").value || "").trim();
+  const structureTemplateEl = document.getElementById("card-structure-template");
+  const structureTemplate = structureTemplateEl ? (structureTemplateEl.value || "").trim() : "";
   const exampleText = cardExamples.map((ex) => (ex.target || "").trim()).filter(Boolean).join("|");
-  return `${header} ${explanation} ${exampleText}`;
+  return `${header} ${explanation} ${structureTemplate} ${exampleText}`;
+}
+
+// Greyed out until Name, Structure template, and at least one example
+// are all filled in (grammar-add-note-structure-plan.md §3c) — this is
+// the gate that decides whether the note is used as detection input at
+// all, so it's recomputed live as any of those three change, not just
+// on submit.
+function updateStructureCompleteAvailability() {
+  const checkbox = document.getElementById("card-structure-complete");
+  if (!checkbox) return;
+  const header = (document.getElementById("card-header").value || "").trim();
+  const structureTemplateEl = document.getElementById("card-structure-template");
+  const structureTemplate = structureTemplateEl ? (structureTemplateEl.value || "").trim() : "";
+  const hasExample = cardExamples.some((ex) => (ex.target || "").trim());
+  const ready = !!(header && structureTemplate && hasExample);
+  checkbox.disabled = !ready;
+  if (!ready) checkbox.checked = false;
 }
 
 function renderCardClassifyStatus() {
@@ -1851,6 +1876,30 @@ function renderCardClassifyStatus() {
     el.appendChild(undoBtn);
   }
 
+  if (cardStructureSuggestion) {
+    const structureTemplateEl = document.getElementById("card-structure-template");
+    const currentValue = structureTemplateEl ? (structureTemplateEl.value || "").trim() : "";
+    if (cardStructureSuggestion !== currentValue) {
+      const suggestionLine = document.createElement("p");
+      suggestionLine.textContent = `Suggested structure: ${cardStructureSuggestion}`;
+      el.appendChild(suggestionLine);
+
+      const useSuggestionBtn = document.createElement("button");
+      useSuggestionBtn.type = "button";
+      useSuggestionBtn.className = "secondary";
+      useSuggestionBtn.textContent = "Use this";
+      useSuggestionBtn.dataset.immersionKey = "useThisButton";
+      useSuggestionBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        if (structureTemplateEl) structureTemplateEl.value = cardStructureSuggestion;
+        cardStructureSuggestion = null;
+        updateStructureCompleteAvailability();
+        renderCardClassifyStatus();
+      });
+      el.appendChild(useSuggestionBtn);
+    }
+  }
+
   const recheckLink = document.createElement("a");
   recheckLink.href = "#";
   recheckLink.textContent = "Re-check";
@@ -1870,11 +1919,14 @@ async function runCardClassify(force) {
   const key = cardClassifyKey();
   if (!force && key === cardLastClassifiedKey) return;
 
+  const structureTemplateEl = document.getElementById("card-structure-template");
+  const structureTemplate = structureTemplateEl ? (structureTemplateEl.value || "").trim() : "";
+
   cardClassifying = true;
   renderCardClassifyStatus();
 
   const examples = cardExamples.filter((ex) => (ex.target || "").trim());
-  const result = await Translate.classifyGrammarPoint(header, explanation, examples, activeNoteLang);
+  const result = await Translate.classifyGrammarPoint(header, explanation, examples, activeNoteLang, structureTemplate);
 
   cardClassifying = false;
   cardLastClassifiedKey = key;
@@ -1890,6 +1942,14 @@ async function runCardClassify(force) {
   cardGrammarLabel = result.label;
   cardGrammarLabelNote = result.note || "";
   cardGrammarLabelConfirmed = false; // a fresh result always needs re-accepting
+
+  // A no-op when no Structure template draft was given at all (the
+  // server returns null and there's nothing to refine) — never
+  // fabricates a suggestion the learner didn't start drafting.
+  cardStructureSuggestion =
+    result.refinedStructureTemplate && result.refinedStructureTemplate.trim() && structureTemplate
+      ? result.refinedStructureTemplate.trim()
+      : null;
   renderCardClassifyStatus();
 }
 
@@ -1935,12 +1995,15 @@ function initGrammarAddNotePage() {
   cardGrammarLabelConfirmed = false;
   cardClassifying = false;
   cardLastClassifiedKey = "";
+  cardStructureSuggestion = null;
 
   if (existingNote && existingNote.header) {
     // A note already built as a structure card — edit it as one.
     noteFormMode = "card";
     document.getElementById("card-header").value = existingNote.header || "";
     document.getElementById("card-explanation").value = existingNote.explanation || "";
+    document.getElementById("card-structure-template").value = existingNote.structureTemplate || "";
+    document.getElementById("card-structure-complete").checked = !!existingNote.structureComplete;
     cardExamples = (existingNote.examples && existingNote.examples.length
       ? existingNote.examples
       : [{}]
@@ -2009,6 +2072,7 @@ function initGrammarAddNotePage() {
   renderCardExamplesList();
   renderCardVariantsList();
   renderCardClassifyStatus();
+  updateStructureCompleteAvailability();
 
   renderGrammarThemeOptions(themeIdFromUrl || (existingNote && existingNote.themeId));
 
@@ -2035,6 +2099,17 @@ function initGrammarAddNotePage() {
   }
   if (cardHeaderInput) {
     cardHeaderInput.addEventListener("blur", () => runCardClassify(false));
+    cardHeaderInput.addEventListener("input", updateStructureCompleteAvailability);
+  }
+  const cardStructureTemplateInput = document.getElementById("card-structure-template");
+  if (cardStructureTemplateInput) {
+    cardStructureTemplateInput.addEventListener("input", () => {
+      updateStructureCompleteAvailability();
+      if (cardStructureSuggestion) {
+        cardStructureSuggestion = null;
+        renderCardClassifyStatus();
+      }
+    });
   }
   const classifyBtn = document.getElementById("card-classify-btn");
   if (classifyBtn) {
@@ -2079,6 +2154,7 @@ function renderCardExamplesList() {
   cardExamples.forEach((example) => {
     container.appendChild(buildExampleRow(example, cardExamples, renderCardExamplesList));
   });
+  updateStructureCompleteAvailability();
 }
 
 function renderCardVariantsList() {
@@ -2159,6 +2235,7 @@ function buildExampleRow(example, ownerArray, rerender) {
   targetInput.value = example.target || "";
   targetInput.addEventListener("input", () => {
     example.target = targetInput.value;
+    updateStructureCompleteAvailability();
   });
   targetInput.addEventListener("blur", () => {
     const text = example.target.trim();
@@ -2413,10 +2490,14 @@ function handleGrammarNoteSubmit(e, getSourceInfo, editingNoteId) {
     // nothing to accept, so its explanatory note is always kept either
     // way — there's no downside to remembering why, and no practice
     // feature it could wrongly unlock.
+    const structureTemplateEl = document.getElementById("card-structure-template");
+    const structureCompleteEl = document.getElementById("card-structure-complete");
     const payload = {
       themeId,
       header,
       explanation,
+      structureTemplate: structureTemplateEl ? structureTemplateEl.value.trim() : "",
+      structureComplete: !!(structureCompleteEl && !structureCompleteEl.disabled && structureCompleteEl.checked),
       examples,
       variants,
       tags,

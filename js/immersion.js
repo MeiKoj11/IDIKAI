@@ -272,6 +272,10 @@ const IMMERSION_STRINGS = {
   levelBeginner: { es: "Principiante", ja: "初級", fr: "Débutant" },
   levelIntermediate: { es: "Intermedio", ja: "中級", fr: "Intermédiaire" },
   levelAdvanced: { es: "Avanzado", ja: "上級", fr: "Avancé" },
+  structureTemplateLabel: { es: "Plantilla de estructura", ja: "構造テンプレート", fr: "Modèle de structure" },
+  structureTemplatePlaceholder: { es: "p. ej. Si + [imperfecto de subjuntivo], [condicional]", ja: "例：[動詞-たら]、[結果]", fr: "ex. [Sujet] + ne + [verbe] + pas" },
+  structureCompleteLabel: { es: "Estructura completa — lista para la detección por IA", ja: "構造が完成 — AI検出の準備完了", fr: "Structure complète — prête pour la détection IA" },
+  structureCompleteHint: { es: "Completa el nombre, una plantilla de estructura y al menos un ejemplo para activar esto.", ja: "これを有効にするには、名前・構造テンプレート・例文を1つ以上入力してください。", fr: "Renseignez le nom, un modèle de structure et au moins un exemple pour activer ceci." },
 
   // ---- Tenses overview pages ----
   spanishTensesHeading: { es: "Tiempos verbales en español", ja: "スペイン語の時制", fr: "Temps espagnols" },

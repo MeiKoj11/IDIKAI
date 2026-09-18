@@ -332,29 +332,30 @@ async function checkExampleSentence(text, language, patternContext) {
 // Always returns { label, note, error }; label is null both on failure
 // AND on a legitimate "no single clear point found" result — check
 // `error` to tell the two apart.
-async function classifyGrammarPoint(header, explanation, examples, language) {
+async function classifyGrammarPoint(header, explanation, examples, language, structureTemplate) {
   try {
     const res = await fetch(`${API_BASE}/classify-grammar-point`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ header, explanation, examples, language }),
+      body: JSON.stringify({ header, explanation, examples, language, structureTemplate: structureTemplate || "" }),
     });
     const data = await res.json().catch(() => null);
     if (!res.ok) {
       const reason = (data && data.error) || `Server responded with ${res.status}.`;
       console.error("classify-grammar-point failed:", reason);
-      return { label: null, note: null, error: reason };
+      return { label: null, note: null, refinedStructureTemplate: null, error: reason };
     }
     if (!data || typeof data.note !== "string") {
       console.error("classify-grammar-point: unexpected response shape", data);
-      return { label: null, note: null, error: "The server didn't return a usable result." };
+      return { label: null, note: null, refinedStructureTemplate: null, error: "The server didn't return a usable result." };
     }
-    return { label: data.label || null, note: data.note, error: null };
+    return { label: data.label || null, note: data.note, refinedStructureTemplate: data.refinedStructureTemplate || null, error: null };
   } catch (e) {
     console.error("classify-grammar-point: could not reach the server", e);
     return {
       label: null,
       note: null,
+      refinedStructureTemplate: null,
       error: "Couldn't reach the lookup server at localhost:3001 — is `node server.js` running?",
     };
   }

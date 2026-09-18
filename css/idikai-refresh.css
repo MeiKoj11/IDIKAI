@@ -2317,3 +2317,13 @@ body.howto-open { overflow: hidden; }
   letter-spacing: 0.05em;
 }
 .gn-related-points { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+
+/* ---------- Grammar add-note: structure-readiness checkbox ------------- */
+.card-structure-complete-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+.card-structure-complete-label input:disabled + span { opacity: 0.55; }

@@ -971,10 +971,11 @@ function callClaudeForGenerateJaConjugationSentencesBatch(items, avoidSentences)
 // wrong/forced label would produce useless practice later.
 const CLASSIFY_GRAMMAR_POINT_PROMPT = `You are a language tutor reviewing a learner's own grammar
 note (Spanish or Japanese — you'll be told which). They've named a pattern, explained it in their own
-words, and written their own example sentence(s). Respond with ONLY a JSON object (no markdown, no
-code fences, no explanation) with exactly this shape:
+words, written their own example sentence(s), and optionally drafted a structure template (the pattern
+with its variable slots marked in brackets, e.g. "Si + [imperfecto de subjuntivo], [condicional]").
+Respond with ONLY a JSON object (no markdown, no code fences, no explanation) with exactly this shape:
 
-{ "label": string or null, "note": string }
+{ "label": string or null, "note": string, "refinedStructureTemplate": string or null }
 
 Rules:
 - "label" is a short, precise name for the grammatical construction actually being demonstrated —
@@ -993,18 +994,25 @@ Rules:
   null, briefly and kindly explain why no single clear point was found and what would help (e.g. "These
   two examples show different constructions — try keeping one pattern per card, or add another example
   of the same one.").
+- "refinedStructureTemplate": null if no structure template draft was given — never invent one from
+  nothing. If a draft WAS given, return a cleaned-up version: consistent bracket slot naming (the same
+  slot named the same way throughout), balanced brackets, and if a slot is genuinely ambiguous, keep it
+  but note the ambiguity in its own label (e.g. "[Verb — tense unclear]") rather than guessing. If the
+  draft is already clean, return it unchanged (still a string, not null). Never change the substance of
+  the pattern the learner described — only clean up naming/formatting/bracket balance.
 - Judge Spanish or Japanese as told by the language given — never mix the two.`;
 
-function grammarCardContextForPrompt(header, explanation, examples) {
+function grammarCardContextForPrompt(header, explanation, examples, structureTemplate) {
   const exampleLines = (examples || [])
     .filter((ex) => ex && ex.target)
     .map((ex) => `- ${ex.target}${ex.translation ? ` (${ex.translation})` : ""}`)
     .join("\n");
-  return `Pattern name: ${header}\nLearner's explanation: ${explanation || "(none given)"}\nExample sentences:\n${exampleLines || "(none given)"}`;
+  const structureLine = (structureTemplate || "").trim() || "(none given)";
+  return `Pattern name: ${header}\nLearner's explanation: ${explanation || "(none given)"}\nExample sentences:\n${exampleLines || "(none given)"}\nStructure template draft: ${structureLine}`;
 }
 
-function callClaudeForClassifyGrammarPoint(header, explanation, examples, language) {
-  const userMessage = `Language: ${LANGUAGE_NAMES[language] || language}.\n\n${grammarCardContextForPrompt(header, explanation, examples)}`;
+function callClaudeForClassifyGrammarPoint(header, explanation, examples, language, structureTemplate) {
+  const userMessage = `Language: ${LANGUAGE_NAMES[language] || language}.\n\n${grammarCardContextForPrompt(header, explanation, examples, structureTemplate)}`;
   return callClaudeJSON(CLASSIFY_GRAMMAR_POINT_PROMPT, userMessage, 500);
 }
 
@@ -2325,7 +2333,7 @@ const server = http.createServer((req, res) => {
         return;
       }
 
-      const { header, explanation, examples, language } = parsed;
+      const { header, explanation, examples, language, structureTemplate } = parsed;
       if (!header || !language) {
         res.writeHead(400, { "content-type": "application/json" });
         res.end(JSON.stringify({ error: "Missing header or language." }));
@@ -2334,7 +2342,7 @@ const server = http.createServer((req, res) => {
 
       console.log(`Classifying grammar point "${header}" (${language})...`);
 
-      callClaudeForClassifyGrammarPoint(header, explanation, examples, language)
+      callClaudeForClassifyGrammarPoint(header, explanation, examples, language, structureTemplate)
         .then((result) => {
           console.log("  ->", JSON.stringify(result));
           res.writeHead(200, { "content-type": "application/json" });

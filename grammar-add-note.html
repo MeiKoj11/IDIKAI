@@ -129,6 +129,10 @@
             <span data-immersion-key="explainOwnWordsLabel">Explain it in your own words</span>
             <textarea id="card-explanation" rows="3" placeholder="What is this pattern, and when do you use it?" data-immersion-key="explainOwnWordsPlaceholder"></textarea>
           </label>
+          <label>
+            <span data-immersion-key="structureTemplateLabel">Structure template</span>
+            <input type="text" id="card-structure-template" placeholder="e.g. [Verb-たら], [Result]" data-immersion-key="structureTemplatePlaceholder" />
+          </label>
 
           <button type="button" id="card-classify-btn" class="secondary" data-immersion-key="identifyPatternButton">Identify this pattern</button>
           <div id="card-classify-status" class="card-classify-status" hidden></div>
@@ -144,6 +148,14 @@
             <p class="hint" data-immersion-key="relatedVariantsHint">A related form of the same pattern (e.g. the same structure said about someone else) — nested here instead of its own folder entry.</p>
             <div id="card-variants-list" class="card-variants-list"></div>
             <button type="button" id="card-add-variant-btn" class="secondary" data-immersion-key="addRelatedVariantButton">+ Add related variant</button>
+          </div>
+
+          <div class="card-block" id="structure-complete-block">
+            <label class="card-structure-complete-label">
+              <input type="checkbox" id="card-structure-complete" disabled />
+              <span data-immersion-key="structureCompleteLabel">Complete structure — ready for AI detection</span>
+            </label>
+            <p class="hint" id="structure-complete-hint" data-immersion-key="structureCompleteHint">Fill in the name, a structure template, and at least one example to enable this.</p>
           </div>
         </div>
 
