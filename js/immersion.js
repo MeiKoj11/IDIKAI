@@ -264,6 +264,14 @@ const IMMERSION_STRINGS = {
   explanationSummary: { es: "Explicación", ja: "説明", fr: "Explication" },
   testMePracticeSummary: { es: "Ponme a prueba / Practicar", ja: "テストする／練習する", fr: "Teste-moi / Pratique" },
   patternNotFound: { es: "No se pudo encontrar ese patrón gramatical.", ja: "その文法パターンが見つかりませんでした。", fr: "Impossible de trouver ce schéma grammatical." },
+  meaningNuanceHeading: { es: "Significado y matices", ja: "意味とニュアンス", fr: "Sens et nuances" },
+  commonMistakesHeading: { es: "Errores comunes", ja: "よくある間違い", fr: "Erreurs courantes" },
+  formationHeading: { es: "Formación", ja: "活用形の作り方", fr: "Formation" },
+  relatedPointsHeading: { es: "Puntos relacionados", ja: "関連文法", fr: "Points liés" },
+  openFullNoteButton: { es: "Abrir nota completa", ja: "ノート全体を開く", fr: "Ouvrir la note complète" },
+  levelBeginner: { es: "Principiante", ja: "初級", fr: "Débutant" },
+  levelIntermediate: { es: "Intermedio", ja: "中級", fr: "Intermédiaire" },
+  levelAdvanced: { es: "Avanzado", ja: "上級", fr: "Avancé" },
 
   // ---- Tenses overview pages ----
   spanishTensesHeading: { es: "Tiempos verbales en español", ja: "スペイン語の時制", fr: "Temps espagnols" },

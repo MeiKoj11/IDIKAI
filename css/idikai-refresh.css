@@ -2282,3 +2282,38 @@ body.howto-open { overflow: hidden; }
   color: var(--paper);
   border-color: var(--paper);
 }
+
+/* ---------- Grammar note template (Grammer_New/grammar-note.html) ------ */
+/* Additive component classes for the redesigned grammar note page —
+   header meta chips, one-line summary, common-mistakes list, the
+   conjugation Formation table, and the Related Points row. Kept in this
+   shared stylesheet (not a page-local file) so any other page can reuse
+   them later. */
+.gn-meta-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 16px; }
+.gn-one-line-summary {
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink);
+  margin: 0 0 16px;
+  font-style: italic;
+}
+.gn-mistakes-list { margin: 0; padding-left: 20px; }
+.gn-mistakes-list li { margin-bottom: 6px; font-size: 13.5px; line-height: 1.5; }
+.gn-mistakes-list li:last-child { margin-bottom: 0; }
+.gn-formation-table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-top: 4px; }
+.gn-formation-table th,
+.gn-formation-table td {
+  border: 1px solid rgba(34, 23, 18, 0.25);
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+.gn-formation-table th {
+  background: var(--paper);
+  font-family: "Fahkwang", serif;
+  font-weight: 600;
+  font-size: 12.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.gn-related-points { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }

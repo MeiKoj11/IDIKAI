@@ -922,13 +922,13 @@ function buildConjugationNoteTile(note) {
   li.appendChild(row);
 
   row.addEventListener("click", () => {
-    window.location.href = `grammar-conjugation-note.html?noteId=${encodeURIComponent(note.id)}`;
+    window.location.href = `Grammer_New/grammar-note.html?noteId=${encodeURIComponent(note.id)}`;
   });
   row.tabIndex = 0;
   row.addEventListener("keydown", (e) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
-      window.location.href = `grammar-conjugation-note.html?noteId=${encodeURIComponent(note.id)}`;
+      window.location.href = `Grammer_New/grammar-note.html?noteId=${encodeURIComponent(note.id)}`;
     }
   });
   li.tabIndex = 0;
@@ -1080,6 +1080,17 @@ function buildStructureCard(note) {
     });
     actionsRow.appendChild(testBtn);
   }
+
+  const openFullBtn = document.createElement("button");
+  openFullBtn.type = "button";
+  openFullBtn.className = "secondary";
+  openFullBtn.textContent = "Open full note";
+  openFullBtn.dataset.immersionKey = "openFullNoteButton";
+  openFullBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    window.location.href = `Grammer_New/grammar-note.html?noteId=${encodeURIComponent(note.id)}`;
+  });
+  actionsRow.appendChild(openFullBtn);
 
   const editBtn = document.createElement("button");
   editBtn.type = "button";

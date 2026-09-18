@@ -536,6 +536,23 @@ const CONJUGATION_STARTER_CARDS = [
       verbExample("飲める", "can drink (potential of 飲む)"),
     ],
     conjugationForm: "potential",
+    level: "Intermediate",
+    oneLineSummary: "You're able to do something \u2014 capability, not the act of doing it.",
+    meaningNuance:
+      "For ichidan verbs the potential form and the passive form are identical (\u98df\u3079\u3089\u308c\u308b can mean either " +
+      "\"can eat\" or \"is eaten\") \u2014 only context tells them apart. Godan verbs don't have this problem: " +
+      "the e-row shift (\u98f2\u3081\u308b) is unambiguously potential, since passive uses the a-row instead (\u98f2\u307e\u308c\u308b).",
+    commonMistakes: [
+      "Shifting a godan verb to the wrong row \u2014 e-row (\u3081\u308b) is potential, a-row (\u307e\u308c\u308b) is passive.",
+      "Assuming ichidan \u3089\u308c\u308b is always potential when the sentence actually means passive.",
+      "Treating \u3059\u308b/\u6765\u308b as regular ichidan verbs instead of using their irregular \u3067\u304d\u308b/\u6765\u3089\u308c\u308b.",
+    ],
+    formationTable: [
+      { group: "Godan", rule: "final -u kana \u2192 e-row + \u308b", example: "\u98f2\u3080 \u2192 \u98f2\u3081\u308b" },
+      { group: "Ichidan", rule: "drop \u308b, add \u3089\u308c\u308b", example: "\u98df\u3079\u308b \u2192 \u98df\u3079\u3089\u308c\u308b" },
+      { group: "Irregular", rule: "\u3059\u308b \u2192 \u3067\u304d\u308b; \u6765\u308b(\u304f\u308b) \u2192 \u6765\u3089\u308c\u308b(\u3053\u3089\u308c\u308b)", example: "\u3059\u308b \u2192 \u3067\u304d\u308b" },
+    ],
+    relatedForms: ["passive"],
   },
   {
     header: "Passive (受身形)",
@@ -548,6 +565,24 @@ const CONJUGATION_STARTER_CARDS = [
       "context tells them apart).",
     examples: [verbExample("言われる", "is said (passive of 言う)"), verbExample("思われる", "is thought / it seems (passive of 思う)")],
     conjugationForm: "passive",
+    level: "Intermediate",
+    oneLineSummary: "Something happens to the subject \u2014 plain passive, or the \"suffering passive\" when it affects them negatively.",
+    meaningNuance:
+      "Ichidan verbs share the exact \u3089\u308c\u308b ending with Potential (\u98df\u3079\u3089\u308c\u308b = \"can eat\" or \"is eaten\") \u2014 only " +
+      "context tells them apart. Passive also has two readings of its own: plain (\u3053\u306e\u672c\u306f\u6614\u66f8\u304b\u308c\u305f, no one implied) " +
+      "and \"suffering\" (\u8ff7\u60d1\u306e\u53d7\u8eab), where the subject is negatively affected by someone else's action " +
+      "(\u53cb\u9054\u306b\u65e5\u8a18\u3092\u8aad\u307e\u308c\u305f \u2014 \"my friend read my diary [and I'm annoyed]\").",
+    commonMistakes: [
+      "Reading every ichidan \u3089\u308c\u308b as potential by default instead of checking whether passive fits better.",
+      "Missing the suffering-passive reading and translating it as neutral \"was done\" with no implied annoyance.",
+      "Mixing up the godan a-row+\u308c\u308b passive ending with causative's a-row+\u305b\u308b ending.",
+    ],
+    formationTable: [
+      { group: "Godan", rule: "final -u kana \u2192 a-row + \u308c\u308b", example: "\u8a00\u3046 \u2192 \u8a00\u308f\u308c\u308b" },
+      { group: "Ichidan", rule: "drop \u308b, add \u3089\u308c\u308b", example: "\u98df\u3079\u308b \u2192 \u98df\u3079\u3089\u308c\u308b" },
+      { group: "Irregular", rule: "\u3059\u308b \u2192 \u3055\u308c\u308b; \u6765\u308b(\u304f\u308b) \u2192 \u6765\u3089\u308c\u308b(\u3053\u3089\u308c\u308b)", example: "\u3059\u308b \u2192 \u3055\u308c\u308b" },
+    ],
+    relatedForms: ["potential", "causative", "causativePassive"],
   },
   {
     header: "Causative (使役形)",
@@ -557,6 +592,24 @@ const CONJUGATION_STARTER_CARDS = [
       "becomes させる and 来る becomes 来させる.",
     examples: [verbExample("言わせる", "make/let (someone) say (causative of 言う)"), verbExample("思わせる", "make (someone) think (causative of 思う)")],
     conjugationForm: "causative",
+    level: "Intermediate",
+    oneLineSummary: "The subject makes or lets someone else do the action.",
+    meaningNuance:
+      "The same \u305b\u308b/\u3055\u305b\u308b form covers both \"make\" (forcing) and \"let\" (permitting) \u2014 context and the verb's " +
+      "meaning decide which reading fits. It's easy to confuse with Passive, since both attach to the a-row " +
+      "stem: causative adds \u305b\u308b (\u8a00\u308f\u305b\u308b, \"make say\"), passive adds \u308c\u308b (\u8a00\u308f\u308c\u308b, \"is said\") \u2014 same stem, " +
+      "different ending.",
+    commonMistakes: [
+      "Swapping causative \u305b\u308b/\u3055\u305b\u308b with passive \u308c\u308b/\u3089\u308c\u308b \u2014 check who's doing the causing vs. who's affected.",
+      "Dropping the \u306b marking the person being made to act (X\u306b\u301c\u3055\u305b\u308b).",
+      "Treating \u3059\u308b/\u6765\u308b as regular verbs instead of using their irregular \u3055\u305b\u308b/\u6765\u3055\u305b\u308b.",
+    ],
+    formationTable: [
+      { group: "Godan", rule: "final -u kana \u2192 a-row + \u305b\u308b", example: "\u8a00\u3046 \u2192 \u8a00\u308f\u305b\u308b" },
+      { group: "Ichidan", rule: "drop \u308b, add \u3055\u305b\u308b", example: "\u98df\u3079\u308b \u2192 \u98df\u3079\u3055\u305b\u308b" },
+      { group: "Irregular", rule: "\u3059\u308b \u2192 \u3055\u305b\u308b; \u6765\u308b(\u304f\u308b) \u2192 \u6765\u3055\u305b\u308b(\u3053\u3055\u305b\u308b)", example: "\u3059\u308b \u2192 \u3055\u305b\u308b" },
+    ],
+    relatedForms: ["passive", "causativePassive"],
   },
   {
     header: "Causative-passive (使役受身形)",
@@ -569,6 +622,25 @@ const CONJUGATION_STARTER_CARDS = [
       verbExample("思わせられる", "was made to think (causative-passive of 思う)"),
     ],
     conjugationForm: "causativePassive",
+    level: "Advanced",
+    oneLineSummary: "The subject was made to do something, usually against their will.",
+    meaningNuance:
+      "Causative + passive stacked: someone forced the subject to act, and the subject is on the receiving " +
+      "end of that. Godan verbs not ending in \u3059 commonly contract \u3089\u308c\u308b down to \u3055\u308c\u308b (\u8a00\u308f\u305b\u3089\u308c\u308b \u2192 " +
+      "\u8a00\u308f\u3055\u308c\u308b, both correct) \u2014 but this \u3055\u308c\u308b looks identical to plain irregular \u3059\u308b-passive, so the verb " +
+      "itself is what tells them apart, not the ending.",
+    commonMistakes: [
+      "Contracting -\u3059 verbs the same way as others (\u8a71\u3059 should stay \u8a71\u3055\u305b\u3089\u308c\u308b, never \u8a71\u3055\u3055\u308c\u308b).",
+      "Using causative-passive when plain causative (a willing \"let\") was actually meant.",
+      "Reading contracted \u3055\u308c\u308b as irregular \u3059\u308b's passive instead of a contracted causative-passive.",
+    ],
+    formationTable: [
+      { group: "Godan (not -\u3059)", rule: "causative stem + \u3089\u308c\u308b, often contracts to \u3055\u308c\u308b", example: "\u8a00\u308f\u305b\u308b \u2192 \u8a00\u308f\u305b\u3089\u308c\u308b\uff08\u8a00\u308f\u3055\u308c\u308b\uff09" },
+      { group: "Godan (-\u3059)", rule: "causative stem + \u3089\u308c\u308b, no contraction", example: "\u8a71\u3055\u305b\u308b \u2192 \u8a71\u3055\u305b\u3089\u308c\u308b" },
+      { group: "Ichidan", rule: "causative stem + \u3089\u308c\u308b", example: "\u98df\u3079\u3055\u305b\u308b \u2192 \u98df\u3079\u3055\u305b\u3089\u308c\u308b" },
+      { group: "Irregular", rule: "\u3059\u308b \u2192 \u3055\u305b\u3089\u308c\u308b; \u6765\u308b(\u304f\u308b) \u2192 \u6765\u3055\u305b\u3089\u308c\u308b(\u3053\u3055\u305b\u3089\u308c\u308b)", example: "\u3059\u308b \u2192 \u3055\u305b\u3089\u308c\u308b" },
+    ],
+    relatedForms: ["causative", "passive"],
   },
 ];
 
@@ -598,6 +670,34 @@ function fixStalePassiveExplanation() {
 // Adds any of the four conjugation-pattern cards not already present in
 // a "Tenses and verb conjugations" folder — shared by the one-time seed
 // below and by the unconditional backfill fix that follows it.
+// One-time-per-load patch (same reasoning as fixStalePassiveExplanation
+// above): the new grammar-note template (oneLineSummary/meaningNuance/
+// commonMistakes/formationTable/relatedForms) is data carried on
+// CONJUGATION_STARTER_CARDS, but a note already seeded into someone's
+// account before these fields existed won't pick them up on its own --
+// Object.assign in addGrammarNote only ever runs once, at creation.
+// Runs unconditionally (not gated by conjugationCardsSeeded) so an
+// already-seeded account still gets the new fields the next time it
+// loads, same as fixStalePassiveExplanation/backfillMissingConjugationCards.
+function backfillConjugationTemplateFields(language) {
+  if (language !== "ja") return;
+  const notes = readJSON(STORAGE_KEYS.grammarNotes, []);
+  let changed = false;
+  const templateFields = ["level", "oneLineSummary", "meaningNuance", "commonMistakes", "formationTable", "relatedForms"];
+  notes.forEach((n) => {
+    if (!n.conjugationForm) return;
+    const source = CONJUGATION_STARTER_CARDS.find((c) => c.conjugationForm === n.conjugationForm);
+    if (!source) return;
+    templateFields.forEach((field) => {
+      if (source[field] !== undefined && n[field] === undefined) {
+        n[field] = source[field];
+        changed = true;
+      }
+    });
+  });
+  if (changed) writeJSON(STORAGE_KEYS.grammarNotes, notes);
+}
+
 function addMissingConjugationCards(folder) {
   const existingForms = new Set(
     getGrammarNotes(folder.id)
@@ -644,6 +744,7 @@ function ensureDefaultConjugationCards(language) {
   if (language !== "ja") return; // this feature is Japanese-specific
   fixStalePassiveExplanation();
   backfillMissingConjugationCards(language);
+  backfillConjugationTemplateFields(language);
 
   const seeded = readJSON(STORAGE_KEYS.conjugationCardsSeeded, []);
   if (seeded.includes(language)) return;
