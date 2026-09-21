@@ -708,6 +708,102 @@ async function checkConjugationSentence(answerLanguage, referenceSentence, expec
   }
 }
 
+// ---------------------------------------------------------------------
+// Custom conjugation/structure notes (Grammer_New/grammar-add-conjugation-
+// note.html — Japanese "Tenses and verb conjugations" only, for now).
+// ---------------------------------------------------------------------
+
+// "AI detect" on the Structure template box. Always returns
+// { formationRule, refinedStructureTemplate, error } — both text fields
+// are null only on a failure (see `error`), never as a valid "nothing
+// found" result (unlike classifyGrammarPoint, there's always a rule and
+// a cleaned-up template to offer once a template's been drafted).
+async function detectConjugationStructure(name, exampleTL, exampleEN, structureTemplate, language) {
+  try {
+    const res = await fetch(`${API_BASE}/detect-conjugation-structure`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name, exampleTL, exampleEN, structureTemplate, language }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      const reason = (data && data.error) || `Server responded with ${res.status}.`;
+      console.error("detect-conjugation-structure failed:", reason);
+      return { formationRule: null, refinedStructureTemplate: null, error: reason };
+    }
+    if (!data || typeof data.formationRule !== "string" || typeof data.refinedStructureTemplate !== "string") {
+      console.error("detect-conjugation-structure: unexpected response shape", data);
+      return { formationRule: null, refinedStructureTemplate: null, error: "The server didn't return a usable result." };
+    }
+    return { formationRule: data.formationRule, refinedStructureTemplate: data.refinedStructureTemplate, error: null };
+  } catch (e) {
+    console.error("detect-conjugation-structure: could not reach the server", e);
+    return {
+      formationRule: null,
+      refinedStructureTemplate: null,
+      error: "Couldn't reach the lookup server at localhost:3001 — is `node server.js` running?",
+    };
+  }
+}
+
+// "Generate 3 more examples" — returns { examples, error }; examples is
+// [] (never null) on a failure so callers can just .forEach it either way.
+async function generateConjugationExamples(name, structureTemplate, formationRule, exampleTL, exampleEN, language, avoidTargets, count) {
+  try {
+    const res = await fetch(`${API_BASE}/generate-conjugation-examples`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name, structureTemplate, formationRule, exampleTL, exampleEN, language, avoidTargets, count }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      const reason = (data && data.error) || `Server responded with ${res.status}.`;
+      console.error("generate-conjugation-examples failed:", reason);
+      return { examples: [], error: reason };
+    }
+    if (!data || !Array.isArray(data.examples)) {
+      console.error("generate-conjugation-examples: unexpected response shape", data);
+      return { examples: [], error: "The server didn't return a usable result." };
+    }
+    return { examples: data.examples, error: null };
+  } catch (e) {
+    console.error("generate-conjugation-examples: could not reach the server", e);
+    return {
+      examples: [],
+      error: "Couldn't reach the lookup server at localhost:3001 — is `node server.js` running?",
+    };
+  }
+}
+
+// Powers both "Generate quick conjugation test" (style: "word") and the
+// sentence test (style: "sentence") boxes. Returns { items, error }.
+async function generateConjugationPractice(name, structureTemplate, formationRule, exampleTL, exampleEN, language, style, avoid, count) {
+  try {
+    const res = await fetch(`${API_BASE}/generate-conjugation-practice`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name, structureTemplate, formationRule, exampleTL, exampleEN, language, style, avoid, count }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      const reason = (data && data.error) || `Server responded with ${res.status}.`;
+      console.error("generate-conjugation-practice failed:", reason);
+      return { items: [], error: reason };
+    }
+    if (!data || !Array.isArray(data.items)) {
+      console.error("generate-conjugation-practice: unexpected response shape", data);
+      return { items: [], error: "The server didn't return a usable result." };
+    }
+    return { items: data.items, error: null };
+  } catch (e) {
+    console.error("generate-conjugation-practice: could not reach the server", e);
+    return {
+      items: [],
+      error: "Couldn't reach the lookup server at localhost:3001 — is `node server.js` running?",
+    };
+  }
+}
+
 const Translate = {
   lookupTranslation,
   checkConjugation,
@@ -719,6 +815,9 @@ const Translate = {
   checkWritingGrammar,
   checkExampleSentence,
   classifyGrammarPoint,
+  detectConjugationStructure,
+  generateConjugationExamples,
+  generateConjugationPractice,
   generateCardPractice,
   generateGrammarPractice,
   generateConjugationSentence,

@@ -1016,6 +1016,134 @@ function callClaudeForClassifyGrammarPoint(header, explanation, examples, langua
   return callClaudeJSON(CLASSIFY_GRAMMAR_POINT_PROMPT, userMessage, 500);
 }
 
+// ---------------------------------------------------------------------
+// Custom conjugation/structure notes (Grammer_New/grammar-add-conjugation-
+// note.html — currently Japanese "Tenses and verb conjugations" only).
+// The learner drafts their OWN structure template (e.g. "V+たがる") from
+// one worked example, rather than picking from the hand-authored library
+// — so unlike ja-conjugator.js's four hardcoded forms, everything here
+// is AI-generated: there's no local rule-engine for an arbitrary,
+// learner-invented pattern.
+// ---------------------------------------------------------------------
+
+function customConjugationContextForPrompt(name, structureTemplate, formationRule, exampleTL, exampleEN) {
+  return (
+    `Pattern name: ${name}\n` +
+    `Structure template: ${structureTemplate}\n` +
+    `Formation rule: ${formationRule || "(none given)"}\n` +
+    `Worked example: ${exampleTL || "(none given)"} / ${exampleEN || "(none given)"}`
+  );
+}
+
+// "AI detect" on the Structure template box — given one worked example
+// plus the learner's own draft template, returns a plain-English
+// formation rule (how to actually build the pattern from a verb) and a
+// cleaned-up version of the template itself. Unlike classify-grammar-
+// point, there's no "no clear pattern found" case: the learner has
+// already supplied a concrete template to work from, so this always
+// does its best with what's given rather than declining to answer.
+const DETECT_CONJUGATION_STRUCTURE_PROMPT = `You are a language tutor reviewing a learner's own
+custom grammar note for a conjugation/structure pattern (Japanese, Spanish, or French — you'll be
+told which). They've named the pattern, given ONE worked example (a target-language sentence plus
+its English translation), and drafted a structure template — the pattern written out with its
+variable slot(s) marked in brackets (e.g. "[Verb-たがる]" or "V + たがる"). Respond with ONLY a JSON
+object (no markdown, no code fences, no explanation) with exactly this shape:
+
+{ "formationRule": string, "refinedStructureTemplate": string }
+
+Rules:
+- "formationRule" is a short, precise, practical explanation of HOW to form this pattern from a
+  plain verb — e.g. "Attach たがる to a verb's ます-stem to express that someone (usually 3rd person)
+  wants to do that action." Base it on what the worked example actually demonstrates, not just the
+  learner's own template text — if the template is close but the example reveals a more specific or
+  slightly different rule, describe the rule the example actually shows.
+- "refinedStructureTemplate" is a cleaned-up version of the learner's structure template: consistent
+  bracket slot naming, balanced brackets, and — if a slot is genuinely ambiguous — keep the slot but
+  make its label describe the ambiguity (e.g. "[Verb — stem unclear]") rather than guessing. Never
+  change the substance of the pattern, only clean up naming/formatting/bracket balance. If the draft
+  is already clean, return it unchanged (still a string).
+- Both fields are always required.`;
+
+function callClaudeForDetectConjugationStructure(name, exampleTL, exampleEN, structureTemplate, language) {
+  const userMessage =
+    `Language: ${LANGUAGE_NAMES[language] || language}.\n\n` +
+    `Pattern name: ${name}\nExample sentence: ${exampleTL || "(none given)"}\n` +
+    `English translation: ${exampleEN || "(none given)"}\nStructure template draft: ${structureTemplate}`;
+  return callClaudeJSON(DETECT_CONJUGATION_STRUCTURE_PROMPT, userMessage, 400);
+}
+
+// "Generate 3 more examples" — only offered once the structure template
+// has been confirmed (see the add-page's own gating). Same shape as the
+// learner's own examples array ({ target, translation }) so the results
+// drop straight into the existing example-row UI to review/edit/discard.
+const GENERATE_CONJUGATION_EXAMPLES_PROMPT = `You write natural, level-appropriate example sentences
+for a learner's own custom grammar note (Japanese, Spanish, or French — you'll be told which),
+demonstrating one specific pattern they've defined themselves (name, structure template, formation
+rule, and one worked example are all given). Respond with ONLY a JSON object (no markdown, no code
+fences, no explanation) with exactly this shape:
+
+{ "examples": [ { "target": string, "translation": string }, ... ] }
+
+Rules:
+- Return exactly the requested number of NEW example sentences, each one correctly demonstrating
+  the pattern described.
+- Vary vocabulary, subject, and scenario across the examples and from the worked example already
+  given — no near-duplicates, and never reuse anything in an "avoid" list provided.
+- "target" is the sentence in the target language; "translation" is a natural, faithful English
+  translation of that exact sentence.
+- A native speaker must find every "target" sentence completely natural for the level implied by
+  the worked example.`;
+
+function callClaudeForGenerateConjugationExamples(name, structureTemplate, formationRule, exampleTL, exampleEN, language, avoidTargets, count) {
+  const avoidLines = (avoidTargets || []).length
+    ? `\n\nAvoid reusing (in either language) any of these previous sentences:\n${avoidTargets.map((s) => `- ${s}`).join("\n")}`
+    : "";
+  const userMessage =
+    `Language: ${LANGUAGE_NAMES[language] || language}. Generate ${count || 3} new examples.\n\n` +
+    `${customConjugationContextForPrompt(name, structureTemplate, formationRule, exampleTL, exampleEN)}${avoidLines}`;
+  return callClaudeJSON(GENERATE_CONJUGATION_EXAMPLES_PROMPT, userMessage, 1200);
+}
+
+// Powers both "Generate quick conjugation test" (style: "word") and the
+// sentence test (style: "sentence") on the same add-page — both are
+// self-graded reveal-style practice (like GENERATE_CARD_PRACTICE_PROMPT
+// below), since these are freshly AI-generated sentences with no single
+// "correct" answer to exact-match against.
+const GENERATE_CONJUGATION_PRACTICE_PROMPT = `You generate short self-graded practice items for a
+learner's own custom grammar note (Japanese, Spanish, or French — you'll be told which), for one
+specific pattern they've defined themselves (name, structure template, formation rule, and one
+worked example are all given). You'll also be told a "style": "word" for short, single-clause items
+built around one verb (a quick, focused conjugation drill), or "sentence" for fuller, more natural
+whole-sentence items. Respond with ONLY a JSON object (no markdown, no code fences, no explanation)
+with exactly this shape:
+
+{ "items": [ { "promptEnglish": string, "answerTarget": string }, ... ] }
+
+Rules:
+- Return exactly the requested number of items.
+- "promptEnglish" is a short English cue that calls for this exact pattern (e.g. "She wants to eat
+  sushi." for a "word"-style item on a たがる note) — phrased so the learner has to produce the
+  pattern themselves, not a fill-in-the-blank of its own wording.
+- "answerTarget" is ONE natural, correct sentence in the target language, correctly using the
+  pattern, that answers "promptEnglish".
+- For "word" style: keep each item short and built around a single verb/action, similar in scope to
+  the worked example already given. For "sentence" style: write fuller, more naturalistic sentences,
+  still centered on this one pattern.
+- Vary vocabulary, subject, and scenario across the list, and never reuse a sentence in any "avoid"
+  list provided.
+- A native speaker must find every "answerTarget" sentence completely natural.`;
+
+function callClaudeForGenerateConjugationPractice(name, structureTemplate, formationRule, exampleTL, exampleEN, language, style, avoid, count) {
+  const avoidLines = (avoid || []).length
+    ? `\n\nAvoid reusing (in either language) any of these previous sentences:\n${avoid.map((s) => `- ${s}`).join("\n")}`
+    : "";
+  const userMessage =
+    `Language: ${LANGUAGE_NAMES[language] || language}. Style: ${style === "sentence" ? "sentence" : "word"}. ` +
+    `Generate ${count || 5} items.\n\n` +
+    `${customConjugationContextForPrompt(name, structureTemplate, formationRule, exampleTL, exampleEN)}${avoidLines}`;
+  return callClaudeJSONWithRetry(GENERATE_CONJUGATION_PRACTICE_PROMPT, userMessage, 2000, 4000, GRAMMAR_CHECK_MODEL);
+}
+
 // Powers a structure card's "Test me on this" practice — only offered
 // once a card has a recognized label (see classify above). Generates
 // FRESH situational prompts + model answers for the same construction,
@@ -2345,6 +2473,132 @@ const server = http.createServer((req, res) => {
       callClaudeForClassifyGrammarPoint(header, explanation, examples, language, structureTemplate)
         .then((result) => {
           console.log("  ->", JSON.stringify(result));
+          res.writeHead(200, { "content-type": "application/json" });
+          res.end(JSON.stringify(result));
+        })
+        .catch((err) => {
+          console.error(err.message);
+          res.writeHead(500, { "content-type": "application/json" });
+          res.end(JSON.stringify({ error: err.message }));
+        });
+    });
+    return;
+  }
+
+  if (url.pathname === "/detect-conjugation-structure" && req.method === "POST") {
+    const bodyChunks = [];
+    let bodyBytes = 0;
+    req.on("data", (chunk) => {
+      bodyChunks.push(chunk);
+      bodyBytes += chunk.length;
+      if (bodyBytes > 512 * 1024) req.destroy();
+    });
+    req.on("end", () => {
+      const rawBody = Buffer.concat(bodyChunks).toString("utf8");
+      let parsed;
+      try {
+        parsed = JSON.parse(rawBody);
+      } catch (e) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "Invalid JSON body." }));
+        return;
+      }
+
+      const { name, exampleTL, exampleEN, structureTemplate, language } = parsed;
+      if (!name || !structureTemplate || !language) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "Missing name, structureTemplate, or language." }));
+        return;
+      }
+
+      console.log(`Detecting conjugation structure "${structureTemplate}" (${language})...`);
+
+      callClaudeForDetectConjugationStructure(name, exampleTL, exampleEN, structureTemplate, language)
+        .then((result) => {
+          res.writeHead(200, { "content-type": "application/json" });
+          res.end(JSON.stringify(result));
+        })
+        .catch((err) => {
+          console.error(err.message);
+          res.writeHead(500, { "content-type": "application/json" });
+          res.end(JSON.stringify({ error: err.message }));
+        });
+    });
+    return;
+  }
+
+  if (url.pathname === "/generate-conjugation-examples" && req.method === "POST") {
+    const bodyChunks = [];
+    let bodyBytes = 0;
+    req.on("data", (chunk) => {
+      bodyChunks.push(chunk);
+      bodyBytes += chunk.length;
+      if (bodyBytes > 512 * 1024) req.destroy();
+    });
+    req.on("end", () => {
+      const rawBody = Buffer.concat(bodyChunks).toString("utf8");
+      let parsed;
+      try {
+        parsed = JSON.parse(rawBody);
+      } catch (e) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "Invalid JSON body." }));
+        return;
+      }
+
+      const { name, structureTemplate, formationRule, exampleTL, exampleEN, language, avoidTargets, count } = parsed;
+      if (!name || !structureTemplate || !language) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "Missing name, structureTemplate, or language." }));
+        return;
+      }
+
+      console.log(`Generating ${count || 3} more examples for "${name}" (${language})...`);
+
+      callClaudeForGenerateConjugationExamples(name, structureTemplate, formationRule, exampleTL, exampleEN, language, avoidTargets, count)
+        .then((result) => {
+          res.writeHead(200, { "content-type": "application/json" });
+          res.end(JSON.stringify(result));
+        })
+        .catch((err) => {
+          console.error(err.message);
+          res.writeHead(500, { "content-type": "application/json" });
+          res.end(JSON.stringify({ error: err.message }));
+        });
+    });
+    return;
+  }
+
+  if (url.pathname === "/generate-conjugation-practice" && req.method === "POST") {
+    const bodyChunks = [];
+    let bodyBytes = 0;
+    req.on("data", (chunk) => {
+      bodyChunks.push(chunk);
+      bodyBytes += chunk.length;
+      if (bodyBytes > 512 * 1024) req.destroy();
+    });
+    req.on("end", () => {
+      const rawBody = Buffer.concat(bodyChunks).toString("utf8");
+      let parsed;
+      try {
+        parsed = JSON.parse(rawBody);
+      } catch (e) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "Invalid JSON body." }));
+        return;
+      }
+
+      const { name, structureTemplate, formationRule, exampleTL, exampleEN, language, style, avoid, count } = parsed;
+      if (!name || !structureTemplate || !language) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "Missing name, structureTemplate, or language." }));
+        return;
+      }
+
+      console.log(`Generating ${count || 5} "${style}" practice items for "${name}" (${language})...`);
+
+      callClaudeForGenerateConjugationPractice(name, structureTemplate, formationRule, exampleTL, exampleEN, language, style, avoid, count)
+        .then((result) => {
           res.writeHead(200, { "content-type": "application/json" });
           res.end(JSON.stringify(result));
         })

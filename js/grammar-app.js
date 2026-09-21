@@ -251,7 +251,12 @@ function initGrammarThemePage() {
   });
 
   const addNoteLink = document.getElementById("add-note-link");
-  if (addNoteLink) addNoteLink.href = `grammar-add-note.html?themeId=${encodeURIComponent(theme.id)}`;
+  const isJaTensesFolder = themeLang === "ja" && (theme.name || "").toLowerCase() === "tenses and verb conjugations";
+  if (addNoteLink) {
+    addNoteLink.href = isJaTensesFolder
+      ? `Grammer_New/grammar-add-conjugation-note.html?themeId=${encodeURIComponent(theme.id)}`
+      : `grammar-add-note.html?themeId=${encodeURIComponent(theme.id)}`;
+  }
 
   const spanishTensesLink = document.getElementById("spanish-tenses-link");
   if (spanishTensesLink) {
@@ -1099,7 +1104,10 @@ function buildStructureCard(note) {
   editBtn.dataset.immersionKey = "btnEdit";
   editBtn.addEventListener("click", (e) => {
     e.stopPropagation();
-    window.location.href = `grammar-add-note.html?themeId=${encodeURIComponent(note.themeId)}&noteId=${encodeURIComponent(note.id)}`;
+    window.location.href =
+      note.structureTemplate !== undefined
+        ? `Grammer_New/grammar-add-conjugation-note.html?themeId=${encodeURIComponent(note.themeId)}&noteId=${encodeURIComponent(note.id)}`
+        : `grammar-add-note.html?themeId=${encodeURIComponent(note.themeId)}&noteId=${encodeURIComponent(note.id)}`;
   });
   actionsRow.appendChild(editBtn);
 

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>New grammar note</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fahkwang:wght@400;500;600;700&family=Nunito:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="stylesheet" href="../css/idikai-refresh.css" />
+</head>
+<body>
+  <div id="app-topbar" class="app-topbar">
+    <button type="button" id="topbar-hamburger" class="topbar-hamburger" aria-label="Menu" aria-haspopup="true">
+      <span></span><span></span><span></span>
+    </button>
+    <span id="topbar-lang-label" class="topbar-lang-label"></span>
+    <div id="topbar-menu" class="topbar-menu" hidden>
+      <div class="topbar-menu-heading" data-immersion-key="changeLanguageHeading">Change language</div>
+      <button type="button" class="topbar-lang-option" data-lang="es" data-immersion-key="langNameEs">Spanish</button>
+      <button type="button" class="topbar-lang-option" data-lang="ja" data-immersion-key="langNameJa">Japanese</button>
+      <button type="button" class="topbar-lang-option" data-lang="fr" data-immersion-key="langNameFr">French</button>
+    </div>
+    <button type="button" id="topbar-notifications" class="topbar-notifications" aria-label="Notifications" aria-haspopup="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2"></rect><path d="M3 6.5l9 6.5 9-6.5"></path></svg>
+    </button>
+    <button type="button" id="hub-todo-toggle" class="topbar-todo" aria-label="To-do list" aria-haspopup="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"></rect><path d="M8 12l3 3 5-6"></path></svg>
+      <span id="hub-todo-toggle-count" class="hub-todo-toggle-count" hidden></span>
+    </button>
+    <a href="../welcome.html" id="topbar-home" class="topbar-home" aria-label="Language home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"></path><path d="M5 10v10h14V10"></path></svg>
+    </a>
+    <div id="topbar-notifications-menu" class="topbar-menu topbar-notifications-menu" hidden>
+      <div class="topbar-menu-heading" data-immersion-key="notificationsHeading">Notifications</div>
+      <p class="topbar-notifications-empty" data-immersion-key="notificationsEmpty">Coming soon — once a teacher connection exists, updates will show up here.</p>
+    </div>
+    <div id="hub-todo-panel" class="hub-todo-panel" hidden>
+      <div id="hub-todo-header" class="hub-todo-header">
+        <span class="hub-todo-title" data-immersion-key="todoTitle">To-do list</span>
+        <button type="button" id="hub-todo-close" class="hub-todo-close" aria-label="Close">×</button>
+      </div>
+      <form id="hub-todo-add-form" class="hub-todo-add-form">
+        <input type="text" id="hub-todo-add-input" placeholder="Add a task…" autocomplete="off" data-immersion-key="todoAddPlaceholder" />
+        <select id="hub-todo-folder-select" class="hub-todo-folder-select" aria-label="Folder">
+          <option value="" data-immersion-key="todoNoFolder">No folder</option>
+        </select>
+        <button type="submit" data-immersion-key="todoAddButton">Add</button>
+      </form>
+      <div id="hub-todo-groups" class="hub-todo-groups"></div>
+      <label class="hub-todo-show-completed">
+        <input type="checkbox" id="hub-todo-show-completed" />
+        <span data-immersion-key="todoShowCompleted">Show completed</span>
+      </label>
+    </div>
+  </div>
+  <div id="app-tab-strip" class="app-tab-strip">
+    <div id="app-tab-strip-tabs" class="app-tab-strip-tabs"></div>
+    <div class="app-tab-strip-add">
+      <button type="button" id="app-tab-plus" class="tab-bar-plus-btn" title="Open another section in a new tab">+</button>
+      <div id="app-tab-picker-panel" class="app-tab-picker-panel" hidden>
+        <select id="app-tab-section-select">
+          <option value="" disabled selected data-immersion-key="tabPickerSectionPlaceholder">Which section?</option>
+          <option value="vocab" data-immersion-key="sectionVocab">Vocab Bank</option>
+          <option value="grammar" data-immersion-key="sectionGrammar">Grammar</option>
+          <option value="writing" data-immersion-key="sectionWriting">Writing</option>
+          <option value="speaking" data-immersion-key="sectionSpeaking">Speaking</option>
+          <option value="reading" data-immersion-key="sectionReading">Reading</option>
+          <option value="personal-hub" data-immersion-key="sectionPersonalHub">Main Hub</option>
+          <option value="listening" data-immersion-key="sectionListening">Listening</option>
+        </select>
+        <select id="app-tab-unit-select" hidden>
+          <option value="" disabled selected data-immersion-key="tabPickerUnitPlaceholder">Which one?</option>
+        </select>
+        <button type="button" id="app-tab-open-btn" class="secondary" hidden data-immersion-key="tabPickerOpen">Open</button>
+        <button type="button" id="app-tab-picker-cancel" class="secondary" data-immersion-key="tabPickerCancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+  <header class="app-header" id="gac-header">
+    <a href="../grammar.html" class="back-link" id="gac-back-link" data-immersion-key="backToFolder">&larr; Back to folder</a>
+    <div class="title-with-howto">
+      <h1 id="gac-heading" data-immersion-key="newGrammarNoteHeading">New grammar note</h1>
+      <button type="button" class="howto-btn" id="gac-show-example-btn" data-howto-trigger="gac-example-overlay" aria-haspopup="dialog" data-immersion-key="showExampleButton">Show example</button>
+    </div>
+  </header>
+
+  <div class="howto-overlay" id="gac-example-overlay" role="dialog" aria-modal="true" aria-labelledby="gac-example-overlay-title" hidden>
+    <div class="howto-modal">
+      <div class="howto-modal-head">
+        <h2 class="howto-modal-title" id="gac-example-overlay-title" data-immersion-key="exampleOverlayTitle">Example: a filled-in note</h2>
+        <button type="button" class="howto-modal-close" aria-label="Close" data-howto-close>&times;</button>
+      </div>
+      <div class="howto-modal-body">
+        <p><strong>Name of grammar point, in your own words:</strong> Want to</p>
+        <p><strong>Example sentence in Japanese:</strong> 彼女が映画を見たがっている</p>
+        <p><strong>Example sentence in English:</strong> She wants to watch a movie</p>
+        <p><strong>Structure template:</strong> V＋たがる</p>
+        <p class="hint">Clicking "AI detect" here would return a formation rule (e.g. "Attach たがる to a verb's ます-stem to express that someone — usually 3rd person — wants to do that action.") to accept or decline. Once accepted, ticking the confirm box below the Structure template unlocks example and test generation.</p>
+        <p><strong>Nuance and personal note:</strong> This is usually only used with third person, talking about someone else's wishes — e.g. if you asked "do you want to go?" the たい form would be used instead, since that's a direct question.</p>
+      </div>
+    </div>
+  </div>
+
+  <main>
+    <section class="panel">
+      <form id="gac-form" class="stacked-form">
+        <label>
+          <span data-immersion-key="nameGrammarPointLabel">Name of grammar point in your own words</span>
+          <input type="text" id="gac-name" placeholder="e.g. Want to" />
+        </label>
+
+        <label>
+          <span data-immersion-key="exampleSentenceTargetLabel">Example sentence in Japanese</span>
+          <textarea id="gac-example-target" rows="2"></textarea>
+        </label>
+
+        <label>
+          <span data-immersion-key="exampleSentenceEnglishLabel">Example sentence in English</span>
+          <input type="text" id="gac-example-english" />
+        </label>
+
+        <label>
+          <span data-immersion-key="structureTemplateLabel">Structure template</span>
+          <div class="select-with-button">
+            <input type="text" id="gac-structure-template" placeholder="e.g. V＋たがる" />
+            <button type="button" id="gac-detect-btn" class="secondary" data-immersion-key="aiDetectButton">AI detect</button>
+          </div>
+        </label>
+        <div id="gac-structure-status" class="card-classify-status" hidden></div>
+
+        <div class="card-block" id="gac-structure-confirm-block">
+          <label class="card-structure-complete-label">
+            <input type="checkbox" id="gac-structure-confirm" disabled />
+            <span data-immersion-key="confirmStructureLabel">Accept AI detection for this structure template</span>
+          </label>
+          <p class="hint" id="gac-structure-confirm-hint" data-immersion-key="confirmStructureHint">Run AI detect above at least once to enable this.</p>
+        </div>
+
+        <label>
+          <span data-immersion-key="nuanceNoteLabel">Nuance and personal note</span>
+          <textarea id="gac-nuance" rows="3"></textarea>
+        </label>
+
+        <div class="card-block">
+          <h3 class="card-block-heading" data-immersion-key="examplesHeading">Examples</h3>
+          <div id="gac-examples-list" class="card-examples-list"></div>
+          <button type="button" id="gac-generate-examples-btn" class="secondary" disabled data-immersion-key="generateMoreExamplesButton">Generate 3 more examples</button>
+          <p class="hint" data-immersion-key="unlockAfterConfirmHint">Confirm AI detection of the structure template above to unlock this.</p>
+        </div>
+
+        <div class="card-block">
+          <h3 class="card-block-heading" data-immersion-key="quickConjugationTestHeading">Quick conjugation test</h3>
+          <button type="button" id="gac-word-test-toggle" class="secondary" disabled data-immersion-key="generateButton">Generate</button>
+          <div id="gac-word-test-panel" class="card-practice-panel" hidden></div>
+        </div>
+
+        <div class="card-block">
+          <h3 class="card-block-heading" data-immersion-key="sentenceTestHeading">Sentence test</h3>
+          <button type="button" id="gac-sentence-test-toggle" class="secondary" disabled data-immersion-key="generateButton">Generate</button>
+          <div id="gac-sentence-test-panel" class="card-practice-panel" hidden></div>
+        </div>
+
+        <button type="submit" id="gac-submit-btn" data-immersion-key="saveNoteButton">Save note</button>
+      </form>
+    </section>
+  </main>
+  <script src="../js/topbar.js"></script>
+  <script src="../js/immersion.js"></script>
+  <script src="../js/app-tabs.js"></script>
+  <script src="../js/storage.js"></script>
+  <script src="../js/hub-tasks.js"></script>
+  <script src="../js/translate.js"></script>
+  <script src="../js/grammar-concepts.js"></script>
+  <script src="../js/grammar-app.js"></script>
+  <script src="../js/howto.js"></script>
+  <script src="grammar-add-conjugation-note.js"></script>
+</body>
+</html>
