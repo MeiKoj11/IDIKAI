@@ -1112,26 +1112,39 @@ function callClaudeForGenerateConjugationExamples(name, structureTemplate, forma
 const GENERATE_CONJUGATION_PRACTICE_PROMPT = `You generate short self-graded practice items for a
 learner's own custom grammar note (Japanese, Spanish, or French — you'll be told which), for one
 specific pattern they've defined themselves (name, structure template, formation rule, and one
-worked example are all given). You'll also be told a "style": "word" for short, single-clause items
-built around one verb (a quick, focused conjugation drill), or "sentence" for fuller, more natural
-whole-sentence items. Respond with ONLY a JSON object (no markdown, no code fences, no explanation)
-with exactly this shape:
+worked example are all given). You'll also be told a "style": "word" for a quick, single-verb
+conjugation drill, or "sentence" for a fuller, natural whole-sentence translation task — these are
+different kinds of items, not just different lengths. Respond with ONLY a JSON object (no markdown,
+no code fences, no explanation) with exactly this shape:
 
 { "items": [ { "promptEnglish": string, "answerTarget": string }, ... ] }
 
-Rules:
-- Return exactly the requested number of items.
+Rules for "word" style (a conjugation drill, NOT a sentence-translation task):
+- Each item is built around ONE common verb, conjugated according to this pattern — nothing else.
+- "promptEnglish" names just that one verb and tense, phrased the way this pattern's own meaning
+  naturally reads (e.g. for a "want to" pattern: "she wants to eat" for a present-tense item, "she
+  wanted to eat" for a past-tense item) — never a fuller descriptive sentence with extra clauses,
+  objects, or context beyond what the pattern itself needs.
+- "answerTarget" is ONLY the single conjugated word/phrase that results from applying the pattern to
+  that verb (in the past-tense form for past-tense items) — never a full sentence with its own
+  subject, particles, or object beyond the bare minimum the pattern requires.
+- Include a genuine mix of present-tense and past-tense items (roughly half each) across the list —
+  this drill specifically targets verb conjugation, so both tenses must be exercised.
+- Vary the verb across items — no repeats, and never reuse anything in an "avoid" list provided.
+
+Rules for "sentence" style (a fuller translation task):
 - "promptEnglish" is a short English cue that calls for this exact pattern (e.g. "She wants to eat
-  sushi." for a "word"-style item on a たがる note) — phrased so the learner has to produce the
-  pattern themselves, not a fill-in-the-blank of its own wording.
+  sushi.") — phrased so the learner has to produce the pattern themselves, not a fill-in-the-blank
+  of its own wording.
 - "answerTarget" is ONE natural, correct sentence in the target language, correctly using the
   pattern, that answers "promptEnglish".
-- For "word" style: keep each item short and built around a single verb/action, similar in scope to
-  the worked example already given. For "sentence" style: write fuller, more naturalistic sentences,
-  still centered on this one pattern.
+- Write fuller, more naturalistic sentences, still centered on this one pattern.
 - Vary vocabulary, subject, and scenario across the list, and never reuse a sentence in any "avoid"
   list provided.
-- A native speaker must find every "answerTarget" sentence completely natural.`;
+
+Shared rules:
+- Return exactly the requested number of items.
+- A native speaker must find every "answerTarget" completely natural.`;
 
 function callClaudeForGenerateConjugationPractice(name, structureTemplate, formationRule, exampleTL, exampleEN, language, style, avoid, count) {
   const avoidLines = (avoid || []).length
