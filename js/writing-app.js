@@ -70,6 +70,10 @@ let editingHelperNoteWordId = null;
 // defaults whenever a fresh Grammar check overwrites the results.
 let grammarCorrectionsRevealed = false;
 let addingNoteForSentenceId = null;
+let mistakesPracticeMode = null; // "flashcards" | "test" | null
+let mistakesPracticeCards = [];
+let mistakesPracticeIndex = 0;
+let mistakesFlashcardFlipped = false;
 // Accepts both half-width ASCII angle brackets (< >) and full-width
 // Japanese ones (＜ ＞) as equivalent delimiters — Japanese input
 // sources sometimes produce the full-width form instead of ASCII
@@ -1392,7 +1396,7 @@ async function handleGrammarCheckClick() {
 
   const result = await Translate.checkWritingGrammar(entry.text, activeEntryLang);
 
-  if (result.error || !Array.isArray(result.sentences)) {
+  if (result.error || typeof result.correctedText !== "string") {
     if (btn) btn.disabled = false;
     if (status) {
       status.hidden = false;
@@ -1407,28 +1411,16 @@ async function handleGrammarCheckClick() {
     return;
   }
 
-  // The AI's only job is producing an accurate original/corrected pair
-  // per sentence (see WRITING_GRAMMAR_CHECK_PROMPT) — whether a
-  // sentence actually changed, and exactly which characters/words
-  // changed, is then worked out here deterministically (computeSentenceDiff,
-  // an LCS-based text diff), rather than trusted from anything the AI
-  // separately reports. That's what actually fixes "8 real corrections
-  // but only 2 were flagged": the flagging no longer depends on the AI
-  // noticing its own edits. Never touches entry.text — the learner's
-  // own writing stays exactly as saved.
-  const sentences = result.sentences.map((s) => {
-    const original = s.original || "";
-    const corrected = s.corrected || "";
-    const hasMistake = corrected !== original;
-    return {
-      id: Storage.uid(),
-      original,
-      corrected,
-      hasMistake,
-      diffOps: hasMistake ? computeSentenceDiff(original, corrected, activeEntryLang) : [],
-      savedMistakeIds: [],
-    };
-  });
+  // The AI's only job is producing one corrected string for the whole
+  // entry (see WRITING_GRAMMAR_CHECK_PROMPT) — it never sees or returns
+  // individual sentences. Splitting into sentences, deciding which ones
+  // actually changed, and exactly which characters/words changed is all
+  // worked out here deterministically (buildGrammarSentenceCheck, an
+  // LCS-based text diff against the learner's OWN saved entry.text),
+  // never trusted from anything the AI separately reports. Never
+  // touches entry.text — the learner's own writing stays exactly as
+  // saved.
+  const sentences = buildGrammarSentenceCheck(entry.text, result.correctedText, activeEntryLang);
 
   Storage.updateWritingEntry(activeEntryId, {
     grammarSentenceCheck: { checkedAt: Date.now(), sentences },
@@ -1567,13 +1559,20 @@ function handleGrammarNotesListClick(e) {
 // underneath, with the learner's original wording in green immediately
 // followed by the fix highlighted in yellow, plus a manual "Save to
 // Mistakes" button.
-// ---- Deterministic sentence diff (LCS-based) ----
-// Given the AI's original/corrected pair for one sentence, this finds
-// exactly what changed — no reliance on the AI separately noticing or
-// listing its own edits. Japanese has no word boundaries, so it diffs
-// character by character there; Spanish/French diff word by word (with
-// punctuation and whitespace as their own tokens) so a whole accented
-// word is never split apart.
+// ---- Deterministic diff between the learner's OWN original text and
+// the AI's corrected text (LCS-based) ----
+// v2 asked the AI to also echo back "original" per sentence, and that
+// backfired: on a subtle one-character error (勉強しないといけい vs
+// ...けない) the model sometimes "corrected" the original field too, so
+// the diff saw two identical strings and reported no mistake — the
+// learner's real error went completely unflagged. Fixed by removing
+// "original" from the AI's job entirely: the AI now only returns one
+// corrected string for the WHOLE entry (this was already accurate), and
+// every "original" half of every comparison comes straight from
+// entry.text — the learner's own saved writing, never anything the AI
+// echoed. Sentence boundaries are then found from the diff itself
+// rather than asked of the AI, so a comma-splice the AI fixes into two
+// sentences doesn't need the AI to agree on a matching sentence count.
 function tokenizeForDiff(text, language) {
   if (language === "ja") return Array.from(text || "");
   return (text || "").match(/[\p{L}\p{N}]+|[^\s\p{L}\p{N}]|\s+/gu) || [];
@@ -1581,9 +1580,11 @@ function tokenizeForDiff(text, language) {
 
 // Classic LCS diff: dp[i][j] = length of the longest common subsequence
 // of a[i:] and b[j:]. Walking the table from the front then reconstructs
-// the actual edit script (equal/delete/insert), preferring to consume
-// whichever side keeps the most future matches available.
-function diffTokens(a, b) {
+// the actual RAW (unmerged, one op per token) edit script, preferring to
+// consume whichever side keeps the most future matches available.
+// Unmerged is what groupDiffOpsIntoSentences needs — merging happens per
+// sentence afterwards, in mergeDiffOps.
+function diffTokensRaw(a, b) {
   const n = a.length;
   const m = b.length;
   const dp = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
@@ -1617,11 +1618,14 @@ function diffTokens(a, b) {
     ops.push({ type: "ins", text: b[j] });
     j++;
   }
+  return ops;
+}
 
-  // Merge consecutive same-type ops into one span, so e.g. a 3-character
-  // replacement highlights as one span rather than three.
+// Merges consecutive same-type ops into one span, so e.g. a 3-character
+// replacement highlights as one span rather than three.
+function mergeDiffOps(rawOps) {
   const merged = [];
-  ops.forEach((op) => {
+  rawOps.forEach((op) => {
     const last = merged[merged.length - 1];
     if (last && last.type === op.type) {
       last.text += op.text;
@@ -1632,8 +1636,63 @@ function diffTokens(a, b) {
   return merged;
 }
 
-function computeSentenceDiff(original, corrected, language) {
-  return diffTokens(tokenizeForDiff(original, language), tokenizeForDiff(corrected, language));
+const JAPANESE_SENTENCE_TERMINATORS = new Set(["。", "！", "？"]);
+const DEFAULT_SENTENCE_TERMINATORS = new Set([".", "!", "?"]);
+
+// Groups the raw whole-entry diff into per-"sentence" chunks by cutting
+// right after any KEPT (equal or ins) terminator token. Using the kept
+// side means: an unchanged sentence break (equal "。") cuts normally; an
+// inserted break (the AI splitting a run-on into two) cuts right where
+// the new period lands; a deleted break (two sentences merged into one)
+// does NOT cut, so both original sentences fold into one combined
+// group — no need for the AI to agree on a 1:1 sentence count.
+function groupDiffOpsIntoSentences(rawOps, language) {
+  const terminators = language === "ja" ? JAPANESE_SENTENCE_TERMINATORS : DEFAULT_SENTENCE_TERMINATORS;
+  const groups = [];
+  let current = [];
+  rawOps.forEach((op) => {
+    current.push(op);
+    if (op.type !== "del" && terminators.has(op.text)) {
+      groups.push(current);
+      current = [];
+    }
+  });
+  if (current.length) groups.push(current);
+  return groups;
+}
+
+function opsToOriginalText(ops) {
+  return ops
+    .filter((op) => op.type !== "ins")
+    .map((op) => op.text)
+    .join("");
+}
+
+function opsToCorrectedText(ops) {
+  return ops
+    .filter((op) => op.type !== "del")
+    .map((op) => op.text)
+    .join("");
+}
+
+// The one place a Grammar check's per-sentence result gets built: takes
+// the learner's own original text (never touched) and the AI's one
+// corrected string, diffs them, and groups the result into sentences.
+function buildGrammarSentenceCheck(originalText, correctedText, language) {
+  const rawOps = diffTokensRaw(tokenizeForDiff(originalText, language), tokenizeForDiff(correctedText, language));
+  const groups = groupDiffOpsIntoSentences(rawOps, language);
+  return groups.map((group) => {
+    const original = opsToOriginalText(group);
+    const corrected = opsToCorrectedText(group);
+    return {
+      id: Storage.uid(),
+      original,
+      corrected,
+      hasMistake: original !== corrected,
+      diffOps: mergeDiffOps(group),
+      savedMistakeIds: [],
+    };
+  });
 }
 
 // Renders one side of a diff: "original" keeps equal+del spans (deleted
@@ -1824,8 +1883,12 @@ function buildAddMistakeNoteForm(sentence) {
 }
 
 function handleSaveMistakeNote(sentenceId, english, target, mistakeNote, flagged) {
-  if (!english.trim() || !target.trim()) {
-    alert(t("mistakeNoteRequiredFieldsAlert", "Write both the English and the corrected sentence before saving."));
+  // Flagging something "to look at later" is meant to be a one-click
+  // action when you don't yet understand the mistake well enough to
+  // write it out — only a real (unflagged) note requires actually
+  // writing the English/target pair back out.
+  if (!flagged && (!english.trim() || !target.trim())) {
+    alert(t("mistakeNoteRequiredFieldsAlert", "Write both the English and the corrected sentence before saving — or just flag it to look at later."));
     return;
   }
 
@@ -2096,6 +2159,19 @@ function initMistakesPage() {
     document.body.classList.add(`lang-${lang}`);
   }
 
+  if (isFlaggedOnlyView()) {
+    const heading = document.getElementById("mistakes-heading");
+    if (heading) {
+      heading.textContent = "Flagged grammar points";
+      heading.dataset.immersionKey = "flaggedGrammarPointsTitle";
+    }
+    const intro = document.getElementById("mistakes-intro");
+    if (intro) {
+      intro.textContent = "Mistakes you flagged to look at later — for independent research, outside this app.";
+      intro.dataset.immersionKey = "flaggedGrammarPointsIntro";
+    }
+  }
+
   renderMistakesList(lang);
   initTopbar(lang);
   if (typeof initHubTasks === "function") initHubTasks(lang);
@@ -2111,6 +2187,15 @@ function initMistakesPage() {
   }
 
   list.addEventListener("click", handleMistakesListClick);
+
+  const flashcardsBtn = document.getElementById("mistakes-flashcards-btn");
+  if (flashcardsBtn) flashcardsBtn.addEventListener("click", handleMistakesFlashcardsClick);
+  const testBtn = document.getElementById("mistakes-test-btn");
+  if (testBtn) testBtn.addEventListener("click", handleMistakesTestClick);
+}
+
+function isFlaggedOnlyView() {
+  return getQueryParam("flagged") === "1";
 }
 
 function renderMistakesList(lang) {
@@ -2118,6 +2203,7 @@ function renderMistakesList(lang) {
   if (!list) return;
 
   const mistakes = Storage.getWritingMistakes(lang)
+    .filter((m) => (isFlaggedOnlyView() ? !!m.flagged : true))
     .slice()
     .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 
@@ -2126,8 +2212,13 @@ function renderMistakesList(lang) {
   if (mistakes.length === 0) {
     const li = document.createElement("li");
     li.className = "empty-hint";
-    li.textContent = "No mistakes saved yet — save one from a Grammar check on a Writing entry.";
-    li.dataset.immersionKey = "noMistakesSavedHint";
+    if (isFlaggedOnlyView()) {
+      li.textContent = "No flagged grammar points yet — tick \"flag to look at later\" when saving a mistake from a Grammar check.";
+      li.dataset.immersionKey = "noFlaggedGrammarPointsHint";
+    } else {
+      li.textContent = "No mistakes saved yet — save one from a Grammar check on a Writing entry.";
+      li.dataset.immersionKey = "noMistakesSavedHint";
+    }
     list.appendChild(li);
     return;
   }
@@ -2197,6 +2288,179 @@ function handleMistakesListClick(e) {
   const langParam = getQueryParam("lang");
   const lang = SUPPORTED_LANGUAGES.includes(langParam) ? langParam : null;
   renderMistakesList(lang);
+}
+
+// ---------------------------------------------------------------------
+// Mistakes — flashcards + typed self-test practice
+// ---------------------------------------------------------------------
+
+function getMistakesPracticePool(lang) {
+  return Storage.getWritingMistakes(lang)
+    .filter((m) => (isFlaggedOnlyView() ? !!m.flagged : true))
+    .filter((m) => (m.english || "").trim() && (m.corrected || "").trim());
+}
+
+function handleMistakesFlashcardsClick() {
+  const langParam = getQueryParam("lang");
+  const lang = SUPPORTED_LANGUAGES.includes(langParam) ? langParam : null;
+  mistakesPracticeCards = getMistakesPracticePool(lang);
+  if (mistakesPracticeCards.length === 0) {
+    alert(
+      t(
+        "noMistakesToPracticeAlert",
+        "No saved mistakes with both an English and target-language sentence yet — add some from a Grammar check first."
+      )
+    );
+    return;
+  }
+  mistakesPracticeMode = "flashcards";
+  mistakesPracticeIndex = 0;
+  mistakesFlashcardFlipped = false;
+  renderMistakesPracticePanel();
+}
+
+function handleMistakesTestClick() {
+  const langParam = getQueryParam("lang");
+  const lang = SUPPORTED_LANGUAGES.includes(langParam) ? langParam : null;
+  mistakesPracticeCards = getMistakesPracticePool(lang);
+  if (mistakesPracticeCards.length === 0) {
+    alert(
+      t(
+        "noMistakesToPracticeAlert",
+        "No saved mistakes with both an English and target-language sentence yet — add some from a Grammar check first."
+      )
+    );
+    return;
+  }
+  mistakesPracticeMode = "test";
+  mistakesPracticeIndex = 0;
+  renderMistakesPracticePanel();
+}
+
+function closeMistakesPractice() {
+  mistakesPracticeMode = null;
+  mistakesPracticeCards = [];
+  mistakesPracticeIndex = 0;
+  mistakesFlashcardFlipped = false;
+  renderMistakesPracticePanel();
+}
+
+function renderMistakesPracticePanel() {
+  const panel = document.getElementById("mistakes-practice-panel");
+  const list = document.getElementById("mistakes-list");
+  const actions = document.getElementById("mistakes-actions");
+  if (!panel) return;
+
+  if (!mistakesPracticeMode) {
+    panel.hidden = true;
+    panel.innerHTML = "";
+    if (list) list.hidden = false;
+    if (actions) actions.hidden = false;
+    return;
+  }
+
+  if (list) list.hidden = true;
+  if (actions) actions.hidden = true;
+  panel.hidden = false;
+  panel.innerHTML = "";
+
+  const card = mistakesPracticeCards[mistakesPracticeIndex];
+  if (!card) {
+    closeMistakesPractice();
+    return;
+  }
+
+  const counter = document.createElement("p");
+  counter.className = "practice-counter";
+  counter.textContent = `${mistakesPracticeIndex + 1} / ${mistakesPracticeCards.length}`;
+  panel.appendChild(counter);
+
+  const box = document.createElement("div");
+  box.className = "practice-card-box";
+  panel.appendChild(box);
+
+  const front = document.createElement("p");
+  front.className = "practice-card-front";
+  front.textContent = card.english;
+  box.appendChild(front);
+
+  if (mistakesPracticeMode === "flashcards") {
+    if (mistakesFlashcardFlipped) {
+      const back = document.createElement("p");
+      back.className = "practice-card-back";
+      back.textContent = card.corrected;
+      box.appendChild(back);
+    } else {
+      const flipBtn = document.createElement("button");
+      flipBtn.type = "button";
+      flipBtn.className = "secondary practice-flip-btn";
+      flipBtn.textContent = "Flip";
+      flipBtn.dataset.immersionKey = "btnFlip";
+      flipBtn.addEventListener("click", () => {
+        mistakesFlashcardFlipped = true;
+        renderMistakesPracticePanel();
+      });
+      box.appendChild(flipBtn);
+    }
+  } else {
+    const answerInput = document.createElement("textarea");
+    answerInput.className = "practice-answer-input";
+    answerInput.rows = 2;
+    answerInput.placeholder = t("practiceAnswerPlaceholder", "Write it in the target language…");
+    box.appendChild(answerInput);
+
+    const checkBtn = document.createElement("button");
+    checkBtn.type = "button";
+    checkBtn.className = "secondary practice-check-btn";
+    checkBtn.textContent = "Check";
+    checkBtn.dataset.immersionKey = "btnCheck";
+    checkBtn.addEventListener("click", () => {
+      if (box.querySelector(".practice-card-back")) return;
+      const back = document.createElement("p");
+      back.className = "practice-card-back";
+      back.textContent = card.corrected;
+      box.appendChild(back);
+    });
+    box.appendChild(checkBtn);
+  }
+
+  const nav = document.createElement("div");
+  nav.className = "practice-nav";
+  panel.appendChild(nav);
+
+  const prevBtn = document.createElement("button");
+  prevBtn.type = "button";
+  prevBtn.className = "secondary";
+  prevBtn.textContent = "← Prev";
+  prevBtn.dataset.immersionKey = "btnPrev";
+  prevBtn.disabled = mistakesPracticeIndex === 0;
+  prevBtn.addEventListener("click", () => {
+    mistakesPracticeIndex = Math.max(0, mistakesPracticeIndex - 1);
+    mistakesFlashcardFlipped = false;
+    renderMistakesPracticePanel();
+  });
+  nav.appendChild(prevBtn);
+
+  const nextBtn = document.createElement("button");
+  nextBtn.type = "button";
+  nextBtn.className = "secondary";
+  nextBtn.textContent = "Next →";
+  nextBtn.dataset.immersionKey = "btnNext";
+  nextBtn.disabled = mistakesPracticeIndex === mistakesPracticeCards.length - 1;
+  nextBtn.addEventListener("click", () => {
+    mistakesPracticeIndex = Math.min(mistakesPracticeCards.length - 1, mistakesPracticeIndex + 1);
+    mistakesFlashcardFlipped = false;
+    renderMistakesPracticePanel();
+  });
+  nav.appendChild(nextBtn);
+
+  const doneBtn = document.createElement("button");
+  doneBtn.type = "button";
+  doneBtn.className = "secondary";
+  doneBtn.textContent = "Done";
+  doneBtn.dataset.immersionKey = "btnDone";
+  doneBtn.addEventListener("click", closeMistakesPractice);
+  nav.appendChild(doneBtn);
 }
 
 

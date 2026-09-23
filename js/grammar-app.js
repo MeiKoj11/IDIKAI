@@ -182,6 +182,48 @@ function renderGrammarThemeList() {
     list.appendChild(card);
   });
 
+  // A static, non-deletable tile linking out to the flagged-for-later
+  // notes saved from the Writing section's Grammar check (see
+  // Storage.getWritingMistakes / mistakes.html). These are independent
+  // research pointers, not auto-tagged grammar concepts, so they live
+  // here as a simple counted link rather than a real Grammar theme.
+  if (activeGrammarLang) {
+    const flaggedCount = Storage.getWritingMistakes(activeGrammarLang).filter((m) => m.flagged).length;
+    const flagCard = document.createElement("a");
+    flagCard.href = `mistakes.html?lang=${encodeURIComponent(activeGrammarLang)}&flagged=1`;
+    flagCard.className = "card card-ruled card-lift";
+    flagCard.style.cssText = "display:flex; flex-direction:column; min-height:176px";
+
+    const flagTopRow = document.createElement("div");
+    flagTopRow.style.cssText = "display:flex; align-items:flex-start";
+    const flagDot = document.createElement("span");
+    flagDot.className = "dot";
+    flagTopRow.appendChild(flagDot);
+    flagCard.appendChild(flagTopRow);
+
+    const flagNameEl = document.createElement("h2");
+    flagNameEl.className = "card-title";
+    flagNameEl.style.cssText = "font-size:22px; margin-top:12px";
+    flagNameEl.textContent = "Flagged grammar points";
+    flagNameEl.dataset.immersionKey = "flaggedGrammarPointsTitle";
+    flagCard.appendChild(flagNameEl);
+
+    const flagBottomRow = document.createElement("div");
+    flagBottomRow.style.cssText = "display:flex; align-items:center; margin-top:auto; padding-top:14px";
+    const flagBadge = document.createElement("span");
+    flagBadge.className = "pill-tag";
+    flagBadge.textContent = `${flaggedCount} point${flaggedCount === 1 ? "" : "s"}`;
+    flagBottomRow.appendChild(flagBadge);
+    const flagArrow = document.createElement("span");
+    flagArrow.className = "arrow";
+    flagArrow.style.marginLeft = "auto";
+    flagArrow.textContent = "\u2192";
+    flagBottomRow.appendChild(flagArrow);
+    flagCard.appendChild(flagBottomRow);
+
+    list.appendChild(flagCard);
+  }
+
   // The "add a new folder" control is its own dashed tile inside the
   // grid, sitting alongside the folder tiles rather than a form above
   // them.

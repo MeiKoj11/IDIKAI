@@ -258,14 +258,15 @@ async function extractVocabList(text, language) {
 }
 
 // Used by the Writing bubble's "Grammar check" button — sends a whole
-// saved entry and gets back the entry split into sentences, each with
-// its own corrected version and the specific fixes within it. Distinct
-// from Vocab check (which only resolves <bracketed> words via a plain
-// dictionary lookup) — this reads full sentences for real grammatical
-// correctness, and (unlike the old whole-entry version) never touches
-// the entry's saved text itself. Always returns { sentences, error } —
-// sentences is null on failure, error is a human-readable reason (also
-// logged), mirroring extractVocabList.
+// saved entry and gets back one corrected version of the whole thing.
+// Splitting into sentences and finding exactly what changed happens
+// client-side (writing-app.js's buildGrammarSentenceCheck), diffing this
+// against the learner's own saved text — never against anything echoed
+// back here. Distinct from Vocab check (which only resolves <bracketed>
+// words via a plain dictionary lookup) and (like the v2 redesign) never
+// touches the entry's saved text itself. Always returns
+// { correctedText, error } — correctedText is null on failure, error is
+// a human-readable reason (also logged), mirroring extractVocabList.
 async function checkWritingGrammar(text, language) {
   try {
     const res = await fetch(`${API_BASE}/check-writing-grammar`, {
@@ -277,17 +278,17 @@ async function checkWritingGrammar(text, language) {
     if (!res.ok) {
       const reason = (data && data.error) || `Server responded with ${res.status}.`;
       console.error("check-writing-grammar failed:", reason);
-      return { sentences: null, error: reason };
+      return { correctedText: null, error: reason };
     }
-    if (!data || !Array.isArray(data.sentences)) {
+    if (!data || typeof data.correctedText !== "string") {
       console.error("check-writing-grammar: unexpected response shape", data);
-      return { sentences: null, error: "The server didn't return a usable result." };
+      return { correctedText: null, error: "The server didn't return a usable result." };
     }
-    return { sentences: data.sentences, error: null };
+    return { correctedText: data.correctedText, error: null };
   } catch (e) {
     console.error("check-writing-grammar: could not reach the server", e);
     return {
-      sentences: null,
+      correctedText: null,
       error: "Couldn't reach the lookup server at localhost:3001 — is `node server.js` running?",
     };
   }

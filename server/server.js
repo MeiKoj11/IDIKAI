@@ -1219,58 +1219,50 @@ function grammarConceptListForPrompt() {
 }
 
 const WRITING_GRAMMAR_CHECK_PROMPT = `You are a careful, thorough language tutor grammar-checking
-a learner's own journal/diary entry (Spanish, Japanese, or French — you'll be told which), sentence
-by sentence, so the learner can see exactly what changed in each sentence rather than one long
-block. Respond with ONLY a JSON object (no markdown, no code fences, no explanation) with exactly
-this shape:
+a learner's own journal/diary entry (Spanish, Japanese, or French — you'll be told which). Respond
+with ONLY a JSON object (no markdown, no code fences, no explanation) with exactly this shape:
 
-{
-  "sentences": [
-    { "original": string, "corrected": string },
-    ...
-  ]
-}
+{ "correctedText": string }
 
-This is only YOUR job — a separate, deterministic step outside this response then mechanically
-diffs your "original" against your "corrected" for each entry to find exactly what changed and
-highlight it for the learner. That means your ONLY responsibility is making sure "corrected" is
-fully, correctly fixed — you do not need to (and should not) separately list or explain the fixes;
-just get the correction itself right and complete.
+This response is then mechanically diffed, character by character, against the learner's OWN
+original text (not anything you echo back) to find and highlight exactly what changed, and to
+split the result into per-sentence boxes for the learner. That means your ONLY job is making
+"correctedText" fully and correctly fixed — you never need to (and should not) separately list,
+number, or explain the fixes, and you never need to reproduce "original" yourself.
 
 Rules:
-- Split the entry into sentences in the order they appear, one array item per sentence — preserve
-  the learner's own sentence boundaries. If fixing a run-on/comma-splice means the corrected version
-  is properly two sentences where the original was written as one, that's fine — keep it as ONE
-  array item (original = the whole original span, corrected = the whole corrected span) rather than
-  forcing a 1:1 sentence-count match between original and corrected.
-- "original" is that sentence (or span) exactly as the learner wrote it, verbatim, character for
-  character.
-- "corrected" is that same sentence (or span) with EVERY actual grammatical error fixed: wrong
-  conjugations, subject/verb or gender/number agreement, wrong or missing particles (Japanese:
-  は/が/を/に/で/へ/と/も etc.), wrong tense/aspect, incorrect word order, missing or wrong
-  punctuation, misspellings, and any other real mistake. Go through each sentence carefully rather
-  than stopping at the first or most obvious problem — a single sentence can contain more than one
-  distinct mistake, and every one of them needs to be fixed, since nothing you miss here can be
-  caught later. Do NOT rewrite for style, do NOT swap in fancier or different vocabulary, do NOT
-  restructure a sentence that's already grammatically correct, even if you'd have phrased it
-  differently — this is a grammar check, not an editor's rewrite.
-- If the sentence contains placeholder brackets like <word>, <a phrase>, or full-width ＜word＞ —
-  leave those EXACTLY as they appear, untouched, character for character. They're pending
-  vocabulary the learner hasn't resolved yet, not real target-language text, and are not part of
-  this check.
-- If a sentence has no errors at all, set "corrected" identical to "original" — don't invent
-  changes just to have something to report.
+- "correctedText" is the FULL entry, corrected — same paragraph breaks, same overall content and
+  voice — with EVERY actual grammatical error fixed: wrong conjugations, subject/verb or
+  gender/number agreement, wrong or missing particles (Japanese: は/が/を/に/で/へ/と/も etc.), wrong
+  tense/aspect, incorrect word order, missing or wrong punctuation, misspellings, and any other real
+  mistake. Go through EVERY sentence carefully rather than stopping at the first or most obvious
+  problem in it — a single sentence can contain more than one distinct mistake, and every one of
+  them needs to be fixed, since nothing you miss here can be caught later (there is no second
+  chance — the diff only ever compares your one output against the original).
+- Leave every part that is ALREADY correct completely untouched, character for character — do not
+  paraphrase, reorder, or swap in different-but-also-valid wording for a sentence that has no actual
+  error, and do not silently "fix" a subtle one-character error by simply typing the correct form
+  from memory instead of keeping the surrounding text identical; every character that isn't part of
+  an actual fix must match the original exactly, or the diff will report a false change (or miss a
+  real one) there.
+- Do NOT rewrite for style, do NOT swap in fancier or different vocabulary, do NOT restructure a
+  sentence that's already grammatically correct, even if you'd have phrased it differently — this
+  is a grammar check, not an editor's rewrite.
+- If the text contains placeholder brackets like <word>, <a phrase>, or full-width ＜word＞ — leave
+  those EXACTLY as they appear, untouched, character for character. They're pending vocabulary the
+  learner hasn't resolved yet, not real target-language text, and are not part of this check.
+- If the entry has no errors at all, "correctedText" must be character-for-character identical to
+  the input — don't invent changes just to have something to report.
 - Judge Spanish, Japanese, or French as told by the language given — never mix languages.`;
 
-// One sentence's corrected text plus fixes runs short, but a long entry
-// can mean many sentences in the array, and — on top of that — this
-// model's adaptive thinking (on by default, and not separately budgeted
-// — see callClaudeJSON) can burn a large, unpredictable chunk of
-// max_tokens on reasoning before it even starts the actual answer. A
-// fixed budget can't promise enough headroom for every entry, so this
-// retries once at a much larger budget specifically when the first
-// attempt was cut off, rather than just picking one bigger static
-// number and hoping.
+// correctedText alone runs roughly as long as the entry itself — AND,
+// on top of that, this model's adaptive thinking (on by default, and
+// not separately budgeted — see callClaudeJSON) can burn a large,
+// unpredictable chunk of max_tokens on reasoning before it even starts
+// the actual answer. A fixed budget can't promise enough headroom for
+// every entry, so this retries once at a much larger budget
+// specifically when the first attempt was cut off, rather than just
+// picking one bigger static number and hoping.
 async function callClaudeForWritingGrammarCheck(text, language) {
   const userMessage = `Language: ${LANGUAGE_NAMES[language] || language}.\n\nEntry:\n${text}`;
   try {
@@ -2782,9 +2774,8 @@ const server = http.createServer((req, res) => {
 
       callClaudeForWritingGrammarCheck(text, language)
         .then((result) => {
-          const sentences = (result && result.sentences) || [];
-          const count = sentences.filter((s) => s && s.original !== s.corrected).length;
-          console.log(`  -> ${count}/${sentences.length} sentence(s) with a fix`);
+          const changed = !!(result && result.correctedText && result.correctedText !== text);
+          console.log(`  -> corrected text ${changed ? "differs from" : "matches"} the original`);
           res.writeHead(200, { "content-type": "application/json" });
           res.end(JSON.stringify(result));
         })

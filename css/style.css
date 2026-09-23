@@ -975,6 +975,8 @@ a.secondary:hover {
   padding: 0.5rem 0.75rem;
   border: 1px solid #221712;
   border-radius: 6px;
+  max-width: 100%;
+  overflow-wrap: break-word;
 }
 
 /* Grammar's folder view (grammar-theme.html): the wrapping .panel is
@@ -2354,6 +2356,8 @@ main.writing-entry-layout {
 .mistake-original {
   color: #565538;
   font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
 }
 
 .mistake-corrected {
@@ -2451,11 +2455,15 @@ main.writing-entry-layout {
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0.3rem 0.6rem;
+  min-width: 0;
 }
 
 .helper-word-item .word-label {
   font-weight: 600;
   font-size: 0.85rem;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  min-width: 0;
 }
 
 .helper-word-target::before {
@@ -4351,4 +4359,64 @@ button.secondary.tiny {
   .notebook-page-textarea {
     min-height: 300px;
   }
+}
+
+.mistakes-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.mistakes-practice-panel {
+  max-width: 520px;
+  margin: 0 auto;
+}
+.practice-counter {
+  text-align: center;
+  color: rgba(34, 23, 18, 0.6);
+  font-size: 0.85rem;
+  margin-bottom: 8px;
+}
+.practice-card-box {
+  border: 1px solid #221712;
+  border-radius: 10px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 100%;
+  overflow-wrap: break-word;
+}
+.practice-card-front {
+  font-size: 1.05rem;
+  font-weight: 600;
+  overflow-wrap: break-word;
+}
+.practice-card-back {
+  background: #FFE066;
+  color: #221712;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 0.5rem 0.65rem;
+  overflow-wrap: break-word;
+}
+.practice-answer-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.5rem;
+  border: 1px solid #221712;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 1rem;
+  resize: vertical;
+}
+.practice-flip-btn,
+.practice-check-btn {
+  align-self: flex-start;
+}
+.practice-nav {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 14px;
 }

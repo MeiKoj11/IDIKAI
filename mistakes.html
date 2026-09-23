@@ -86,11 +86,16 @@
       <div style="flex:1 1 280px; min-width:0">
         <span class="eyebrow" data-immersion-key="sectionWriting">Writing</span>
         <h1 class="page-title" id="mistakes-heading" data-immersion-key="mistakesHeading">Mistakes</h1>
-        <p class="page-sub" data-immersion-key="mistakesIntro">Grammar-check fixes you've saved from your entries — the English prompt alongside the corrected sentence, one per row.</p>
+        <p class="page-sub" id="mistakes-intro" data-immersion-key="mistakesIntro">Grammar-check fixes you've saved from your entries — the English prompt alongside the corrected sentence, one per row.</p>
       </div>
     </div>
   </div>
   <main class="wrap-narrow" style="padding-top:24px; padding-bottom:72px">
+    <div id="mistakes-actions" class="mistakes-actions">
+      <button type="button" id="mistakes-flashcards-btn" class="secondary" data-immersion-key="btnFlashcards">Flashcards</button>
+      <button type="button" id="mistakes-test-btn" class="secondary" data-immersion-key="btnTestMe">Test me</button>
+    </div>
+    <div id="mistakes-practice-panel" class="mistakes-practice-panel" hidden></div>
     <ul id="mistakes-list" class="word-list"></ul>
   </main>
   <script src="js/topbar.js"></script>
