@@ -113,6 +113,7 @@ const STORAGE_KEYS = {
   speakingEntries: "speaking.entries",
   writingEntries: "writing.entries",
   writingHelperWords: "writing.helperWords",
+  writingMistakes: "writing.mistakes",
   personalNotes: "personalHub.notes",
   hubTasks: "hub.tasks",
   hubTaskFolders: "hub.taskFolders",
@@ -976,6 +977,40 @@ function deleteHelperWord(wordId) {
   writeJSON(STORAGE_KEYS.writingHelperWords, words);
 }
 
+// ---- Writing Mistakes (per-sentence grammar-check saves) ----
+// A flat, per-language list — unlike Grammar notes, mistakes aren't
+// organised into folders/themes, just the plain English + AI-corrected
+// sentence pair, saved one at a time from the sentence-by-sentence
+// grammar check on a writing entry.
+
+function getWritingMistakes(language) {
+  const mistakes = readJSON(STORAGE_KEYS.writingMistakes, []);
+  return language ? mistakes.filter((m) => m.language === language) : mistakes;
+}
+
+function addWritingMistake({ language, english, corrected, original, fixes, sourceEntryId, sourceEntryTitle }) {
+  const mistakes = readJSON(STORAGE_KEYS.writingMistakes, []);
+  const record = {
+    id: uid(),
+    language,
+    english: english || "",
+    corrected: corrected || "",
+    original: original || "",
+    fixes: Array.isArray(fixes) ? fixes : [],
+    sourceEntryId: sourceEntryId || null,
+    sourceEntryTitle: sourceEntryTitle || "",
+    createdAt: Date.now(),
+  };
+  mistakes.push(record);
+  writeJSON(STORAGE_KEYS.writingMistakes, mistakes);
+  return record;
+}
+
+function deleteWritingMistake(mistakeId) {
+  const mistakes = readJSON(STORAGE_KEYS.writingMistakes, []).filter((m) => m.id !== mistakeId);
+  writeJSON(STORAGE_KEYS.writingMistakes, mistakes);
+}
+
 // Saving a word into a real Vocab Bank theme no longer removes it from
 // the Helper Notebook — it stays as a visible record of everything
 // you've looked up, just marked so "Add to Vocab" doesn't get offered
@@ -1379,6 +1414,9 @@ const Storage = {
   markHelperWordAddedToVocab,
   updateHelperWordNotes,
   deleteHelperWord,
+  getWritingMistakes,
+  addWritingMistake,
+  deleteWritingMistake,
   getPersonalNotes,
   getPersonalNote,
   addPersonalNote,

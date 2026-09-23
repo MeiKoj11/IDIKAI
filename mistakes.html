@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Writing</title>
+  <title>Mistakes</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fahkwang:wght@400;500;600;700&family=Nunito:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet" />
@@ -27,9 +27,6 @@
     <button type="button" id="topbar-notifications" class="topbar-notifications" aria-label="Notifications" aria-haspopup="true">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2"></rect><path d="M3 6.5l9 6.5 9-6.5"></path></svg>
     </button>
-    <!-- A quick-glance to-do list — just a small icon here next to
-         Notifications, opening the same panel that used to float over
-         the page as a big red button. -->
     <button type="button" id="hub-todo-toggle" class="topbar-todo" aria-label="To-do list" aria-haspopup="true">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"></rect><path d="M8 12l3 3 5-6"></path></svg>
       <span id="hub-todo-toggle-count" class="hub-todo-toggle-count" hidden></span>
@@ -83,46 +80,21 @@
       </div>
     </div>
   </div>
-  <div class="wrap-narrow pagehead" id="writing-header">
-    <a href="index.html" class="back-link" id="writing-back-link" data-immersion-key="backPlain"><span style="font-size:15px">&larr;</span> Back</a>
+  <div class="wrap-narrow pagehead" id="mistakes-header">
+    <a href="writing.html" class="back-link" id="mistakes-back-link" data-immersion-key="backToWriting">&larr; Back to Writing</a>
     <div class="row-head" style="margin-top:8px; align-items:flex-start">
       <div style="flex:1 1 280px; min-width:0">
         <span class="eyebrow" data-immersion-key="sectionWriting">Writing</span>
-        <div class="title-with-howto">
-          <h1 class="page-title" id="writing-heading" data-immersion-key="entriesHeading">Entries</h1>
-          <button type="button" class="howto-btn" id="writing-howto-btn" data-howto-trigger="writing-howto-overlay" aria-haspopup="dialog" data-immersion-key="howtoButton">How to use</button>
-        </div>
-        <p class="page-sub" id="entries-intro" data-immersion-key="writingEntriesIntro">Dated, diary-style writing. Link an entry to a Reading passage and you can pull that text up beside the editor while you write.</p>
-      </div>
-      <div style="display:flex; gap:8px; flex-wrap:wrap">
-        <a href="#" id="mistakes-link" class="btn btn-ghost" data-immersion-key="mistakesLink">Mistakes</a>
-        <a href="#" id="new-entry-link" class="btn btn-red" data-immersion-key="newEntryLink">+ New entry</a>
-      </div>
-    </div>
-  </div>
-  <div class="howto-overlay" id="writing-howto-overlay" role="dialog" aria-modal="true" aria-labelledby="writing-howto-title" hidden>
-    <div class="howto-modal">
-      <div class="howto-modal-head">
-        <h2 class="howto-modal-title" id="writing-howto-title" data-immersion-key="howtoModalTitle">How to use this page</h2>
-        <button type="button" class="howto-modal-close" aria-label="Close" data-howto-close>&times;</button>
-      </div>
-      <div class="howto-modal-body">
-        <p data-immersion-key="howtoBodyWriting1">Blogging in your target language is one of the most helpful but overlooked ways to build fluency. Writing your own sentences, consistently, does wonders for your speaking — and everyday vocab gets picked up along the way.</p>
-        <p data-immersion-key="howtoBodyWriting2">Vocab and grammar checks are both done by AI. Vocab checks work by dictionary reference, though your own personal notes are encouraged too. Grammar checks are available but should be used with caution — the nuances and natural feel of a language are things best taught by a native speaker, so don't lean on them too heavily.</p>
-        <p data-immersion-key="howtoBodyWriting3">Plenty of organisational features are built in too: vocab checks after writing, reference passages you can call up alongside your entry, personal notes and a notes-to-teacher box, and mistakes that can be saved and moved into Vocab to be tested on later.</p>
+        <h1 class="page-title" id="mistakes-heading" data-immersion-key="mistakesHeading">Mistakes</h1>
+        <p class="page-sub" data-immersion-key="mistakesIntro">Grammar-check fixes you've saved from your entries — the English prompt alongside the corrected sentence, one per row.</p>
       </div>
     </div>
   </div>
   <main class="wrap-narrow" style="padding-top:24px; padding-bottom:72px">
-    <div id="entry-list" class="grid-folders"></div>
-    <div class="card card-dashed" style="margin-top:20px" id="teacher-activities-section">
-      <h3 class="card-title" data-immersion-key="teacherActivitiesHeading">Teacher-set activities</h3>
-      <p class="card-text" data-immersion-key="writingTeacherActivitiesComingSoon">Coming soon. Once teachers can set writing activities they'll appear here, and entries written for them will be visible to your teacher. Everything above stays private to you.</p>
-    </div>
+    <ul id="mistakes-list" class="word-list"></ul>
   </main>
   <script src="js/topbar.js"></script>
   <script src="js/immersion.js"></script>
-  <script src="js/howto.js"></script>
   <script src="js/app-tabs.js"></script>
   <script src="js/storage.js"></script>
   <script src="js/hub-tasks.js"></script>

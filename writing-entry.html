@@ -109,7 +109,8 @@
         </p>
         <p class="hint" data-immersion-key="grammarCheckExplainer">
           Grammar check reads the whole entry for real sentence-level mistakes — conjugation, agreement,
-          particles, word order — and fixes them, also shown in red. Separate from Vocab check on purpose.
+          particles, word order — and shows the fix directly underneath each sentence, without changing
+          what you wrote. Separate from Vocab check on purpose.
         </p>
         <details id="grammar-compare-wrap" class="edit-reference-block" hidden open>
           <summary data-immersion-key="beforeAfterGrammarCheckSummary">Before / after grammar check</summary>
@@ -128,6 +129,9 @@
           <summary data-immersion-key="whatGrammarCheckChangedSummary">What grammar check changed</summary>
           <ul id="grammar-notes-list" class="grammar-notes-list"></ul>
         </details>
+        <div id="grammar-sentence-check-wrap" class="grammar-sentence-check-wrap" hidden>
+          <div id="grammar-sentence-check-list" class="grammar-sentence-check-list"></div>
+        </div>
       </section>
 
       <!-- Edit mode: the actual form. Shown by default for a brand new

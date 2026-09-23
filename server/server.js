@@ -1219,56 +1219,60 @@ function grammarConceptListForPrompt() {
 }
 
 const WRITING_GRAMMAR_CHECK_PROMPT = `You are a careful, encouraging language tutor grammar-checking
-a learner's own journal/diary entry (Spanish or Japanese — you'll be told which). Respond with ONLY
-a JSON object (no markdown, no code fences, no explanation) with exactly this shape:
+a learner's own journal/diary entry (Spanish or Japanese — you'll be told which), sentence by
+sentence, so the learner can see exactly what changed in each sentence rather than one long block.
+Respond with ONLY a JSON object (no markdown, no code fences, no explanation) with exactly this
+shape:
 
 {
-  "correctedText": string,
-  "corrections": [ { "original": string, "corrected": string, "explanation": string, "concept": string or null }, ... ]
+  "sentences": [
+    { "original": string, "corrected": string, "hasMistake": boolean,
+      "fixes": [ { "original": string, "corrected": string }, ... ], "englishTranslation": string },
+    ...
+  ]
 }
 
 Rules:
-- "correctedText" is the FULL entry, corrected — same paragraph breaks, same overall content and
-  voice, with only actual errors fixed: wrong conjugations, subject/verb or gender/number agreement,
-  wrong or missing particles (Japanese: は/が/を/に/で/へ/と/も etc.), wrong tense/aspect, incorrect
-  word order, missing or wrong punctuation, misspellings, and similar real mistakes.
-- Do NOT rewrite for style, do NOT swap in fancier or different vocabulary, do NOT shorten or
-  restructure sentences that are already grammatically correct, even if you'd have phrased it
-  differently. Preserve the learner's own word choices and voice wherever they're grammatically
-  valid. This is a grammar check, not an editor's rewrite.
-- If the text contains placeholder brackets like <word>, <a phrase>, or full-width ＜word＞ — leave
-  those EXACTLY as they appear, untouched, character for character. They're pending vocabulary the
-  learner hasn't resolved yet, not real target-language text, and are not part of this check.
-- If the entry has no errors at all, set "correctedText" identical to the input text and
-  "corrections" to an empty array — don't invent changes just to have something to report.
-- "corrections" lists every distinct fix you made, each as one entry. Each "corrected" value MUST
-  appear verbatim, character-for-character, as a substring somewhere in "correctedText" (this is
-  used to highlight exactly what changed) — keep each "corrected"/"original" pair as short and
-  localized as the fix allows (usually just the word or short phrase that actually changed), but
-  include enough surrounding words to make sense if the fix is a reordering or involves more than
-  one word. Don't list the same correction twice, and don't list a whole sentence when only one word
-  in it changed.
-- "explanation" is ONE short sentence, in plain teaching language (no linguistics jargon), naming
-  what was wrong and why the correction is right (e.g. "Preterite needed here since it's a
-  completed action, not imperfect for background description" or "は marks the topic here since
-  it's already been introduced, not が").
-- "concept" is EITHER null OR one of these exact keys, if (and only if) the correction is a clean
-  match for it:
-${grammarConceptListForPrompt()}
-  Leave it null for anything else, including any correction that's merely "related" to one of these
-  topics without actually being that specific mistake — false positives are worse than missing one.
-  Never invent a new concept key of your own.
+- Split the entry into sentences in the order they appear, one array item per sentence — preserve
+  the learner's own sentence boundaries, don't merge or split sentences differently than they wrote
+  them.
+- "original" is that sentence exactly as the learner wrote it, verbatim, character for character.
+- "corrected" is that same sentence with only actual errors fixed: wrong conjugations, subject/verb
+  or gender/number agreement, wrong or missing particles (Japanese: は/が/を/に/で/へ/と/も etc.),
+  wrong tense/aspect, incorrect word order, missing or wrong punctuation, misspellings, and similar
+  real mistakes. Do NOT rewrite for style, do NOT swap in fancier or different vocabulary, do NOT
+  restructure a sentence that's already grammatically correct, even if you'd have phrased it
+  differently — this is a grammar check, not an editor's rewrite.
+- If the sentence contains placeholder brackets like <word>, <a phrase>, or full-width ＜word＞ —
+  leave those EXACTLY as they appear, untouched, character for character. They're pending
+  vocabulary the learner hasn't resolved yet, not real target-language text, and are not part of
+  this check.
+- "hasMistake" is true only if "corrected" is actually different from "original". If the sentence
+  has no errors, set "corrected" identical to "original", "hasMistake" to false, "fixes" to an empty
+  array, and "englishTranslation" to an empty string — don't invent changes just to have something
+  to report.
+- When "hasMistake" is true, "fixes" lists every distinct fix in that sentence. Each fix's
+  "corrected" value MUST appear verbatim, character-for-character, as a substring somewhere in this
+  sentence's "corrected" (this is used to highlight exactly what changed), and each fix's "original"
+  value MUST appear verbatim in this sentence's "original". Keep each original/corrected pair as
+  short and localized as the fix allows (usually just the word or short phrase that actually
+  changed), but include enough surrounding words to make sense if the fix is a reordering or
+  involves more than one word. Don't list the same fix twice, and don't list the whole sentence
+  when only one word in it changed.
+- When "hasMistake" is true, "englishTranslation" is a natural, plain English translation of the
+  CORRECTED sentence's meaning (used to save this sentence, as an English/target-language pair, to
+  the learner's Mistakes bank for later review).
 - Judge Spanish or Japanese as told by the language given — never mix the two.`;
 
-// correctedText alone runs roughly as long as the entry itself, plus a
-// corrections array with one explanation sentence per fix on top of
-// that — AND, on top of that, this model's adaptive thinking (on by
-// default, and not separately budgeted — see callClaudeJSON) can burn
-// a large, unpredictable chunk of max_tokens on reasoning before it
-// even starts the actual answer. A fixed budget can't promise enough
-// headroom for every entry, so this retries once at a much larger
-// budget specifically when the first attempt was cut off, rather than
-// just picking one bigger static number and hoping.
+// One sentence's corrected text plus fixes runs short, but a long entry
+// can mean many sentences in the array, and — on top of that — this
+// model's adaptive thinking (on by default, and not separately budgeted
+// — see callClaudeJSON) can burn a large, unpredictable chunk of
+// max_tokens on reasoning before it even starts the actual answer. A
+// fixed budget can't promise enough headroom for every entry, so this
+// retries once at a much larger budget specifically when the first
+// attempt was cut off, rather than just picking one bigger static
+// number and hoping.
 async function callClaudeForWritingGrammarCheck(text, language) {
   const userMessage = `Language: ${LANGUAGE_NAMES[language] || language}.\n\nEntry:\n${text}`;
   try {
@@ -2780,8 +2784,9 @@ const server = http.createServer((req, res) => {
 
       callClaudeForWritingGrammarCheck(text, language)
         .then((result) => {
-          const count = (result && result.corrections && result.corrections.length) || 0;
-          console.log(`  -> ${count} correction(s)`);
+          const sentences = (result && result.sentences) || [];
+          const count = sentences.filter((s) => s && s.hasMistake).length;
+          console.log(`  -> ${count}/${sentences.length} sentence(s) with a fix`);
           res.writeHead(200, { "content-type": "application/json" });
           res.end(JSON.stringify(result));
         })

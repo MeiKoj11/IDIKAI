@@ -2319,6 +2319,57 @@ main.writing-entry-layout {
   font-weight: 600;
 }
 
+/* The new sentence-by-sentence Grammar check: each mistaken sentence's
+   corrected form is shown as its own card, with the learner's original
+   wording in green immediately followed by the fix highlighted yellow —
+   only the fix itself is highlighted, not the whole sentence. */
+
+.grammar-sentence-check-wrap {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.grammar-sentence-check-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.grammar-sentence-check-item {
+  border: 1px solid #221712;
+  border-radius: 8px;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.grammar-sentence-corrected {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.mistake-original {
+  color: #565538;
+  font-weight: 600;
+}
+
+.mistake-corrected {
+  background: #FFE066;
+  color: #221712;
+  font-weight: 600;
+  border-radius: 3px;
+  padding: 0 0.15rem;
+}
+
+.grammar-sentence-actions {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
 /* Redesigned as a stacked card (word info / actions / note) instead of
    one flat wrapping row — clearer at a glance, and stops action buttons
    from squeezing into a narrow strip and wrapping their own text. */

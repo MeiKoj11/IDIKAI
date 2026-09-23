@@ -110,6 +110,7 @@ function extractBracketWords(text) {
 document.addEventListener("DOMContentLoaded", () => {
   initWritingListPage();
   initWritingEntryPage();
+  initMistakesPage();
 });
 
 // ---------------------------------------------------------------------
@@ -134,6 +135,8 @@ function initWritingListPage() {
     document.body.classList.add(`lang-${lang}`);
     const newEntryLink = document.getElementById("new-entry-link");
     if (newEntryLink) newEntryLink.href = `writing-entry.html?lang=${lang}`;
+    const mistakesLink = document.getElementById("mistakes-link");
+    if (mistakesLink) mistakesLink.href = `mistakes.html?lang=${lang}`;
   }
 
   renderEntryList(lang);
@@ -265,6 +268,14 @@ let entryPersisted = false;
 let openReadingTabIds = [];
 let activeReadingTabId = null;
 
+// A pseudo-passage id: opens the Storage Locker as another reference tab
+// alongside real reading passages, rather than a separate mechanism.
+const LOCKER_TAB_ID = "__storage-locker__";
+
+function getLockerPseudoPassage() {
+  return { language: activeEntryLang, title: t("storageLockerTabLabel", "Storage Locker") };
+}
+
 // ---- Autosave (edit mode) ----
 // Tabs are real page navigations (app-tabs.js), so anything only held in
 // the textarea would otherwise vanish the moment you switch to another
@@ -371,6 +382,8 @@ function initWritingEntryPage() {
   if (helperList) helperList.addEventListener("click", handleHelperNotebookListClick);
   const grammarNotesList = document.getElementById("grammar-notes-list");
   if (grammarNotesList) grammarNotesList.addEventListener("click", handleGrammarNotesListClick);
+  const grammarSentenceCheckList = document.getElementById("grammar-sentence-check-list");
+  if (grammarSentenceCheckList) grammarSentenceCheckList.addEventListener("click", handleGrammarSentenceCheckListClick);
   const viewEntryText = document.getElementById("view-entry-text");
   if (viewEntryText) viewEntryText.addEventListener("click", handleViewEntryTextClick);
 }
@@ -498,6 +511,7 @@ function showViewMode() {
 
   renderGrammarComparePanel(entry);
   renderGrammarNotesPanel(entry);
+  renderGrammarSentenceCheckPanel(entry);
 }
 
 function showEditMode() {
@@ -868,9 +882,7 @@ function syncHelperWordsFromText(text, titleForContext) {
 // creation, never touched by edits or Vocab check) is the primary
 // source since a checked word's brackets are long gone from the live
 // text; text itself is checked too, for anything bracketed since then
-// that originalText wouldn't know about. Words from OTHER entries (this
-// list is per-language, not per-entry) fall back to the old
-// most-recently-seen ordering, after everything from this entry.
+// that originalText wouldn't know about.
 function buildEntryWordOrderMap(entry) {
   const orderMap = new Map();
   if (!entry) return orderMap;
@@ -888,17 +900,19 @@ function renderHelperWordsPanel(lang) {
   const list = document.getElementById("helper-notebook-list");
   if (!list) return;
 
+  // The helper notebook is strictly per-entry: words bracketed in other
+  // entries stay saved (Storage.getHelperWords keeps everything, per
+  // language) but only ever surface again when that entry is reopened.
   const currentEntry = entryPersisted ? Storage.getWritingEntry(activeEntryId) : null;
   const orderMap = buildEntryWordOrderMap(currentEntry);
 
   const words = Storage.getHelperWords(lang)
+    .filter((w) => w.sourceEntryId === activeEntryId)
     .slice()
     .sort((a, b) => {
-      const aIdx = orderMap.has(a.english.toLowerCase()) ? orderMap.get(a.english.toLowerCase()) : null;
-      const bIdx = orderMap.has(b.english.toLowerCase()) ? orderMap.get(b.english.toLowerCase()) : null;
-      if (aIdx !== null && bIdx !== null) return aIdx - bIdx;
-      if (aIdx !== null) return -1; // words in this entry always sort before words from elsewhere
-      if (bIdx !== null) return 1;
+      const aIdx = orderMap.has(a.english.toLowerCase()) ? orderMap.get(a.english.toLowerCase()) : Infinity;
+      const bIdx = orderMap.has(b.english.toLowerCase()) ? orderMap.get(b.english.toLowerCase()) : Infinity;
+      if (aIdx !== bIdx) return aIdx - bIdx;
       return (b.lastSeenAt || b.createdAt || 0) - (a.lastSeenAt || a.createdAt || 0);
     });
 
@@ -1343,12 +1357,6 @@ async function handleGrammarCheckClick() {
     return;
   }
 
-  // What the entry looked like right before THIS run — kept so View
-  // mode can show a before/after comparison stacked one on top of the
-  // other, distinct from originalText (frozen at creation, predates
-  // every edit and check, not just the most recent Grammar check).
-  const textBeforeCheck = entry.text;
-
   const btn = document.getElementById("grammar-check-btn");
   const status = document.getElementById("grammar-check-status");
   if (btn) btn.disabled = true;
@@ -1362,7 +1370,7 @@ async function handleGrammarCheckClick() {
 
   const result = await Translate.checkWritingGrammar(entry.text, activeEntryLang);
 
-  if (result.error || typeof result.correctedText !== "string") {
+  if (result.error || !Array.isArray(result.sentences)) {
     if (btn) btn.disabled = false;
     if (status) {
       status.hidden = false;
@@ -1377,44 +1385,37 @@ async function handleGrammarCheckClick() {
     return;
   }
 
-  const corrections = result.corrections || [];
-  // Grammar-check corrections get their own tracked list, kept separate
-  // from Vocab check's correctedWords — the two are rendered in
-  // different colors (red vs blue) so it's obvious which check actually
-  // touched a given word, rather than everything being one shade of red
-  // regardless of which system did it.
-  const newGrammarCorrectedWords = Array.from(
-    new Set([...(entry.grammarCorrectedWords || []), ...corrections.map((c) => c.corrected).filter(Boolean)])
-  );
-  const newGrammarNotes = corrections.map((c) => ({
+  // Unlike the old whole-entry check, this never touches entry.text —
+  // the result is shown sentence by sentence directly underneath the
+  // learner's own (unchanged) writing, and saved per sentence to
+  // Mistakes rather than a Grammar folder.
+  const sentences = result.sentences.map((s) => ({
     id: Storage.uid(),
-    original: c.original || "",
-    corrected: c.corrected || "",
-    explanation: c.explanation || "",
-    concept: c.concept || null,
-    addedToGrammar: false,
-    addedGrammarThemeId: null,
+    original: s.original || "",
+    corrected: s.corrected || "",
+    hasMistake: !!s.hasMistake,
+    fixes: Array.isArray(s.fixes) ? s.fixes.map((f) => ({ original: f.original || "", corrected: f.corrected || "" })) : [],
+    englishTranslation: s.englishTranslation || "",
+    savedMistakeId: null,
   }));
 
   Storage.updateWritingEntry(activeEntryId, {
-    text: result.correctedText,
-    grammarCorrectedWords: newGrammarCorrectedWords,
-    grammarNotes: newGrammarNotes,
-    textBeforeLastGrammarCheck: textBeforeCheck,
+    grammarSentenceCheck: { checkedAt: Date.now(), sentences },
   });
 
   showViewMode(); // resets grammar-check-status — set its final state after, not before
 
   if (btn) btn.disabled = false;
   if (status) {
-    if (corrections.length === 0) {
+    const anyMistakes = sentences.some((s) => s.hasMistake);
+    if (!anyMistakes) {
       status.hidden = false;
       status.textContent = "No grammar issues found — looks good!";
       status.dataset.immersionKey = "noGrammarIssuesStatus";
       delete status.dataset.immersionVars;
       retranslateImmersionElement(status);
     } else {
-      status.hidden = true; // what changed is visible in red, plus the notes list below
+      status.hidden = true; // what changed is visible in the sentence-by-sentence panel below
     }
   }
 }
@@ -1520,6 +1521,140 @@ function handleGrammarNotesListClick(e) {
 // Grammar check already gave becomes the note's "notes" field, so
 // nothing has to be retyped. Mirrors buildAddToVocabPanel's inline
 // folder-picker pattern exactly.
+// The new sentence-by-sentence Grammar check display — separate from
+// (and shown alongside) the legacy renderGrammarComparePanel/
+// renderGrammarNotesPanel, which stay untouched for entries checked
+// before this redesign. Sentences with no mistake render nothing at
+// all; a sentence with a mistake shows its corrected form directly
+// underneath, with the learner's original wording in green immediately
+// followed by the fix highlighted in yellow, plus a manual "Save to
+// Mistakes" button.
+function renderGrammarSentenceCheckPanel(entry) {
+  const wrap = document.getElementById("grammar-sentence-check-wrap");
+  const list = document.getElementById("grammar-sentence-check-list");
+  if (!wrap || !list) return;
+
+  const check = entry && entry.grammarSentenceCheck;
+  const sentences = check && Array.isArray(check.sentences) ? check.sentences : [];
+  list.innerHTML = "";
+
+  const mistakeSentences = sentences.filter((s) => s.hasMistake);
+  if (mistakeSentences.length === 0) {
+    wrap.hidden = true;
+    return;
+  }
+
+  wrap.hidden = false;
+  mistakeSentences.forEach((s) => {
+    const block = document.createElement("div");
+    block.className = "grammar-sentence-check-item";
+
+    const correctedLine = document.createElement("p");
+    correctedLine.className = "grammar-sentence-corrected";
+    renderSentenceFixesInto(correctedLine, s.corrected || "", s.fixes || []);
+    block.appendChild(correctedLine);
+
+    const actions = document.createElement("div");
+    actions.className = "grammar-sentence-actions";
+
+    if (s.savedMistakeId) {
+      const savedEl = document.createElement("span");
+      savedEl.className = "helper-word-added";
+      savedEl.textContent = "✓ Saved to Mistakes";
+      savedEl.dataset.immersionKey = "savedToMistakesText";
+      actions.appendChild(savedEl);
+    } else {
+      const saveBtn = document.createElement("button");
+      saveBtn.type = "button";
+      saveBtn.className = "secondary save-to-mistakes-btn";
+      saveBtn.textContent = "Save to Mistakes";
+      saveBtn.dataset.immersionKey = "saveToMistakesButton";
+      saveBtn.dataset.sentenceId = s.id;
+      actions.appendChild(saveBtn);
+    }
+
+    block.appendChild(actions);
+    list.appendChild(block);
+  });
+}
+
+// Renders one corrected sentence, splicing in [original in green][fix
+// highlighted yellow] at each fix location — only the fix itself is
+// highlighted, not the whole sentence.
+function renderSentenceFixesInto(container, correctedSentence, fixes) {
+  container.innerHTML = "";
+  const validFixes = (fixes || []).filter((f) => f.corrected);
+
+  if (validFixes.length === 0) {
+    container.textContent = correctedSentence;
+    return;
+  }
+
+  const byCorrected = new Map();
+  validFixes.forEach((f) => byCorrected.set(f.corrected, f));
+  // Longest match first, same reasoning as renderEntryTextInto — a
+  // shorter fix that's also a substring of a longer one should match
+  // the fuller phrase, not split apart.
+  const sortedCorrected = Array.from(byCorrected.keys()).sort((a, b) => b.length - a.length);
+  const pattern = new RegExp(`(${sortedCorrected.map(escapeRegExp).join("|")})`, "g");
+  const parts = correctedSentence.split(pattern);
+
+  parts.forEach((part) => {
+    if (!part) return;
+    const fix = byCorrected.get(part);
+    if (!fix) {
+      container.appendChild(document.createTextNode(part));
+      return;
+    }
+    if (fix.original) {
+      const oldSpan = document.createElement("span");
+      oldSpan.className = "mistake-original";
+      oldSpan.textContent = fix.original;
+      container.appendChild(oldSpan);
+    }
+    const newSpan = document.createElement("span");
+    newSpan.className = "mistake-corrected";
+    newSpan.textContent = fix.corrected;
+    container.appendChild(newSpan);
+  });
+}
+
+function handleGrammarSentenceCheckListClick(e) {
+  const saveBtn = e.target.closest(".save-to-mistakes-btn");
+  if (!saveBtn) return;
+  handleSaveToMistakesClick(saveBtn.dataset.sentenceId);
+}
+
+// Manual, per-sentence save — unlike the old Grammar-folder flow there's
+// no folder/theme picker here, Mistakes is just one flat per-language
+// list (see Storage.addWritingMistake).
+function handleSaveToMistakesClick(sentenceId) {
+  const entry = Storage.getWritingEntry(activeEntryId);
+  if (!entry || !entry.grammarSentenceCheck) return;
+  const sentence = entry.grammarSentenceCheck.sentences.find((s) => s.id === sentenceId);
+  if (!sentence || sentence.savedMistakeId) return;
+
+  const saved = Storage.addWritingMistake({
+    language: activeEntryLang,
+    english: sentence.englishTranslation || "",
+    corrected: sentence.corrected || "",
+    original: sentence.original || "",
+    fixes: sentence.fixes || [],
+    sourceEntryId: activeEntryId,
+    sourceEntryTitle: entry.title || "",
+  });
+
+  const updatedSentences = entry.grammarSentenceCheck.sentences.map((s) =>
+    s.id === sentenceId ? { ...s, savedMistakeId: saved.id } : s
+  );
+  Storage.updateWritingEntry(activeEntryId, {
+    grammarSentenceCheck: { ...entry.grammarSentenceCheck, sentences: updatedSentences },
+  });
+
+  showViewMode();
+}
+
+
 function buildAddToGrammarPanel(note) {
   const wrapper = document.createElement("div");
   wrapper.className = "word-move-panel grammar-add-panel";
@@ -1727,6 +1862,112 @@ function renderEntryTextInto(container, text, correctedWords, grammarCorrectedWo
 // editor — plain text, no click-to-look-up here (that's what the
 // Reading bubble itself is for); this is just something to reference.
 
+// ---------------------------------------------------------------------
+// mistakes.html — saved sentence-check fixes (Storage.getWritingMistakes)
+// ---------------------------------------------------------------------
+
+function initMistakesPage() {
+  const list = document.getElementById("mistakes-list");
+  if (!list) return; // not this page
+
+  const langParam = getQueryParam("lang");
+  const lang = SUPPORTED_LANGUAGES.includes(langParam) ? langParam : null;
+
+  if (lang) {
+    const backLink = document.getElementById("mistakes-back-link");
+    if (backLink) backLink.href = `writing.html?lang=${lang}`;
+    const header = document.getElementById("mistakes-header");
+    if (header) header.classList.add(`lang-${lang}`);
+    document.body.classList.add(`lang-${lang}`);
+  }
+
+  renderMistakesList(lang);
+  initTopbar(lang);
+  if (typeof initHubTasks === "function") initHubTasks(lang);
+  if (lang) {
+    initAppTabs({
+      section: "writing",
+      language: lang,
+      label: `${WRITING_LANGUAGE_NAMES[lang]} Writing`,
+      href: `writing.html?lang=${lang}`,
+    });
+  } else {
+    initAppTabs(null);
+  }
+
+  list.addEventListener("click", handleMistakesListClick);
+}
+
+function renderMistakesList(lang) {
+  const list = document.getElementById("mistakes-list");
+  if (!list) return;
+
+  const mistakes = Storage.getWritingMistakes(lang)
+    .slice()
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+  list.innerHTML = "";
+
+  if (mistakes.length === 0) {
+    const li = document.createElement("li");
+    li.className = "empty-hint";
+    li.textContent = "No mistakes saved yet — save one from a Grammar check on a Writing entry.";
+    li.dataset.immersionKey = "noMistakesSavedHint";
+    list.appendChild(li);
+    return;
+  }
+
+  mistakes.forEach((m) => {
+    const li = document.createElement("li");
+    li.className = "word-item helper-word-item mistake-item";
+    li.id = `mistake-${m.id}`;
+
+    const info = document.createElement("div");
+    info.className = "helper-word-info";
+    const englishEl = document.createElement("span");
+    englishEl.className = "word-label";
+    englishEl.textContent = m.english || "(no translation saved)";
+    info.appendChild(englishEl);
+    li.appendChild(info);
+
+    const correctedLine = document.createElement("p");
+    correctedLine.className = "grammar-sentence-corrected";
+    renderSentenceFixesInto(correctedLine, m.corrected || "", m.fixes || []);
+    li.appendChild(correctedLine);
+
+    if (m.sourceEntryTitle) {
+      const sourceEl = document.createElement("span");
+      sourceEl.className = "helper-word-pending";
+      sourceEl.textContent = `From: ${m.sourceEntryTitle}`;
+      li.appendChild(sourceEl);
+    }
+
+    const actions = document.createElement("div");
+    actions.className = "helper-word-actions";
+    const deleteBtn = document.createElement("button");
+    deleteBtn.type = "button";
+    deleteBtn.className = "secondary delete-mistake-btn";
+    deleteBtn.textContent = "Delete";
+    deleteBtn.dataset.immersionKey = "btnDelete";
+    deleteBtn.dataset.mistakeId = m.id;
+    actions.appendChild(deleteBtn);
+    li.appendChild(actions);
+
+    list.appendChild(li);
+  });
+}
+
+function handleMistakesListClick(e) {
+  const deleteBtn = e.target.closest(".delete-mistake-btn");
+  if (!deleteBtn) return;
+  if (!confirm(t("deleteMistakeConfirm", "Delete this saved mistake?"))) return;
+  Storage.deleteWritingMistake(deleteBtn.dataset.mistakeId);
+  const langParam = getQueryParam("lang");
+  const lang = SUPPORTED_LANGUAGES.includes(langParam) ? langParam : null;
+  renderMistakesList(lang);
+}
+
+
 function buildReadingTabElement(passageId, passage, activeId) {
   const tab = document.createElement("div");
   tab.className = `vocab-tab lang-${passage.language}` + (passageId === activeId ? " active" : "");
@@ -1757,7 +1998,7 @@ function renderReadingTabStrip() {
   if (!tabsContainer) return;
   tabsContainer.innerHTML = "";
   openReadingTabIds.forEach((passageId) => {
-    const passage = Storage.getPassage(passageId);
+    const passage = passageId === LOCKER_TAB_ID ? getLockerPseudoPassage() : Storage.getPassage(passageId);
     if (!passage) return;
     tabsContainer.appendChild(buildReadingTabElement(passageId, passage, activeReadingTabId));
   });
@@ -1777,6 +2018,11 @@ function renderReadingTabContent() {
     return;
   }
 
+  if (activeReadingTabId === LOCKER_TAB_ID) {
+    renderLockerTabContent(content);
+    return;
+  }
+
   const passage = Storage.getPassage(activeReadingTabId);
   if (!passage) return;
 
@@ -1790,6 +2036,66 @@ function renderReadingTabContent() {
   content.appendChild(text);
 }
 
+// Storage Locker items are metadata only (no real file uploads yet) — a
+// link opens in a new tab, a document just shows its type + note.
+function renderLockerTabContent(content) {
+  const title = document.createElement("h3");
+  title.textContent = t("storageLockerTabLabel", "Storage Locker");
+  content.appendChild(title);
+
+  const items = Storage.getStorageLockerItems(activeEntryLang);
+  if (items.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "hint entry-tab-empty";
+    empty.textContent = "Nothing saved in the Storage Locker yet.";
+    empty.dataset.immersionKey = "lockerEmptyFromWritingHint";
+    content.appendChild(empty);
+    return;
+  }
+
+  const list = document.createElement("ul");
+  list.className = "word-list entry-tab-locker-list";
+  items
+    .slice()
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+    .forEach((item) => {
+      const isLink = item.kind ? item.kind === "link" : !(item.fileKey || item.docType);
+
+      const li = document.createElement("li");
+      li.className = "word-item helper-word-item";
+
+      const info = document.createElement("div");
+      info.className = "helper-word-info";
+
+      const titleEl = document.createElement(isLink ? "a" : "span");
+      titleEl.className = "word-label";
+      titleEl.textContent = item.title || (isLink ? item.url : "Untitled");
+      if (isLink) {
+        titleEl.href = item.url;
+        titleEl.target = "_blank";
+        titleEl.rel = "noopener";
+      }
+      info.appendChild(titleEl);
+
+      const meta = document.createElement("span");
+      meta.className = "helper-word-pending";
+      meta.textContent = isLink ? "Link" : (item.docType || "Document");
+      info.appendChild(meta);
+
+      li.appendChild(info);
+
+      if (item.note) {
+        const noteEl = document.createElement("div");
+        noteEl.className = "helper-word-note-text";
+        noteEl.textContent = item.note;
+        li.appendChild(noteEl);
+      }
+
+      list.appendChild(li);
+    });
+  content.appendChild(list);
+}
+
 function switchReadingTab(passageId) {
   activeReadingTabId = passageId;
   renderReadingTabStrip();
@@ -1797,7 +2103,7 @@ function switchReadingTab(passageId) {
 }
 
 function openReadingTab(passageId) {
-  if (!Storage.getPassage(passageId)) return;
+  if (passageId !== LOCKER_TAB_ID && !Storage.getPassage(passageId)) return;
   if (!openReadingTabIds.includes(passageId)) {
     openReadingTabIds.push(passageId);
   }
@@ -1817,7 +2123,7 @@ function closeReadingTab(passageId) {
 function renderReadingTabPickerOptions() {
   const select = document.getElementById("entry-tab-picker");
   if (!select) return;
-  select.innerHTML = '<option value="" disabled selected>Open which passage?</option>';
+  select.innerHTML = '<option value="" disabled selected>Open which reference?</option>';
   const openIds = new Set(openReadingTabIds);
   Storage.getPassages()
     .filter((p) => p.language === activeEntryLang && !openIds.has(p.id))
@@ -1827,6 +2133,12 @@ function renderReadingTabPickerOptions() {
       opt.textContent = p.title;
       select.appendChild(opt);
     });
+  if (!openIds.has(LOCKER_TAB_ID)) {
+    const lockerOpt = document.createElement("option");
+    lockerOpt.value = LOCKER_TAB_ID;
+    lockerOpt.textContent = t("storageLockerTabLabel", "Storage Locker");
+    select.appendChild(lockerOpt);
+  }
 }
 
 function handleEntryTabPlusClick() {
@@ -1836,8 +2148,9 @@ function handleEntryTabPlusClick() {
 
   const openIds = new Set(openReadingTabIds);
   const available = Storage.getPassages().filter((p) => p.language === activeEntryLang && !openIds.has(p.id));
-  if (available.length === 0) {
-    alert(t("noMorePassagesAlert", "No more passages to open — save one from the Reading section first, or every passage in this language is already open."));
+  const lockerAvailable = !openIds.has(LOCKER_TAB_ID);
+  if (available.length === 0 && !lockerAvailable) {
+    alert(t("noMoreReferencesAlert", "Nothing left to open — save a passage from the Reading section first, or every reference is already open."));
     return;
   }
 
