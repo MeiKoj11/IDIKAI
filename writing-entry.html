@@ -108,9 +108,9 @@
           real word — replaced words are shown in red so it's obvious what was corrected.
         </p>
         <p class="hint" data-immersion-key="grammarCheckExplainer">
-          Grammar check reads the whole entry for real sentence-level mistakes — conjugation, agreement,
-          particles, word order — and shows the fix directly underneath each sentence, without changing
-          what you wrote. Separate from Vocab check on purpose.
+          Grammar check needs Vocab check run first (no <code>&lt;word&gt;</code> placeholders left) — it
+          then does a thorough, careful pass and can take a couple of minutes. Click "Show corrections"
+          afterwards to see the fix for each sentence, without changing what you wrote.
         </p>
         <details id="grammar-compare-wrap" class="edit-reference-block" hidden open>
           <summary data-immersion-key="beforeAfterGrammarCheckSummary">Before / after grammar check</summary>
@@ -129,6 +129,7 @@
           <summary data-immersion-key="whatGrammarCheckChangedSummary">What grammar check changed</summary>
           <ul id="grammar-notes-list" class="grammar-notes-list"></ul>
         </details>
+        <button type="button" id="show-corrections-btn" class="secondary" hidden data-immersion-key="showCorrectionsButton">Show corrections</button>
         <div id="grammar-sentence-check-wrap" class="grammar-sentence-check-wrap" hidden>
           <div id="grammar-sentence-check-list" class="grammar-sentence-check-list"></div>
         </div>

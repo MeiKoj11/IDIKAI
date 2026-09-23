@@ -2370,6 +2370,73 @@ main.writing-entry-layout {
   align-items: center;
 }
 
+/* v2: every sentence gets a box now, not just mistaken ones — a
+   correct sentence renders once, in green, so getting it right is
+   visible too, not just the corrections. */
+.grammar-sentence-correct {
+  background: rgba(86, 163, 86, 0.18);
+  border-color: rgba(86, 163, 86, 0.5);
+}
+
+.grammar-sentence-correct .grammar-sentence-corrected {
+  color: #3E7A3E;
+  font-weight: 600;
+}
+
+.grammar-sentence-box-label {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #C0BFB2;
+}
+
+.grammar-sentence-original {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.grammar-sentence-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.25rem;
+}
+
+.grammar-sentence-note-row {
+  font-size: 0.85rem;
+  color: #C0BFB2;
+}
+
+.add-mistake-note-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.add-mistake-note-form input,
+.add-mistake-note-form textarea {
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.9rem;
+  font-family: inherit;
+  border-radius: 6px;
+  border: 1px solid rgba(34, 23, 18, 0.3);
+}
+
+.add-mistake-flag-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+}
+
+.add-mistake-note-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
 /* Redesigned as a stacked card (word info / actions / note) instead of
    one flat wrapping row — clearer at a glance, and stops action buttons
    from squeezing into a narrow strip and wrapping their own text. */

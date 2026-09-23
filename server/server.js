@@ -1218,51 +1218,49 @@ function grammarConceptListForPrompt() {
     .join("\n");
 }
 
-const WRITING_GRAMMAR_CHECK_PROMPT = `You are a careful, encouraging language tutor grammar-checking
-a learner's own journal/diary entry (Spanish or Japanese — you'll be told which), sentence by
-sentence, so the learner can see exactly what changed in each sentence rather than one long block.
-Respond with ONLY a JSON object (no markdown, no code fences, no explanation) with exactly this
-shape:
+const WRITING_GRAMMAR_CHECK_PROMPT = `You are a careful, thorough language tutor grammar-checking
+a learner's own journal/diary entry (Spanish, Japanese, or French — you'll be told which), sentence
+by sentence, so the learner can see exactly what changed in each sentence rather than one long
+block. Respond with ONLY a JSON object (no markdown, no code fences, no explanation) with exactly
+this shape:
 
 {
   "sentences": [
-    { "original": string, "corrected": string, "hasMistake": boolean,
-      "fixes": [ { "original": string, "corrected": string }, ... ], "englishTranslation": string },
+    { "original": string, "corrected": string },
     ...
   ]
 }
 
+This is only YOUR job — a separate, deterministic step outside this response then mechanically
+diffs your "original" against your "corrected" for each entry to find exactly what changed and
+highlight it for the learner. That means your ONLY responsibility is making sure "corrected" is
+fully, correctly fixed — you do not need to (and should not) separately list or explain the fixes;
+just get the correction itself right and complete.
+
 Rules:
 - Split the entry into sentences in the order they appear, one array item per sentence — preserve
-  the learner's own sentence boundaries, don't merge or split sentences differently than they wrote
-  them.
-- "original" is that sentence exactly as the learner wrote it, verbatim, character for character.
-- "corrected" is that same sentence with only actual errors fixed: wrong conjugations, subject/verb
-  or gender/number agreement, wrong or missing particles (Japanese: は/が/を/に/で/へ/と/も etc.),
-  wrong tense/aspect, incorrect word order, missing or wrong punctuation, misspellings, and similar
-  real mistakes. Do NOT rewrite for style, do NOT swap in fancier or different vocabulary, do NOT
+  the learner's own sentence boundaries. If fixing a run-on/comma-splice means the corrected version
+  is properly two sentences where the original was written as one, that's fine — keep it as ONE
+  array item (original = the whole original span, corrected = the whole corrected span) rather than
+  forcing a 1:1 sentence-count match between original and corrected.
+- "original" is that sentence (or span) exactly as the learner wrote it, verbatim, character for
+  character.
+- "corrected" is that same sentence (or span) with EVERY actual grammatical error fixed: wrong
+  conjugations, subject/verb or gender/number agreement, wrong or missing particles (Japanese:
+  は/が/を/に/で/へ/と/も etc.), wrong tense/aspect, incorrect word order, missing or wrong
+  punctuation, misspellings, and any other real mistake. Go through each sentence carefully rather
+  than stopping at the first or most obvious problem — a single sentence can contain more than one
+  distinct mistake, and every one of them needs to be fixed, since nothing you miss here can be
+  caught later. Do NOT rewrite for style, do NOT swap in fancier or different vocabulary, do NOT
   restructure a sentence that's already grammatically correct, even if you'd have phrased it
   differently — this is a grammar check, not an editor's rewrite.
 - If the sentence contains placeholder brackets like <word>, <a phrase>, or full-width ＜word＞ —
   leave those EXACTLY as they appear, untouched, character for character. They're pending
   vocabulary the learner hasn't resolved yet, not real target-language text, and are not part of
   this check.
-- "hasMistake" is true only if "corrected" is actually different from "original". If the sentence
-  has no errors, set "corrected" identical to "original", "hasMistake" to false, "fixes" to an empty
-  array, and "englishTranslation" to an empty string — don't invent changes just to have something
-  to report.
-- When "hasMistake" is true, "fixes" lists every distinct fix in that sentence. Each fix's
-  "corrected" value MUST appear verbatim, character-for-character, as a substring somewhere in this
-  sentence's "corrected" (this is used to highlight exactly what changed), and each fix's "original"
-  value MUST appear verbatim in this sentence's "original". Keep each original/corrected pair as
-  short and localized as the fix allows (usually just the word or short phrase that actually
-  changed), but include enough surrounding words to make sense if the fix is a reordering or
-  involves more than one word. Don't list the same fix twice, and don't list the whole sentence
-  when only one word in it changed.
-- When "hasMistake" is true, "englishTranslation" is a natural, plain English translation of the
-  CORRECTED sentence's meaning (used to save this sentence, as an English/target-language pair, to
-  the learner's Mistakes bank for later review).
-- Judge Spanish or Japanese as told by the language given — never mix the two.`;
+- If a sentence has no errors at all, set "corrected" identical to "original" — don't invent
+  changes just to have something to report.
+- Judge Spanish, Japanese, or French as told by the language given — never mix languages.`;
 
 // One sentence's corrected text plus fixes runs short, but a long entry
 // can mean many sentences in the array, and — on top of that — this
@@ -2785,7 +2783,7 @@ const server = http.createServer((req, res) => {
       callClaudeForWritingGrammarCheck(text, language)
         .then((result) => {
           const sentences = (result && result.sentences) || [];
-          const count = sentences.filter((s) => s && s.hasMistake).length;
+          const count = sentences.filter((s) => s && s.original !== s.corrected).length;
           console.log(`  -> ${count}/${sentences.length} sentence(s) with a fix`);
           res.writeHead(200, { "content-type": "application/json" });
           res.end(JSON.stringify(result));

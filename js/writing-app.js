@@ -64,6 +64,12 @@ let addingToGrammarNoteId = null;
 // future teacher-added-notes feature would slot into, same idea as
 // addedToVocab tracking who's already handled a word.
 let editingHelperNoteWordId = null;
+// Sentence-by-sentence Grammar check (v2): whether the "Show
+// corrections" panel is currently open, and which sentence (if any)
+// has its "+ Add note" form open right now — both reset to their
+// defaults whenever a fresh Grammar check overwrites the results.
+let grammarCorrectionsRevealed = false;
+let addingNoteForSentenceId = null;
 // Accepts both half-width ASCII angle brackets (< >) and full-width
 // Japanese ones (＜ ＞) as equivalent delimiters — Japanese input
 // sources sometimes produce the full-width form instead of ASCII
@@ -372,6 +378,8 @@ function initWritingEntryPage() {
   if (vocabCheckBtn) vocabCheckBtn.addEventListener("click", handleVocabCheckClick);
   const grammarCheckBtn = document.getElementById("grammar-check-btn");
   if (grammarCheckBtn) grammarCheckBtn.addEventListener("click", handleGrammarCheckClick);
+  const showCorrectionsBtn = document.getElementById("show-corrections-btn");
+  if (showCorrectionsBtn) showCorrectionsBtn.addEventListener("click", handleShowCorrectionsToggle);
   const deleteEntryBtn = document.getElementById("delete-entry-btn");
   if (deleteEntryBtn) deleteEntryBtn.addEventListener("click", handleDeleteEntry);
   const tabPlusBtn = document.getElementById("entry-tab-plus");
@@ -1357,12 +1365,26 @@ async function handleGrammarCheckClick() {
     return;
   }
 
+  // Grammar check needs the text to actually be in the target language
+  // first — a live check (not a one-time flag) so re-adding <brackets>
+  // after a check re-blocks it too, rather than trusting a stale "was
+  // checked once" state.
+  if (extractBracketWords(entry.text).length > 0) {
+    alert(
+      t(
+        "vocabCheckFirstAlert",
+        "Vocab check this entry first — Grammar check can't run while <word> placeholders are still in the text."
+      )
+    );
+    return;
+  }
+
   const btn = document.getElementById("grammar-check-btn");
   const status = document.getElementById("grammar-check-status");
   if (btn) btn.disabled = true;
   if (status) {
     status.hidden = false;
-    status.textContent = "Checking grammar...";
+    status.textContent = "Checking grammar — this is a thorough process and might take a couple of minutes!";
     status.dataset.immersionKey = "checkingGrammarStatus";
     delete status.dataset.immersionVars;
     retranslateImmersionElement(status);
@@ -1385,38 +1407,54 @@ async function handleGrammarCheckClick() {
     return;
   }
 
-  // Unlike the old whole-entry check, this never touches entry.text —
-  // the result is shown sentence by sentence directly underneath the
-  // learner's own (unchanged) writing, and saved per sentence to
-  // Mistakes rather than a Grammar folder.
-  const sentences = result.sentences.map((s) => ({
-    id: Storage.uid(),
-    original: s.original || "",
-    corrected: s.corrected || "",
-    hasMistake: !!s.hasMistake,
-    fixes: Array.isArray(s.fixes) ? s.fixes.map((f) => ({ original: f.original || "", corrected: f.corrected || "" })) : [],
-    englishTranslation: s.englishTranslation || "",
-    savedMistakeId: null,
-  }));
+  // The AI's only job is producing an accurate original/corrected pair
+  // per sentence (see WRITING_GRAMMAR_CHECK_PROMPT) — whether a
+  // sentence actually changed, and exactly which characters/words
+  // changed, is then worked out here deterministically (computeSentenceDiff,
+  // an LCS-based text diff), rather than trusted from anything the AI
+  // separately reports. That's what actually fixes "8 real corrections
+  // but only 2 were flagged": the flagging no longer depends on the AI
+  // noticing its own edits. Never touches entry.text — the learner's
+  // own writing stays exactly as saved.
+  const sentences = result.sentences.map((s) => {
+    const original = s.original || "";
+    const corrected = s.corrected || "";
+    const hasMistake = corrected !== original;
+    return {
+      id: Storage.uid(),
+      original,
+      corrected,
+      hasMistake,
+      diffOps: hasMistake ? computeSentenceDiff(original, corrected, activeEntryLang) : [],
+      savedMistakeIds: [],
+    };
+  });
 
   Storage.updateWritingEntry(activeEntryId, {
     grammarSentenceCheck: { checkedAt: Date.now(), sentences },
   });
 
+  // Fresh results always start collapsed, with no note form open —
+  // "Show corrections" reveals them explicitly each time.
+  grammarCorrectionsRevealed = false;
+  addingNoteForSentenceId = null;
+
   showViewMode(); // resets grammar-check-status — set its final state after, not before
 
   if (btn) btn.disabled = false;
   if (status) {
-    const anyMistakes = sentences.some((s) => s.hasMistake);
-    if (!anyMistakes) {
-      status.hidden = false;
+    const mistakeCount = sentences.filter((s) => s.hasMistake).length;
+    status.hidden = false;
+    if (mistakeCount === 0) {
       status.textContent = "No grammar issues found — looks good!";
       status.dataset.immersionKey = "noGrammarIssuesStatus";
       delete status.dataset.immersionVars;
-      retranslateImmersionElement(status);
     } else {
-      status.hidden = true; // what changed is visible in the sentence-by-sentence panel below
+      status.textContent = `Found ${mistakeCount} sentence${mistakeCount === 1 ? "" : "s"} to fix — click "Show corrections" to see them.`;
+      status.dataset.immersionKey = "grammarCheckFoundIssuesStatus";
+      status.dataset.immersionVars = JSON.stringify({ count: mistakeCount });
     }
+    retranslateImmersionElement(status);
   }
 }
 
@@ -1529,128 +1567,305 @@ function handleGrammarNotesListClick(e) {
 // underneath, with the learner's original wording in green immediately
 // followed by the fix highlighted in yellow, plus a manual "Save to
 // Mistakes" button.
+// ---- Deterministic sentence diff (LCS-based) ----
+// Given the AI's original/corrected pair for one sentence, this finds
+// exactly what changed — no reliance on the AI separately noticing or
+// listing its own edits. Japanese has no word boundaries, so it diffs
+// character by character there; Spanish/French diff word by word (with
+// punctuation and whitespace as their own tokens) so a whole accented
+// word is never split apart.
+function tokenizeForDiff(text, language) {
+  if (language === "ja") return Array.from(text || "");
+  return (text || "").match(/[\p{L}\p{N}]+|[^\s\p{L}\p{N}]|\s+/gu) || [];
+}
+
+// Classic LCS diff: dp[i][j] = length of the longest common subsequence
+// of a[i:] and b[j:]. Walking the table from the front then reconstructs
+// the actual edit script (equal/delete/insert), preferring to consume
+// whichever side keeps the most future matches available.
+function diffTokens(a, b) {
+  const n = a.length;
+  const m = b.length;
+  const dp = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--) {
+    for (let j = m - 1; j >= 0; j--) {
+      dp[i][j] = a[i] === b[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+    }
+  }
+
+  const ops = [];
+  let i = 0;
+  let j = 0;
+  while (i < n && j < m) {
+    if (a[i] === b[j]) {
+      ops.push({ type: "equal", text: a[i] });
+      i++;
+      j++;
+    } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+      ops.push({ type: "del", text: a[i] });
+      i++;
+    } else {
+      ops.push({ type: "ins", text: b[j] });
+      j++;
+    }
+  }
+  while (i < n) {
+    ops.push({ type: "del", text: a[i] });
+    i++;
+  }
+  while (j < m) {
+    ops.push({ type: "ins", text: b[j] });
+    j++;
+  }
+
+  // Merge consecutive same-type ops into one span, so e.g. a 3-character
+  // replacement highlights as one span rather than three.
+  const merged = [];
+  ops.forEach((op) => {
+    const last = merged[merged.length - 1];
+    if (last && last.type === op.type) {
+      last.text += op.text;
+    } else {
+      merged.push({ type: op.type, text: op.text });
+    }
+  });
+  return merged;
+}
+
+function computeSentenceDiff(original, corrected, language) {
+  return diffTokens(tokenizeForDiff(original, language), tokenizeForDiff(corrected, language));
+}
+
+// Renders one side of a diff: "original" keeps equal+del spans (deleted
+// text underlined/colored via .mistake-original), "corrected" keeps
+// equal+ins spans (inserted text highlighted via .mistake-corrected) —
+// only the changed span itself gets the color, matching the "not the
+// whole sentence" rule.
+function renderDiffInto(container, diffOps, side) {
+  container.innerHTML = "";
+  (diffOps || []).forEach((op) => {
+    if (side === "original" && op.type === "ins") return;
+    if (side === "corrected" && op.type === "del") return;
+    if (op.type === "equal") {
+      container.appendChild(document.createTextNode(op.text));
+      return;
+    }
+    const span = document.createElement("span");
+    span.className = op.type === "del" ? "mistake-original" : "mistake-corrected";
+    span.textContent = op.text;
+    container.appendChild(span);
+  });
+}
+
+// Every sentence gets its own box: unchanged sentences render once,
+// highlighted green ("this is correct"); a mistaken sentence renders as
+// a stacked Original/Corrected pair (diff-highlighted) plus its saved
+// notes and an "+ Add note" control. The whole panel stays collapsed
+// until "Show corrections" is clicked (grammarCorrectionsRevealed).
 function renderGrammarSentenceCheckPanel(entry) {
   const wrap = document.getElementById("grammar-sentence-check-wrap");
   const list = document.getElementById("grammar-sentence-check-list");
+  const toggleBtn = document.getElementById("show-corrections-btn");
   if (!wrap || !list) return;
 
   const check = entry && entry.grammarSentenceCheck;
   const sentences = check && Array.isArray(check.sentences) ? check.sentences : [];
-  list.innerHTML = "";
 
-  const mistakeSentences = sentences.filter((s) => s.hasMistake);
-  if (mistakeSentences.length === 0) {
+  if (sentences.length === 0) {
     wrap.hidden = true;
+    if (toggleBtn) toggleBtn.hidden = true;
     return;
   }
 
-  wrap.hidden = false;
-  mistakeSentences.forEach((s) => {
-    const block = document.createElement("div");
-    block.className = "grammar-sentence-check-item";
+  if (toggleBtn) {
+    toggleBtn.hidden = false;
+    toggleBtn.textContent = grammarCorrectionsRevealed ? "Hide corrections" : "Show corrections";
+    toggleBtn.dataset.immersionKey = grammarCorrectionsRevealed ? "hideCorrectionsButton" : "showCorrectionsButton";
+    retranslateImmersionElement(toggleBtn);
+  }
+  wrap.hidden = !grammarCorrectionsRevealed;
+
+  const allMistakes = Storage.getWritingMistakes(activeEntryLang);
+  list.innerHTML = "";
+
+  sentences.forEach((s) => {
+    const item = document.createElement("div");
+    item.className = "grammar-sentence-check-item";
+
+    if (!s.hasMistake) {
+      item.classList.add("grammar-sentence-correct");
+      const p = document.createElement("p");
+      p.className = "grammar-sentence-corrected";
+      p.textContent = s.corrected;
+      item.appendChild(p);
+      list.appendChild(item);
+      return;
+    }
+
+    const originalLabel = document.createElement("p");
+    originalLabel.className = "grammar-sentence-box-label";
+    originalLabel.textContent = "Original";
+    originalLabel.dataset.immersionKey = "originalLabel";
+    item.appendChild(originalLabel);
+
+    const originalLine = document.createElement("p");
+    originalLine.className = "grammar-sentence-original";
+    renderDiffInto(originalLine, s.diffOps, "original");
+    item.appendChild(originalLine);
+
+    const correctedLabel = document.createElement("p");
+    correctedLabel.className = "grammar-sentence-box-label";
+    correctedLabel.textContent = "Corrected";
+    correctedLabel.dataset.immersionKey = "correctedLabel";
+    item.appendChild(correctedLabel);
 
     const correctedLine = document.createElement("p");
     correctedLine.className = "grammar-sentence-corrected";
-    renderSentenceFixesInto(correctedLine, s.corrected || "", s.fixes || []);
-    block.appendChild(correctedLine);
+    renderDiffInto(correctedLine, s.diffOps, "corrected");
+    item.appendChild(correctedLine);
 
-    const actions = document.createElement("div");
-    actions.className = "grammar-sentence-actions";
+    const notesWrap = document.createElement("div");
+    notesWrap.className = "grammar-sentence-notes";
 
-    if (s.savedMistakeId) {
-      const savedEl = document.createElement("span");
-      savedEl.className = "helper-word-added";
-      savedEl.textContent = "✓ Saved to Mistakes";
-      savedEl.dataset.immersionKey = "savedToMistakesText";
-      actions.appendChild(savedEl);
+    (s.savedMistakeIds || []).forEach((mid) => {
+      const saved = allMistakes.find((m) => m.id === mid);
+      if (!saved) return;
+      const row = document.createElement("div");
+      row.className = "grammar-sentence-note-row";
+      row.textContent = `${saved.flagged ? "🚩 " : "✓ "}${saved.english}`;
+      notesWrap.appendChild(row);
+    });
+
+    if (s.id === addingNoteForSentenceId) {
+      notesWrap.appendChild(buildAddMistakeNoteForm(s));
     } else {
-      const saveBtn = document.createElement("button");
-      saveBtn.type = "button";
-      saveBtn.className = "secondary save-to-mistakes-btn";
-      saveBtn.textContent = "Save to Mistakes";
-      saveBtn.dataset.immersionKey = "saveToMistakesButton";
-      saveBtn.dataset.sentenceId = s.id;
-      actions.appendChild(saveBtn);
+      const addBtn = document.createElement("button");
+      addBtn.type = "button";
+      addBtn.className = "secondary add-mistake-note-btn";
+      addBtn.textContent = "+ Add note";
+      addBtn.dataset.immersionKey = "addMistakeNoteButton";
+      addBtn.dataset.sentenceId = s.id;
+      notesWrap.appendChild(addBtn);
     }
 
-    block.appendChild(actions);
-    list.appendChild(block);
+    item.appendChild(notesWrap);
+    list.appendChild(item);
   });
 }
 
-// Renders one corrected sentence, splicing in [original in green][fix
-// highlighted yellow] at each fix location — only the fix itself is
-// highlighted, not the whole sentence.
-function renderSentenceFixesInto(container, correctedSentence, fixes) {
-  container.innerHTML = "";
-  const validFixes = (fixes || []).filter((f) => f.corrected);
+// The manual "add to Mistakes" form — deliberately blank (not
+// auto-filled from the AI) so saving one means actually writing the
+// English and the corrected sentence out again, not just clicking a
+// button. The Original/Corrected sentence stays visible above this
+// form as reference while typing. Multiple of these can be saved per
+// sentence, one at a time.
+function buildAddMistakeNoteForm(sentence) {
+  const form = document.createElement("div");
+  form.className = "add-mistake-note-form";
 
-  if (validFixes.length === 0) {
-    container.textContent = correctedSentence;
+  const englishInput = document.createElement("input");
+  englishInput.type = "text";
+  englishInput.className = "add-mistake-english-input";
+  englishInput.placeholder = "English";
+  englishInput.dataset.immersionKey = "addMistakeEnglishPlaceholder";
+
+  const targetInput = document.createElement("input");
+  targetInput.type = "text";
+  targetInput.className = "add-mistake-target-input";
+  targetInput.placeholder = "Write the correct sentence again";
+  targetInput.dataset.immersionKey = "addMistakeTargetPlaceholder";
+
+  const noteInput = document.createElement("textarea");
+  noteInput.rows = 2;
+  noteInput.className = "add-mistake-explanation-input";
+  noteInput.placeholder = "What was the mistake, and why? (optional)";
+  noteInput.dataset.immersionKey = "addMistakeNotePlaceholder";
+
+  const flagLabel = document.createElement("label");
+  flagLabel.className = "add-mistake-flag-label";
+  const flagCheckbox = document.createElement("input");
+  flagCheckbox.type = "checkbox";
+  flagLabel.appendChild(flagCheckbox);
+  const flagText = document.createElement("span");
+  flagText.textContent = "Flag to look at later";
+  flagText.dataset.immersionKey = "flagForLaterLabel";
+  flagLabel.appendChild(flagText);
+
+  const actions = document.createElement("div");
+  actions.className = "add-mistake-note-actions";
+
+  const saveBtn = document.createElement("button");
+  saveBtn.type = "button";
+  saveBtn.textContent = "Save";
+  saveBtn.dataset.immersionKey = "btnSave";
+  saveBtn.addEventListener("click", () => {
+    handleSaveMistakeNote(sentence.id, englishInput.value, targetInput.value, noteInput.value, flagCheckbox.checked);
+  });
+
+  const cancelBtn = document.createElement("button");
+  cancelBtn.type = "button";
+  cancelBtn.className = "secondary";
+  cancelBtn.textContent = "Cancel";
+  cancelBtn.dataset.immersionKey = "btnCancel";
+  cancelBtn.addEventListener("click", () => {
+    addingNoteForSentenceId = null;
+    showViewMode();
+  });
+
+  actions.appendChild(saveBtn);
+  actions.appendChild(cancelBtn);
+
+  form.appendChild(englishInput);
+  form.appendChild(targetInput);
+  form.appendChild(noteInput);
+  form.appendChild(flagLabel);
+  form.appendChild(actions);
+  return form;
+}
+
+function handleSaveMistakeNote(sentenceId, english, target, mistakeNote, flagged) {
+  if (!english.trim() || !target.trim()) {
+    alert(t("mistakeNoteRequiredFieldsAlert", "Write both the English and the corrected sentence before saving."));
     return;
   }
 
-  const byCorrected = new Map();
-  validFixes.forEach((f) => byCorrected.set(f.corrected, f));
-  // Longest match first, same reasoning as renderEntryTextInto — a
-  // shorter fix that's also a substring of a longer one should match
-  // the fuller phrase, not split apart.
-  const sortedCorrected = Array.from(byCorrected.keys()).sort((a, b) => b.length - a.length);
-  const pattern = new RegExp(`(${sortedCorrected.map(escapeRegExp).join("|")})`, "g");
-  const parts = correctedSentence.split(pattern);
-
-  parts.forEach((part) => {
-    if (!part) return;
-    const fix = byCorrected.get(part);
-    if (!fix) {
-      container.appendChild(document.createTextNode(part));
-      return;
-    }
-    if (fix.original) {
-      const oldSpan = document.createElement("span");
-      oldSpan.className = "mistake-original";
-      oldSpan.textContent = fix.original;
-      container.appendChild(oldSpan);
-    }
-    const newSpan = document.createElement("span");
-    newSpan.className = "mistake-corrected";
-    newSpan.textContent = fix.corrected;
-    container.appendChild(newSpan);
-  });
-}
-
-function handleGrammarSentenceCheckListClick(e) {
-  const saveBtn = e.target.closest(".save-to-mistakes-btn");
-  if (!saveBtn) return;
-  handleSaveToMistakesClick(saveBtn.dataset.sentenceId);
-}
-
-// Manual, per-sentence save — unlike the old Grammar-folder flow there's
-// no folder/theme picker here, Mistakes is just one flat per-language
-// list (see Storage.addWritingMistake).
-function handleSaveToMistakesClick(sentenceId) {
   const entry = Storage.getWritingEntry(activeEntryId);
   if (!entry || !entry.grammarSentenceCheck) return;
   const sentence = entry.grammarSentenceCheck.sentences.find((s) => s.id === sentenceId);
-  if (!sentence || sentence.savedMistakeId) return;
+  if (!sentence) return;
 
   const saved = Storage.addWritingMistake({
     language: activeEntryLang,
-    english: sentence.englishTranslation || "",
-    corrected: sentence.corrected || "",
+    english: english.trim(),
+    corrected: target.trim(),
+    mistakeNote: mistakeNote.trim(),
+    flagged: !!flagged,
     original: sentence.original || "",
-    fixes: sentence.fixes || [],
+    aiCorrected: sentence.corrected || "",
     sourceEntryId: activeEntryId,
     sourceEntryTitle: entry.title || "",
   });
 
   const updatedSentences = entry.grammarSentenceCheck.sentences.map((s) =>
-    s.id === sentenceId ? { ...s, savedMistakeId: saved.id } : s
+    s.id === sentenceId ? { ...s, savedMistakeIds: [...(s.savedMistakeIds || []), saved.id] } : s
   );
   Storage.updateWritingEntry(activeEntryId, {
     grammarSentenceCheck: { ...entry.grammarSentenceCheck, sentences: updatedSentences },
   });
 
+  addingNoteForSentenceId = null;
+  showViewMode();
+}
+
+function handleGrammarSentenceCheckListClick(e) {
+  const addBtn = e.target.closest(".add-mistake-note-btn");
+  if (!addBtn) return;
+  addingNoteForSentenceId = addBtn.dataset.sentenceId;
+  showViewMode();
+}
+
+function handleShowCorrectionsToggle() {
+  grammarCorrectionsRevealed = !grammarCorrectionsRevealed;
   showViewMode();
 }
 
@@ -1928,12 +2143,29 @@ function renderMistakesList(lang) {
     englishEl.className = "word-label";
     englishEl.textContent = m.english || "(no translation saved)";
     info.appendChild(englishEl);
+    if (m.flagged) {
+      const flagEl = document.createElement("span");
+      flagEl.className = "helper-word-pending";
+      flagEl.textContent = "🚩 Flagged";
+      flagEl.dataset.immersionKey = "flaggedForLaterText";
+      info.appendChild(flagEl);
+    }
     li.appendChild(info);
 
+    // english/corrected are the learner's own retyped pair — plain
+    // text, no diff-highlighting (that's for the AI's version on the
+    // Writing entry itself, not this saved note).
     const correctedLine = document.createElement("p");
     correctedLine.className = "grammar-sentence-corrected";
-    renderSentenceFixesInto(correctedLine, m.corrected || "", m.fixes || []);
+    correctedLine.textContent = m.corrected || "";
     li.appendChild(correctedLine);
+
+    if (m.mistakeNote) {
+      const noteEl = document.createElement("p");
+      noteEl.className = "helper-word-note-text";
+      noteEl.textContent = m.mistakeNote;
+      li.appendChild(noteEl);
+    }
 
     if (m.sourceEntryTitle) {
       const sourceEl = document.createElement("span");

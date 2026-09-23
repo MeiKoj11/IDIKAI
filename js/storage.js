@@ -988,15 +988,34 @@ function getWritingMistakes(language) {
   return language ? mistakes.filter((m) => m.language === language) : mistakes;
 }
 
-function addWritingMistake({ language, english, corrected, original, fixes, sourceEntryId, sourceEntryTitle }) {
+function addWritingMistake({
+  language,
+  english,
+  corrected,
+  mistakeNote,
+  flagged,
+  original,
+  aiCorrected,
+  sourceEntryId,
+  sourceEntryTitle,
+}) {
   const mistakes = readJSON(STORAGE_KEYS.writingMistakes, []);
   const record = {
     id: uid(),
     language,
+    // english/corrected are the learner's OWN retyped translation pair
+    // (see the "add note" form on a Writing entry) — deliberately
+    // manual, not auto-filled from the AI, so saving one means actually
+    // writing it out again rather than just clicking a button.
     english: english || "",
     corrected: corrected || "",
+    mistakeNote: mistakeNote || "",
+    flagged: !!flagged,
+    // original/aiCorrected are read-only context (what the AI's grammar
+    // check actually produced for this sentence) — kept alongside the
+    // learner's own pair for reference, not shown as the main content.
     original: original || "",
-    fixes: Array.isArray(fixes) ? fixes : [],
+    aiCorrected: aiCorrected || "",
     sourceEntryId: sourceEntryId || null,
     sourceEntryTitle: sourceEntryTitle || "",
     createdAt: Date.now(),
