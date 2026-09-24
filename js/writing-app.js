@@ -74,6 +74,10 @@ let mistakesPracticeMode = null; // "flashcards" | "test" | null
 let mistakesPracticeCards = [];
 let mistakesPracticeIndex = 0;
 let mistakesFlashcardFlipped = false;
+// Which saved Mistakes note (by id) is currently expanded to show its
+// full target-translation + explanation, inline under the sentence it
+// came from — mirrors addingNoteForSentenceId's single-open pattern.
+let viewingSavedNoteId = null;
 // Accepts both half-width ASCII angle brackets (< >) and full-width
 // Japanese ones (＜ ＞) as equivalent delimiters — Japanese input
 // sources sometimes produce the full-width form instead of ASCII
@@ -314,6 +318,18 @@ function initWritingEntryPage() {
     activeEntryId = existingEntry.id;
     activeEntryLang = existingEntry.language;
     entryPersisted = true;
+    // A Grammar check already run on this entry is stored on it and
+    // stays there across visits — open it by default rather than
+    // making the learner click "Show corrections" again just to
+    // rediscover work that was already saved.
+    const existingCheck = existingEntry.grammarSentenceCheck;
+    if (
+      existingCheck &&
+      Array.isArray(existingCheck.sentences) &&
+      existingCheck.sentences.some((s) => s.hasMistake)
+    ) {
+      grammarCorrectionsRevealed = true;
+    }
   } else {
     activeEntryLang = SUPPORTED_LANGUAGES.includes(langParam) ? langParam : "es";
     activeEntryId = Storage.uid();
@@ -378,6 +394,8 @@ function initWritingEntryPage() {
   if (editBtn) editBtn.addEventListener("click", handleEditClick);
   const cancelBtn = document.getElementById("cancel-edit-btn");
   if (cancelBtn) cancelBtn.addEventListener("click", handleCancelEdit);
+  const underlineBtn = document.getElementById("underline-selection-btn");
+  if (underlineBtn) underlineBtn.addEventListener("click", handleToggleUnderlineSelection);
   const vocabCheckBtn = document.getElementById("vocab-check-btn");
   if (vocabCheckBtn) vocabCheckBtn.addEventListener("click", handleVocabCheckClick);
   const grammarCheckBtn = document.getElementById("grammar-check-btn");
@@ -514,7 +532,14 @@ function showViewMode() {
   }
 
   const textBox = document.getElementById("view-entry-text");
-  if (textBox) renderEntryTextInto(textBox, entry.text || "", entry.correctedWords || [], entry.grammarCorrectedWords || []);
+  if (textBox)
+    renderEntryTextInto(
+      textBox,
+      entry.text || "",
+      entry.correctedWords || [],
+      entry.grammarCorrectedWords || [],
+      entry.underlinedPhrases || []
+    );
 
   const status = document.getElementById("vocab-check-status");
   if (status) status.hidden = true;
@@ -1314,13 +1339,26 @@ async function handleVocabCheckClick() {
     }
   }
 
+  // Japanese: a kanji word on its own is ambiguous to a learner still
+  // building reading fluency, so the replacement carries its furigana
+  // reading right alongside it, the same way it would be written in an
+  // annotated text -- e.g. <cat> -> 猫（ねこ）. Words with no kanji (pure
+  // kana, or anything in Spanish/French) are left as just the word.
+  const KANJI_PATTERN = /[\u4e00-\u9faf]/;
+  const displayTextFor = (hit) => {
+    if (activeEntryLang === "ja" && hit.furigana && KANJI_PATTERN.test(hit.targetWord)) {
+      return `${hit.targetWord}（${hit.furigana}）`;
+    }
+    return hit.targetWord;
+  };
+
   const newText = entry.text.replace(BRACKET_PATTERN, (match, inner) => {
     const hit = results[inner.trim().toLowerCase()];
-    return hit ? hit.targetWord : match;
+    return hit ? displayTextFor(hit) : match;
   });
 
   const newCorrectedWords = Array.from(
-    new Set([...(entry.correctedWords || []), ...Object.values(results).map((r) => r.targetWord)])
+    new Set([...(entry.correctedWords || []), ...Object.values(results).map((r) => displayTextFor(r))])
   );
 
   Storage.updateWritingEntry(activeEntryId, { text: newText, correctedWords: newCorrectedWords });
@@ -1791,7 +1829,39 @@ function renderGrammarSentenceCheckPanel(entry) {
       if (!saved) return;
       const row = document.createElement("div");
       row.className = "grammar-sentence-note-row";
-      row.textContent = `${saved.flagged ? "🚩 " : "✓ "}${saved.english}`;
+
+      const summaryBtn = document.createElement("button");
+      summaryBtn.type = "button";
+      summaryBtn.className = "grammar-sentence-note-summary-btn";
+      summaryBtn.textContent = `${saved.flagged ? "🚩 " : "✓ "}${saved.english || "(flagged, no text yet)"}`;
+      summaryBtn.dataset.viewNoteId = saved.id;
+      row.appendChild(summaryBtn);
+
+      if (viewingSavedNoteId === saved.id) {
+        const detail = document.createElement("div");
+        detail.className = "grammar-sentence-note-detail";
+        if (saved.corrected) {
+          const targetP = document.createElement("p");
+          targetP.className = "grammar-sentence-note-detail-target";
+          targetP.textContent = saved.corrected;
+          detail.appendChild(targetP);
+        }
+        if (saved.mistakeNote) {
+          const noteP = document.createElement("p");
+          noteP.className = "grammar-sentence-note-detail-explain";
+          noteP.textContent = saved.mistakeNote;
+          detail.appendChild(noteP);
+        }
+        if (!saved.corrected && !saved.mistakeNote) {
+          const emptyP = document.createElement("p");
+          emptyP.className = "grammar-sentence-note-detail-explain";
+          emptyP.textContent = "Flagged to look at later — no note written yet.";
+          emptyP.dataset.immersionKey = "flaggedNoNoteYetText";
+          detail.appendChild(emptyP);
+        }
+        row.appendChild(detail);
+      }
+
       notesWrap.appendChild(row);
     });
 
@@ -1831,8 +1901,12 @@ function buildAddMistakeNoteForm(sentence) {
   const targetInput = document.createElement("input");
   targetInput.type = "text";
   targetInput.className = "add-mistake-target-input";
-  targetInput.placeholder = "Write the correct sentence again";
+  const targetLangName = displayLanguageName(activeEntryLang);
+  targetInput.placeholder = t("addMistakeTargetPlaceholder", `Correct translation in ${targetLangName}`, {
+    lang: targetLangName,
+  });
   targetInput.dataset.immersionKey = "addMistakeTargetPlaceholder";
+  targetInput.dataset.immersionVars = JSON.stringify({ lang: targetLangName });
 
   const noteInput = document.createElement("textarea");
   noteInput.rows = 2;
@@ -1921,6 +1995,13 @@ function handleSaveMistakeNote(sentenceId, english, target, mistakeNote, flagged
 }
 
 function handleGrammarSentenceCheckListClick(e) {
+  const viewBtn = e.target.closest(".grammar-sentence-note-summary-btn");
+  if (viewBtn) {
+    const id = viewBtn.dataset.viewNoteId;
+    viewingSavedNoteId = viewingSavedNoteId === id ? null : id;
+    showViewMode();
+    return;
+  }
   const addBtn = e.target.closest(".add-mistake-note-btn");
   if (!addBtn) return;
   addingNoteForSentenceId = addBtn.dataset.sentenceId;
@@ -2089,7 +2170,7 @@ function handleSaveAddToGrammar(note, themeSelect) {
 // (Grammar check) render blue — two separate, independently-accumulated
 // lists so it's always obvious which check touched a given word, rather
 // than one shade of red regardless of source.
-function renderEntryTextInto(container, text, correctedWords, grammarCorrectedWords) {
+function renderEntryTextInto(container, text, correctedWords, grammarCorrectedWords, underlinedPhrases) {
   container.innerHTML = "";
 
   if (!text) {
@@ -2103,7 +2184,12 @@ function renderEntryTextInto(container, text, correctedWords, grammarCorrectedWo
 
   const vocabSet = new Set((correctedWords || []).filter(Boolean));
   const grammarSet = new Set((grammarCorrectedWords || []).filter(Boolean));
-  const allWords = Array.from(new Set([...vocabSet, ...grammarSet]));
+  // Purely a formatting choice the learner made themselves (see
+  // handleToggleUnderlineSelection) — independent of, and layered on
+  // top of, the vocab/grammar-correction highlighting above, so a
+  // phrase can be both a correction AND underlined at once.
+  const underlineSet = new Set((underlinedPhrases || []).filter(Boolean));
+  const allWords = Array.from(new Set([...vocabSet, ...grammarSet, ...underlineSet]));
 
   if (allWords.length === 0) {
     container.textContent = text;
@@ -2119,20 +2205,67 @@ function renderEntryTextInto(container, text, correctedWords, grammarCorrectedWo
 
   parts.forEach((part) => {
     if (!part) return;
-    if (grammarSet.has(part)) {
-      const span = document.createElement("span");
-      span.className = "grammar-corrected-word";
-      span.textContent = part;
-      container.appendChild(span);
-    } else if (vocabSet.has(part)) {
-      const span = document.createElement("span");
-      span.className = "corrected-word";
-      span.textContent = part;
-      container.appendChild(span);
-    } else {
+    const classes = [];
+    if (grammarSet.has(part)) classes.push("grammar-corrected-word");
+    else if (vocabSet.has(part)) classes.push("corrected-word");
+    if (underlineSet.has(part)) classes.push("user-underlined-phrase");
+
+    if (classes.length === 0) {
       container.appendChild(document.createTextNode(part));
+      return;
     }
+    const span = document.createElement("span");
+    span.className = classes.join(" ");
+    span.textContent = part;
+    container.appendChild(span);
   });
+}
+
+// The learner selects some text inside the read-only saved-entry view
+// and clicks "Underline" — toggles that exact phrase in/out of
+// entry.underlinedPhrases (mirrors how correctedWords/
+// grammarCorrectedWords are stored: a set of literal substrings matched
+// back onto entry.text on every render, not offsets, so it survives a
+// later Vocab/Grammar check re-render without drifting). Pure display —
+// never touches entry.text itself, so it can't affect diffing or
+// bracket-word detection.
+function handleToggleUnderlineSelection() {
+  const textBox = document.getElementById("view-entry-text");
+  const selection = window.getSelection();
+  if (!textBox || !selection || selection.rangeCount === 0 || selection.isCollapsed) {
+    alert(t("selectTextToUnderlineAlert", "Select some text in your saved entry above first."));
+    return;
+  }
+
+  const range = selection.getRangeAt(0);
+  if (!textBox.contains(range.commonAncestorContainer)) {
+    alert(t("selectTextToUnderlineAlert", "Select some text in your saved entry above first."));
+    return;
+  }
+
+  const phrase = selection.toString().trim();
+  if (!phrase) {
+    alert(t("selectTextToUnderlineAlert", "Select some text in your saved entry above first."));
+    return;
+  }
+
+  const entry = Storage.getWritingEntry(activeEntryId);
+  if (!entry) return;
+  if (!(entry.text || "").includes(phrase)) {
+    // Can happen if the selection crosses two separately-highlighted
+    // spans and picks up stray whitespace differences — ask for a
+    // tighter selection rather than silently storing something that'll
+    // never match on render.
+    alert(t("underlineSelectionTooComplexAlert", "Couldn't underline that selection — try selecting a shorter, simpler stretch of text."));
+    return;
+  }
+
+  const existing = entry.underlinedPhrases || [];
+  const updated = existing.includes(phrase) ? existing.filter((p) => p !== phrase) : [...existing, phrase];
+
+  Storage.updateWritingEntry(activeEntryId, { underlinedPhrases: updated });
+  selection.removeAllRanges();
+  showViewMode();
 }
 
 // ---- Reading-while-writing tabs ----

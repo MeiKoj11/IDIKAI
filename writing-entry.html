@@ -99,10 +99,15 @@
         <p id="vocab-check-status" class="hint" hidden></p>
         <p id="grammar-check-status" class="hint" hidden></p>
         <div class="detection-actions">
+          <button type="button" id="underline-selection-btn" class="secondary" data-immersion-key="btnUnderline">Underline</button>
           <button type="button" id="edit-entry-btn" class="secondary" data-immersion-key="btnEdit">Edit</button>
           <button type="button" id="vocab-check-btn" data-immersion-key="vocabCheckButton">Vocab check</button>
           <button type="button" id="grammar-check-btn" data-immersion-key="grammarCheckButton">Grammar check</button>
         </div>
+        <p class="hint" data-immersion-key="underlineExplainer">
+          Select any part of your saved entry above, then click "Underline" to toggle underline on it — pure
+          formatting, it doesn't affect Vocab check or Grammar check.
+        </p>
         <p class="hint" data-immersion-key="vocabCheckExplainer">
           Vocab check looks up any <code>&lt;word&gt;</code> still left in your writing and replaces it with the
           real word — replaced words are shown in red so it's obvious what was corrected.

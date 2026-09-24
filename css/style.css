@@ -2321,6 +2321,12 @@ main.writing-entry-layout {
   font-weight: 600;
 }
 
+.user-underlined-phrase {
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 2px;
+}
+
 /* The new sentence-by-sentence Grammar check: each mistaken sentence's
    corrected form is shown as its own card, with the learner's original
    wording in green immediately followed by the fix highlighted yellow —
@@ -2409,8 +2415,48 @@ main.writing-entry-layout {
 }
 
 .grammar-sentence-note-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.grammar-sentence-note-summary-btn {
   font-size: 0.85rem;
   color: #C0BFB2;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  max-width: 100%;
+  overflow-wrap: break-word;
+}
+
+.grammar-sentence-note-summary-btn:hover,
+.grammar-sentence-note-summary-btn:focus-visible {
+  text-decoration: underline;
+}
+
+.grammar-sentence-note-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.5rem 0.65rem;
+  border-left: 2px solid #565538;
+  max-width: 100%;
+}
+
+.grammar-sentence-note-detail-target {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: break-word;
+}
+
+.grammar-sentence-note-detail-explain {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #C0BFB2;
+  overflow-wrap: break-word;
 }
 
 .add-mistake-note-form {
