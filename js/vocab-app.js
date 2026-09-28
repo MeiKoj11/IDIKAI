@@ -37,6 +37,14 @@ let pendingDetection = null;
 let editingWordId = null;
 // id of the word currently showing its inline move/copy panel, or null.
 let movingWordId = null;
+// Which folder (theme) currently has its Move/Copy picker open, in
+// either the top-level list (vocab.html) or a theme's sub-folder list
+// (theme.html) -- same single-open pattern as movingWordId above.
+let movingThemeId = null;
+// Which folder's children #theme-list is currently showing: null at
+// the top level (vocab.html), or a theme's id when that list is a
+// theme.html page's sub-folder list -- set once in applyActiveThemeToUI.
+let themeListParentId = null;
 // Ids of words checked via the bulk-select checkboxes in the word list,
 // for the "Move selected"/"Copy selected" bar — lets several words be
 // filed into another theme (or merged into one) in one go, instead of
@@ -154,6 +162,106 @@ function applyActiveThemeToUI() {
   if (addVocabBackLink) addVocabBackLink.href = `theme.html?id=${id}`;
 
   renderWordList(); // no-op if #word-list isn't on this page
+
+  // theme.html: this same theme is also a folder that can hold
+  // sub-folders -- scope #theme-list (shared with vocab.html's
+  // top-level list) to activeTheme's children, and render the
+  // breadcrumb trail up to it. Both are no-ops on any page without
+  // these elements.
+  themeListParentId = activeTheme.id;
+  renderThemeList();
+  renderThemeBreadcrumb();
+}
+
+function renderThemeBreadcrumb() {
+  const nav = document.getElementById("theme-breadcrumb");
+  if (!nav || !activeTheme) return;
+  nav.innerHTML = "";
+
+  const rootLink = document.createElement("a");
+  rootLink.href = `vocab.html?lang=${activeTheme.language}`;
+  rootLink.textContent = "Vocab Bank";
+  rootLink.dataset.immersionKey = "sectionVocab";
+  nav.appendChild(rootLink);
+
+  Storage.getThemeAncestors(activeTheme.id).forEach((ancestor) => {
+    const sep = document.createElement("span");
+    sep.className = "breadcrumb-sep";
+    sep.textContent = "/";
+    nav.appendChild(sep);
+
+    const link = document.createElement("a");
+    link.href = `theme.html?id=${encodeURIComponent(ancestor.id)}`;
+    link.textContent = ancestor.name;
+    nav.appendChild(link);
+  });
+
+  const sep2 = document.createElement("span");
+  sep2.className = "breadcrumb-sep";
+  sep2.textContent = "/";
+  nav.appendChild(sep2);
+
+  const current = document.createElement("span");
+  current.className = "breadcrumb-current";
+  current.textContent = activeTheme.name;
+  nav.appendChild(current);
+}
+
+function handleNewSubfolderSubmit(e) {
+  e.preventDefault();
+  if (!activeTheme) return;
+  const nameInput = document.getElementById("new-subfolder-name");
+  if (!nameInput) return;
+  const name = nameInput.value.trim();
+  if (!name) return;
+  Storage.addTheme(name, activeTheme.language, activeTheme.id);
+  nameInput.value = "";
+  renderThemeList();
+}
+
+// The current theme's own Move/Copy panel lives in a dedicated slot
+// below theme.html's header (as opposed to inline in a list row) --
+// moving/copying THIS folder, not one of its children.
+function toggleCurrentThemeMovePanel() {
+  const slot = document.getElementById("theme-move-panel-slot");
+  if (!slot || !activeTheme) return;
+  slot.innerHTML = "";
+  slot.hidden = false;
+  const panel = buildThemeMovePanel(activeTheme, {
+    // A successful Move changed this folder's own parent -- reload so
+    // the breadcrumb and back-link reflect its new location.
+    onMove: () => window.location.reload(),
+    onCopy: () => {
+      slot.hidden = true;
+      slot.innerHTML = "";
+    },
+    onCancel: () => {
+      slot.hidden = true;
+      slot.innerHTML = "";
+    },
+  });
+  slot.appendChild(panel);
+}
+
+function handleCurrentThemeDeleteClick() {
+  if (!activeTheme) return;
+  const wordCountNow = Storage.getWords(activeTheme.id).length;
+  const subfolderCountNow = Storage.getChildThemes(activeTheme.id).length;
+  let warning = `Delete "${activeTheme.name}"?`;
+  if (wordCountNow > 0 || subfolderCountNow > 0) {
+    const parts = [];
+    if (wordCountNow > 0) parts.push(`${wordCountNow} word${wordCountNow === 1 ? "" : "s"}`);
+    if (subfolderCountNow > 0)
+      parts.push(`${subfolderCountNow} sub-folder${subfolderCountNow === 1 ? "" : "s"} (and everything inside them)`);
+    warning += ` This will also delete ${parts.join(" and ")}.`;
+  }
+  warning += " This can't be undone.";
+  if (!confirm(warning)) return;
+
+  const parentId = activeTheme.parentId;
+  const lang = activeTheme.language;
+  Storage.deleteTheme(activeTheme.id);
+  window.location.href = parentId ? `theme.html?id=${encodeURIComponent(parentId)}` : `vocab.html?lang=${lang}`;
 }
 
 // Note: add-vocab.html used to have its own in-page, per-theme tab strip
@@ -204,6 +312,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   on("new-theme-form", "submit", handleNewThemeSubmit);
   on("theme-rename-btn", "click", handleRenameThemeClick);
+  on("new-subfolder-form", "submit", handleNewSubfolderSubmit);
+  on("theme-move-btn", "click", toggleCurrentThemeMovePanel);
+  on("theme-delete-btn", "click", handleCurrentThemeDeleteClick);
   on("add-word-form", "submit", handleAddWordSubmit);
   on("field-furigana", "input", handleFuriganaManualEdit);
 
@@ -313,23 +424,31 @@ function handleNewThemeSubmit(e) {
 function renderThemeList() {
   const list = document.getElementById("theme-list");
   if (!list) return;
-  const themes = activeLangFilter
-    ? Storage.getThemes().filter((t) => t.language === activeLangFilter)
-    : Storage.getThemes();
+  // On theme.html this list is showing activeTheme's sub-folders (set
+  // in applyActiveThemeToUI), scoped to its own language; on vocab.html
+  // it's the top-level list, scoped by the page's own language filter.
+  const effectiveLangFilter = activeTheme ? activeTheme.language : activeLangFilter;
+  const themes = Storage.getChildThemes(themeListParentId, effectiveLangFilter);
   list.innerHTML = "";
 
   if (themes.length === 0) {
     const li = document.createElement("li");
     li.className = "empty-hint";
-    li.textContent = activeLangFilter
-      ? `No ${LANGUAGE_NAMES[activeLangFilter]} themes yet — add one above to get started.`
-      : "No themes yet — add one above to get started.";
+    if (activeTheme) {
+      li.textContent = "No sub-folders yet — create one below.";
+      li.dataset.immersionKey = "noSubfoldersHint";
+    } else if (activeLangFilter) {
+      li.textContent = `No ${LANGUAGE_NAMES[activeLangFilter]} themes yet — add one above to get started.`;
+    } else {
+      li.textContent = "No themes yet — add one above to get started.";
+    }
     list.appendChild(li);
     return;
   }
 
   themes.forEach((theme) => {
     const wordCount = Storage.getWords(theme.id).length;
+    const subfolderCount = Storage.getChildThemes(theme.id).length;
 
     const li = document.createElement("li");
     li.className = `theme-item lang-${theme.language}`;
@@ -355,32 +474,178 @@ function renderThemeList() {
     countBadge.textContent = `${wordCount} word${wordCount === 1 ? "" : "s"}`;
     meta.appendChild(countBadge);
 
+    if (subfolderCount > 0) {
+      const subfolderBadge = document.createElement("span");
+      subfolderBadge.className = "word-count-badge";
+      subfolderBadge.textContent = `${subfolderCount} sub-folder${subfolderCount === 1 ? "" : "s"}`;
+      meta.appendChild(subfolderBadge);
+    }
+
     li.appendChild(meta);
 
-    const deleteBtn = document.createElement("button");
-    deleteBtn.type = "button";
-    deleteBtn.className = "secondary delete-theme-btn";
-    deleteBtn.textContent = "Delete theme";
-    deleteBtn.dataset.immersionKey = "deleteThemeButton";
-    deleteBtn.addEventListener("click", (e) => {
-      // The whole card is a click-to-open link — without this the click
-      // would both delete the theme AND navigate into the page for a
-      // theme that no longer exists.
-      e.stopPropagation();
-      const wordCountNow = Storage.getWords(theme.id).length;
-      const warning =
-        wordCountNow > 0
-          ? `Delete "${theme.name}"? This will also delete all ${wordCountNow} word${wordCountNow === 1 ? "" : "s"} saved in it. This can't be undone.`
-          : `Delete "${theme.name}"? This can't be undone.`;
-      if (!confirm(warning)) return;
-      Storage.deleteTheme(theme.id);
-      renderThemeList();
-      renderQuizThemeCheckboxes();
-    });
-    li.appendChild(deleteBtn);
+    if (movingThemeId === theme.id) {
+      const panel = buildThemeMovePanel(theme, {
+        onMove: () => renderThemeList(),
+        onCopy: () => renderThemeList(),
+        onCancel: () => renderThemeList(),
+      });
+      panel.addEventListener("click", (e) => e.stopPropagation());
+      li.appendChild(panel);
+    } else {
+      const actions = document.createElement("div");
+      actions.className = "theme-item-actions";
+
+      const renameBtn = document.createElement("button");
+      renameBtn.type = "button";
+      renameBtn.className = "secondary rename-theme-btn";
+      renameBtn.textContent = "Rename";
+      renameBtn.dataset.immersionKey = "renameButton";
+      renameBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const newName = prompt("New name for this folder:", theme.name);
+        if (!newName || !newName.trim() || newName.trim() === theme.name) return;
+        Storage.renameTheme(theme.id, newName.trim());
+        renderThemeList();
+      });
+      actions.appendChild(renameBtn);
+
+      const moveBtn = document.createElement("button");
+      moveBtn.type = "button";
+      moveBtn.className = "secondary move-theme-btn";
+      moveBtn.textContent = "Move / Copy";
+      moveBtn.dataset.immersionKey = "moveCopyButton";
+      moveBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        movingThemeId = theme.id;
+        renderThemeList();
+      });
+      actions.appendChild(moveBtn);
+
+      const deleteBtn = document.createElement("button");
+      deleteBtn.type = "button";
+      deleteBtn.className = "secondary delete-theme-btn";
+      deleteBtn.textContent = "Delete";
+      deleteBtn.dataset.immersionKey = "btnDelete";
+      deleteBtn.addEventListener("click", (e) => {
+        // The whole card is a click-to-open link — without this the click
+        // would both delete the theme AND navigate into the page for a
+        // theme that no longer exists.
+        e.stopPropagation();
+        const wordCountNow = Storage.getWords(theme.id).length;
+        const subfolderCountNow = Storage.getChildThemes(theme.id).length;
+        let warning = `Delete "${theme.name}"?`;
+        if (wordCountNow > 0 || subfolderCountNow > 0) {
+          const parts = [];
+          if (wordCountNow > 0) parts.push(`${wordCountNow} word${wordCountNow === 1 ? "" : "s"}`);
+          if (subfolderCountNow > 0)
+            parts.push(`${subfolderCountNow} sub-folder${subfolderCountNow === 1 ? "" : "s"} (and everything inside them)`);
+          warning += ` This will also delete ${parts.join(" and ")}.`;
+        }
+        warning += " This can't be undone.";
+        if (!confirm(warning)) return;
+        Storage.deleteTheme(theme.id);
+        renderThemeList();
+        renderQuizThemeCheckboxes();
+      });
+      actions.appendChild(deleteBtn);
+
+      li.appendChild(actions);
+    }
 
     list.appendChild(li);
   });
+}
+
+// ---- Folder (theme) move/copy -- shared by the top-level list
+// (vocab.html) and a theme's sub-folder list (theme.html) ----
+
+function renderThemeFolderMoveOptions(select, excludeThemeId, language) {
+  select.innerHTML = "";
+  const rootOpt = document.createElement("option");
+  rootOpt.value = "";
+  rootOpt.textContent = "— Top level —";
+  rootOpt.dataset.immersionKey = "topLevelOption";
+  select.appendChild(rootOpt);
+
+  const candidates = Storage.getThemes()
+    .filter(
+      (t) => t.language === language && t.id !== excludeThemeId && !Storage.isThemeDescendantOf(t.id, excludeThemeId)
+    )
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  candidates.forEach((t) => {
+    const depth = Storage.getThemeAncestors(t.id).length;
+    const opt = document.createElement("option");
+    opt.value = t.id;
+    opt.textContent = `${"— ".repeat(depth)}${t.name}`;
+    select.appendChild(opt);
+  });
+}
+
+// theme: the folder being moved/copied. callbacks: { onMove, onCopy,
+// onCancel } -- each called after that action succeeds (or is
+// canceled), so the caller decides what "done" means (re-render a
+// list in place, or navigate/reload when it's the folder you're
+// currently standing inside).
+function buildThemeMovePanel(theme, callbacks) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "word-move-panel";
+
+  const select = document.createElement("select");
+  select.className = "word-move-select";
+  renderThemeFolderMoveOptions(select, theme.id, theme.language);
+  wrapper.appendChild(select);
+
+  const moveBtn = document.createElement("button");
+  moveBtn.type = "button";
+  moveBtn.textContent = "Move";
+  moveBtn.dataset.immersionKey = "moveButton";
+  moveBtn.addEventListener("click", () => {
+    const targetParentId = select.value || null;
+    const result = Storage.moveTheme(theme.id, targetParentId);
+    if (!result.success) {
+      alert(
+        result.reason === "into-own-descendant"
+          ? "Can't move a folder into itself or one of its own sub-folders."
+          : "Couldn't move that folder."
+      );
+      return;
+    }
+    movingThemeId = null;
+    callbacks.onMove();
+  });
+  wrapper.appendChild(moveBtn);
+
+  const copyBtn = document.createElement("button");
+  copyBtn.type = "button";
+  copyBtn.className = "secondary";
+  copyBtn.textContent = "Copy";
+  copyBtn.dataset.immersionKey = "copyButton";
+  copyBtn.addEventListener("click", () => {
+    const targetParentId = select.value || null;
+    const result = Storage.copyTheme(theme.id, targetParentId);
+    if (!result.success) {
+      alert("Couldn't copy that folder.");
+      return;
+    }
+    movingThemeId = null;
+    callbacks.onCopy();
+    alert(`Copied "${theme.name}" (and everything inside it).`);
+  });
+  wrapper.appendChild(copyBtn);
+
+  const cancelBtn = document.createElement("button");
+  cancelBtn.type = "button";
+  cancelBtn.className = "secondary";
+  cancelBtn.textContent = "Cancel";
+  cancelBtn.dataset.immersionKey = "btnCancel";
+  cancelBtn.addEventListener("click", () => {
+    movingThemeId = null;
+    callbacks.onCancel();
+  });
+  wrapper.appendChild(cancelBtn);
+
+  return wrapper;
 }
 
 // ---------------------------------------------------------------------

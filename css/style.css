@@ -207,6 +207,7 @@ body {
 
 .app-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 1rem;
   padding: 1rem 1.5rem;
@@ -219,8 +220,57 @@ body {
   font-size: 1.3rem;
 }
 
-.theme-rename-btn {
+.theme-header-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
   margin-left: auto;
+}
+
+/* A folder's location, breadcrumb-style: Vocab Bank / Parent / This
+   folder. Always its own full-width row under the back-link/heading/
+   actions rather than squeezed inline with them. */
+.breadcrumb-trail {
+  flex: 1 1 100%;
+  order: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+}
+
+.breadcrumb-trail a {
+  color: #C0BFB2;
+  text-decoration: underline;
+}
+
+.breadcrumb-trail a:hover {
+  color: #ECE6D3;
+}
+
+.breadcrumb-sep {
+  opacity: 0.5;
+}
+
+.breadcrumb-current {
+  color: #ECE6D3;
+  font-weight: 600;
+}
+
+.theme-item-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.subfolder-section {
+  margin-top: 1.5rem;
+}
+
+.subfolder-heading {
+  font-size: 1.1rem;
+  margin: 0 0 0.5rem;
 }
 
 .back-link {

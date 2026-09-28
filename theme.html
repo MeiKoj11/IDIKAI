@@ -82,8 +82,14 @@
   </div>
   <header class="app-header">
     <a href="vocab.html" class="back-link" id="theme-back-link" data-immersion-key="backToThemes">&larr; Back to Themes</a>
+    <nav id="theme-breadcrumb" class="breadcrumb-trail" aria-label="Folder path"></nav>
     <h1 id="theme-hub-heading">Theme</h1>
-    <button type="button" id="theme-rename-btn" class="secondary theme-rename-btn" data-immersion-key="renameButton">Rename</button>
+    <div class="theme-header-actions">
+      <button type="button" id="theme-rename-btn" class="secondary theme-rename-btn" data-immersion-key="renameButton">Rename</button>
+      <button type="button" id="theme-move-btn" class="secondary" data-immersion-key="moveCopyButton">Move / Copy</button>
+      <button type="button" id="theme-delete-btn" class="secondary" data-immersion-key="btnDelete">Delete</button>
+    </div>
+    <div id="theme-move-panel-slot" hidden></div>
   </header>
   <main>
     <div class="bubble-grid">
@@ -100,6 +106,21 @@
         <span class="bubble-sub" data-immersion-key="viewVocabSub">See everything already saved in this theme</span>
       </a>
     </div>
+
+    <section class="subfolder-section">
+      <h2 class="subfolder-heading" data-immersion-key="subfoldersHeading">Sub-folders</h2>
+      <form id="new-subfolder-form" class="inline-form">
+        <input
+          type="text"
+          id="new-subfolder-name"
+          placeholder="New sub-folder name"
+          required
+          data-immersion-key="subfolderNamePlaceholder"
+        />
+        <button type="submit" data-immersion-key="createFolderButton">Create folder</button>
+      </form>
+      <ul id="theme-list" class="theme-list"></ul>
+    </section>
   </main>
   <script src="js/topbar.js"></script>
   <script src="js/immersion.js"></script>

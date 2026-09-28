@@ -212,12 +212,97 @@ function getTheme(themeId) {
   return getThemes().find((t) => t.id === themeId) || null;
 }
 
-function addTheme(name, language) {
+function addTheme(name, language, parentId) {
   const themes = getThemes();
-  const theme = { id: uid(), name, language };
+  const theme = { id: uid(), name, language, parentId: parentId || null };
   themes.push(theme);
   writeJSON(STORAGE_KEYS.themes, themes);
   return theme;
+}
+
+// ---- Theme folders (nesting) ----
+// A theme is both a vocab collection AND a folder that can hold other
+// themes underneath it -- parentId is null for a top-level theme (what
+// every theme was before nesting existed, so old data needs no
+// migration) or another theme's id otherwise. getThemes() itself stays
+// a flat list of everything, on purpose -- callers that don't care
+// about hierarchy (duplicate-word checks, quiz checkboxes, verb-word
+// scanning) still see every theme regardless of depth.
+
+function getChildThemes(parentId, language) {
+  const themes = getThemes().filter((t) => (t.parentId || null) === (parentId || null));
+  return language ? themes.filter((t) => t.language === language) : themes;
+}
+
+// Root-first list of this theme's parent folders, for a breadcrumb trail.
+function getThemeAncestors(themeId) {
+  const ancestors = [];
+  let current = getTheme(themeId);
+  const seen = new Set();
+  while (current && current.parentId && !seen.has(current.parentId)) {
+    seen.add(current.parentId);
+    const parent = getTheme(current.parentId);
+    if (!parent) break;
+    ancestors.unshift(parent);
+    current = parent;
+  }
+  return ancestors;
+}
+
+// True if `candidateId` IS `ancestorId`, or lives anywhere underneath
+// it -- the check that stops a folder being moved/copied into itself
+// or into one of its own sub-folders.
+function isThemeDescendantOf(candidateId, ancestorId) {
+  let current = getTheme(candidateId);
+  const seen = new Set();
+  while (current) {
+    if (current.id === ancestorId) return true;
+    if (!current.parentId || seen.has(current.parentId)) break;
+    seen.add(current.parentId);
+    current = getTheme(current.parentId);
+  }
+  return false;
+}
+
+function moveTheme(themeId, targetParentId) {
+  const normalizedTarget = targetParentId || null;
+  if (themeId === normalizedTarget) return { success: false, theme: null, reason: "into-own-descendant" };
+  if (normalizedTarget && isThemeDescendantOf(normalizedTarget, themeId)) {
+    return { success: false, theme: null, reason: "into-own-descendant" };
+  }
+  const themes = getThemes();
+  const theme = themes.find((t) => t.id === themeId);
+  if (!theme) return { success: false, theme: null, reason: "not-found" };
+  if ((theme.parentId || null) === normalizedTarget) return { success: false, theme: null, reason: "same-folder" };
+  theme.parentId = normalizedTarget;
+  writeJSON(STORAGE_KEYS.themes, themes);
+  return { success: true, theme, reason: null };
+}
+
+// Deep copy: the theme itself, every word directly inside it, and
+// (recursively) every sub-theme underneath with its own words -- so
+// copying a folder brings everything inside it along, same as
+// duplicating a folder in Finder.
+function copyTheme(themeId, targetParentId) {
+  const normalizedTarget = targetParentId || null;
+  const source = getTheme(themeId);
+  if (!source) return { success: false, theme: null, reason: "not-found" };
+  if (normalizedTarget && isThemeDescendantOf(normalizedTarget, themeId)) {
+    return { success: false, theme: null, reason: "into-own-descendant" };
+  }
+
+  function cloneRecursive(theme, newParentId) {
+    const copy = addTheme(theme.name, theme.language, newParentId);
+    getWords(theme.id).forEach((w) => {
+      const { id, createdAt, themeId, ...rest } = w;
+      addWord({ themeId: copy.id, ...rest });
+    });
+    getChildThemes(theme.id).forEach((child) => cloneRecursive(child, copy.id));
+    return copy;
+  }
+
+  const copy = cloneRecursive(source, normalizedTarget);
+  return { success: true, theme: copy, reason: null };
 }
 
 function renameTheme(themeId, newName) {
@@ -229,13 +314,22 @@ function renameTheme(themeId, newName) {
   return theme;
 }
 
-// Cascades to every word saved under this theme too, so deleting a
-// theme doesn't leave orphaned flashcards with no folder behind.
+// Cascades to every word saved under this theme, AND to every
+// sub-theme nested underneath it (at any depth) and their words too --
+// deleting a folder deletes everything inside it, the same as deleting
+// a folder in Finder.
 function deleteTheme(themeId) {
-  const themes = getThemes().filter((t) => t.id !== themeId);
+  const allThemes = getThemes();
+  const toDelete = [themeId];
+  for (let i = 0; i < toDelete.length; i++) {
+    allThemes.filter((t) => t.parentId === toDelete[i]).forEach((child) => toDelete.push(child.id));
+  }
+  const deleteSet = new Set(toDelete);
+
+  const themes = allThemes.filter((t) => !deleteSet.has(t.id));
   writeJSON(STORAGE_KEYS.themes, themes);
 
-  const words = readJSON(STORAGE_KEYS.words, []).filter((w) => w.themeId !== themeId);
+  const words = readJSON(STORAGE_KEYS.words, []).filter((w) => !deleteSet.has(w.themeId));
   writeJSON(STORAGE_KEYS.words, words);
 }
 
@@ -1030,6 +1124,15 @@ function deleteWritingMistake(mistakeId) {
   writeJSON(STORAGE_KEYS.writingMistakes, mistakes);
 }
 
+function updateWritingMistake(mistakeId, updates) {
+  const mistakes = readJSON(STORAGE_KEYS.writingMistakes, []);
+  const mistake = mistakes.find((m) => m.id === mistakeId);
+  if (!mistake) return null;
+  Object.assign(mistake, updates);
+  writeJSON(STORAGE_KEYS.writingMistakes, mistakes);
+  return mistake;
+}
+
 // Saving a word into a real Vocab Bank theme no longer removes it from
 // the Helper Notebook — it stays as a visible record of everything
 // you've looked up, just marked so "Add to Vocab" doesn't get offered
@@ -1369,6 +1472,11 @@ const Storage = {
   getThemes,
   getTheme,
   addTheme,
+  getChildThemes,
+  getThemeAncestors,
+  isThemeDescendantOf,
+  moveTheme,
+  copyTheme,
   renameTheme,
   deleteTheme,
   getWords,
@@ -1435,6 +1543,7 @@ const Storage = {
   deleteHelperWord,
   getWritingMistakes,
   addWritingMistake,
+  updateWritingMistake,
   deleteWritingMistake,
   getPersonalNotes,
   getPersonalNote,
