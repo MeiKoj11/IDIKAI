@@ -1008,6 +1008,169 @@ a.secondary:hover {
   font-weight: 600;
 }
 
+/* ---- Vocab Bank nested-folder redesign: single edit-icon popover,
+   Sort-mode drag-to-reorder/merge/group, and the Recently Removed
+   trash panel. ---- */
+
+.theme-edit-wrap {
+  position: relative;
+  align-self: flex-end;
+}
+
+.theme-edit-icon-btn {
+  padding: 0.15rem 0.55rem;
+  font-size: 1.1rem;
+  line-height: 1;
+  border-radius: 999px;
+}
+
+.theme-edit-menu {
+  position: absolute;
+  bottom: calc(100% + 0.3rem);
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 120px;
+  padding: 0.3rem;
+  gap: 0.2rem;
+  background: #1A110D;
+  border: 1px solid #6F635B;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.theme-edit-menu button {
+  text-align: left;
+  background: transparent;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+}
+
+.theme-edit-menu button:hover {
+  background: #221712;
+}
+
+.theme-edit-menu button.danger-option {
+  color: #E08B8C;
+}
+
+/* theme.html's own header edit menu reuses the same popover look, just
+   anchored under the header's ⋯ button instead of a list card's. */
+#theme-edit-btn {
+  position: relative;
+}
+
+.theme-header-actions #theme-edit-menu {
+  bottom: auto;
+  top: calc(100% + 0.3rem);
+}
+
+.theme-folder-icon {
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.theme-item-folder {
+  background: #4A2E1A;
+}
+
+.theme-item-folder:hover {
+  background: #5A3A22;
+}
+
+/* Sort mode -- cards become draggable, the same way app icons jiggle
+   loose on an iPhone home screen when you long-press them. */
+.theme-item-sortable {
+  cursor: grab;
+}
+
+.theme-item-sortable:active {
+  cursor: grabbing;
+}
+
+.theme-item.dragging {
+  opacity: 0.45;
+}
+
+.theme-item.drag-merge-target {
+  outline: 3px solid #ECE6D3;
+  outline-offset: 2px;
+}
+
+#theme-sort-btn.active,
+#theme-trash-btn.active {
+  background: #8B3435;
+}
+
+/* The Merge / Create-folder chooser that appears when a drag is held
+   over another card. */
+.theme-merge-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 1rem;
+}
+
+.theme-merge-modal-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-width: 360px;
+  width: 100%;
+  padding: 1.25rem;
+  background: #1A110D;
+  border: 1px solid #6F635B;
+  border-radius: 10px;
+}
+
+.theme-merge-modal-box h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  overflow-wrap: break-word;
+}
+
+.theme-merge-modal-box button {
+  width: 100%;
+}
+
+/* Recently removed -- a merged-away or deleted theme's snapshot, kept
+   for about 30 days and restorable, without needing full persistent
+   undo for every action. */
+.theme-trash-panel {
+  margin: 1rem 1.5rem 0;
+  padding: 0.9rem 1rem;
+  background: #1A110D;
+  border: 1px solid #6F635B;
+  border-radius: 8px;
+}
+
+.theme-trash-panel-head h2 {
+  margin: 0 0 0.2rem;
+  font-size: 1.05rem;
+}
+
+.theme-trash-panel-head .hint {
+  margin: 0 0 0.6rem;
+}
+
+.theme-trash-panel .theme-list {
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+
+.theme-trash-panel .theme-item {
+  cursor: default;
+}
+
+.theme-trash-panel .theme-item:hover {
+  transform: none;
+  box-shadow: none;
+}
+
 #passage-folder-filter-label {
   display: flex;
   flex-direction: column;

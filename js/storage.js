@@ -101,6 +101,7 @@ const SUPPORTED_LANGUAGES = ["es", "ja", "fr"];
 
 const STORAGE_KEYS = {
   themes: "vocabBank.themes",
+  themeTrash: "vocabBank.themeTrash",
   words: "vocabBank.words",
   conjugationTables: "vocabBank.conjugationTables",
   srs: "vocabBank.srs",
@@ -212,12 +213,51 @@ function getTheme(themeId) {
   return getThemes().find((t) => t.id === themeId) || null;
 }
 
-function addTheme(name, language, parentId) {
+function addTheme(name, language, parentId, type) {
   const themes = getThemes();
-  const theme = { id: uid(), name, language, parentId: parentId || null };
+  const normalizedParent = parentId || null;
+  // New themes/folders sort to the end of their sibling group by
+  // default -- order is just a sort key, renumbered wholesale on drag
+  // reorder (see reorderThemes) or nudged by a fraction to slot next
+  // to a specific sibling (see copyTheme).
+  const siblingOrders = getThemes()
+    .filter((t) => (t.parentId || null) === normalizedParent)
+    .map((t) => (typeof t.order === "number" ? t.order : 0));
+  const nextOrder = siblingOrders.length ? Math.max(...siblingOrders) + 1 : 0;
+  const theme = {
+    id: uid(),
+    name,
+    language,
+    parentId: normalizedParent,
+    type: type || "theme", // "theme" holds vocab directly; "folder" (from
+    // the Sort-mode drag "Create a folder" action) only ever groups
+    // other themes/folders and has no vocab of its own.
+    order: nextOrder,
+  };
   themes.push(theme);
   writeJSON(STORAGE_KEYS.themes, themes);
   return theme;
+}
+
+function updateTheme(themeId, updates) {
+  const themes = getThemes();
+  const theme = themes.find((t) => t.id === themeId);
+  if (!theme) return null;
+  Object.assign(theme, updates);
+  writeJSON(STORAGE_KEYS.themes, themes);
+  return theme;
+}
+
+// Persists a drag-reorder: `orderedIds` is every sibling under
+// `parentId`, in its new left-to-right/top-to-bottom order -- each one
+// just gets its array index as its new sort key.
+function reorderThemes(parentId, orderedIds) {
+  const themes = getThemes();
+  orderedIds.forEach((id, index) => {
+    const theme = themes.find((t) => t.id === id);
+    if (theme) theme.order = index;
+  });
+  writeJSON(STORAGE_KEYS.themes, themes);
 }
 
 // ---- Theme folders (nesting) ----
@@ -231,7 +271,8 @@ function addTheme(name, language, parentId) {
 
 function getChildThemes(parentId, language) {
   const themes = getThemes().filter((t) => (t.parentId || null) === (parentId || null));
-  return language ? themes.filter((t) => t.language === language) : themes;
+  const filtered = language ? themes.filter((t) => t.language === language) : themes;
+  return filtered.slice().sort((a, b) => (a.order || 0) - (b.order || 0));
 }
 
 // Root-first list of this theme's parent folders, for a breadcrumb trail.
@@ -274,9 +315,14 @@ function moveTheme(themeId, targetParentId) {
   const theme = themes.find((t) => t.id === themeId);
   if (!theme) return { success: false, theme: null, reason: "not-found" };
   if ((theme.parentId || null) === normalizedTarget) return { success: false, theme: null, reason: "same-folder" };
+  const previousParentId = theme.parentId || null;
+  const newSiblingOrders = themes
+    .filter((t) => (t.parentId || null) === normalizedTarget && t.id !== theme.id)
+    .map((t) => (typeof t.order === "number" ? t.order : 0));
   theme.parentId = normalizedTarget;
+  theme.order = newSiblingOrders.length ? Math.max(...newSiblingOrders) + 1 : 0;
   writeJSON(STORAGE_KEYS.themes, themes);
-  return { success: true, theme, reason: null };
+  return { success: true, theme, reason: null, previousParentId };
 }
 
 // Deep copy: the theme itself, every word directly inside it, and
@@ -291,8 +337,8 @@ function copyTheme(themeId, targetParentId) {
     return { success: false, theme: null, reason: "into-own-descendant" };
   }
 
-  function cloneRecursive(theme, newParentId) {
-    const copy = addTheme(theme.name, theme.language, newParentId);
+  function cloneRecursive(theme, newParentId, type) {
+    const copy = addTheme(theme.name, theme.language, newParentId, type || theme.type);
     getWords(theme.id).forEach((w) => {
       const { id, createdAt, themeId, ...rest } = w;
       addWord({ themeId: copy.id, ...rest });
@@ -302,6 +348,12 @@ function copyTheme(themeId, targetParentId) {
   }
 
   const copy = cloneRecursive(source, normalizedTarget);
+  // Placed right next to the original: a small fractional bump on the
+  // original's own order sorts it immediately after, without needing
+  // to renumber every other sibling.
+  if ((source.parentId || null) === normalizedTarget) {
+    updateTheme(copy.id, { order: (source.order || 0) + 0.5 });
+  }
   return { success: true, theme: copy, reason: null };
 }
 
@@ -314,23 +366,153 @@ function renameTheme(themeId, newName) {
   return theme;
 }
 
-// Cascades to every word saved under this theme, AND to every
-// sub-theme nested underneath it (at any depth) and their words too --
-// deleting a folder deletes everything inside it, the same as deleting
-// a folder in Finder.
-function deleteTheme(themeId) {
+// Collects a theme's id plus every sub-theme nested underneath it (at
+// any depth) -- the same "everything inside this folder" set that both
+// deleting and soft-deleting need.
+function collectThemeAndDescendantIds(themeId) {
   const allThemes = getThemes();
-  const toDelete = [themeId];
-  for (let i = 0; i < toDelete.length; i++) {
-    allThemes.filter((t) => t.parentId === toDelete[i]).forEach((child) => toDelete.push(child.id));
+  const ids = [themeId];
+  for (let i = 0; i < ids.length; i++) {
+    allThemes.filter((t) => t.parentId === ids[i]).forEach((child) => ids.push(child.id));
   }
-  const deleteSet = new Set(toDelete);
+  return ids;
+}
 
-  const themes = allThemes.filter((t) => !deleteSet.has(t.id));
+// Permanent, immediate removal -- no Recently Removed entry. Used for
+// undoing a Copy or a Create-folder from earlier in this same session
+// (reversing something that was only just created shouldn't leave 30
+// days of trash behind it) -- everyday folder deletion goes through
+// deleteTheme/softDeleteTheme below instead.
+function hardDeleteTheme(themeId) {
+  const deleteSet = new Set(collectThemeAndDescendantIds(themeId));
+  const themes = getThemes().filter((t) => !deleteSet.has(t.id));
   writeJSON(STORAGE_KEYS.themes, themes);
-
   const words = readJSON(STORAGE_KEYS.words, []).filter((w) => !deleteSet.has(w.themeId));
   writeJSON(STORAGE_KEYS.words, words);
+}
+
+const THEME_TRASH_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+
+// Reading the trash also purges anything past its 30-day hold, so
+// there's no separate background job needed to actually forget it.
+function getThemeTrash() {
+  const trash = readJSON(STORAGE_KEYS.themeTrash, []);
+  const now = Date.now();
+  const kept = trash.filter((entry) => now - entry.removedAt < THEME_TRASH_MAX_AGE_MS);
+  if (kept.length !== trash.length) writeJSON(STORAGE_KEYS.themeTrash, kept);
+  return kept;
+}
+
+// Moves a theme (and everything nested inside it) into the Recently
+// Removed area instead of discarding it outright -- restorable for
+// about 30 days. Used for both an explicit Delete and a Merge's two
+// now-folded-in originals ("reason" distinguishes them for display).
+function softDeleteTheme(themeId, reason) {
+  const idsToRemove = collectThemeAndDescendantIds(themeId);
+  const removeSet = new Set(idsToRemove);
+
+  const allThemes = getThemes();
+  const removedThemes = allThemes.filter((t) => removeSet.has(t.id));
+  if (removedThemes.length === 0) return { success: false, reason: "not-found" };
+
+  const allWords = readJSON(STORAGE_KEYS.words, []);
+  const removedWords = allWords.filter((w) => removeSet.has(w.themeId));
+
+  const trash = readJSON(STORAGE_KEYS.themeTrash, []);
+  const entry = {
+    id: uid(),
+    removedAt: Date.now(),
+    reason: reason || "deleted",
+    themes: removedThemes,
+    words: removedWords,
+  };
+  trash.push(entry);
+  writeJSON(STORAGE_KEYS.themeTrash, trash);
+
+  writeJSON(STORAGE_KEYS.themes, allThemes.filter((t) => !removeSet.has(t.id)));
+  writeJSON(STORAGE_KEYS.words, allWords.filter((w) => !removeSet.has(w.themeId)));
+  return { success: true, entryId: entry.id };
+}
+
+// Delete (the edit-icon menu action) is a soft delete -- restorable
+// from Recently Removed, same as a merged-away theme.
+function deleteTheme(themeId) {
+  softDeleteTheme(themeId, "deleted");
+}
+
+// Restores every theme + word a trash entry holds back to the live
+// lists, then removes the entry. `targetParentId` (optional) re-homes
+// just the top-level restored theme -- its own nested sub-themes keep
+// pointing at each other exactly as they did before removal. Left
+// unset, it restores under its original parent, or to the top level if
+// that parent no longer exists.
+function restoreThemeTrashEntry(entryId, targetParentId) {
+  const trash = readJSON(STORAGE_KEYS.themeTrash, []);
+  const idx = trash.findIndex((e) => e.id === entryId);
+  if (idx === -1) return { success: false, reason: "not-found" };
+  const entry = trash[idx];
+
+  const themes = getThemes();
+  const existingIds = new Set(themes.map((t) => t.id));
+  const restoredBatchIds = new Set(entry.themes.map((t) => t.id));
+  const topLevelId = entry.themes.length ? entry.themes[0].id : null;
+
+  entry.themes.forEach((t) => {
+    if (existingIds.has(t.id)) return; // already present somehow -- don't duplicate
+    const restored = { ...t };
+    if (t.id === topLevelId && targetParentId !== undefined) {
+      restored.parentId = targetParentId || null;
+    } else if (restored.parentId && !existingIds.has(restored.parentId) && !restoredBatchIds.has(restored.parentId)) {
+      restored.parentId = null; // its original parent is gone and isn't part of this restore
+    }
+    themes.push(restored);
+  });
+  writeJSON(STORAGE_KEYS.themes, themes);
+
+  const words = readJSON(STORAGE_KEYS.words, []);
+  entry.words.forEach((w) => words.push(w));
+  writeJSON(STORAGE_KEYS.words, words);
+
+  trash.splice(idx, 1);
+  writeJSON(STORAGE_KEYS.themeTrash, trash);
+  return { success: true };
+}
+
+// Skips the 30-day wait and forgets a trash entry for good.
+function permanentlyDeleteThemeTrashEntry(entryId) {
+  const trash = readJSON(STORAGE_KEYS.themeTrash, []).filter((e) => e.id !== entryId);
+  writeJSON(STORAGE_KEYS.themeTrash, trash);
+}
+
+// Combines two themes (same language, same folder) into one new theme
+// holding both their words (exact duplicates skipped), then soft-
+// deletes both originals so they're still recoverable from Recently
+// Removed -- Merge never touches the session Undo stack, only Recently
+// Removed, since it collapses real data rather than just repositioning
+// it.
+function mergeThemes(themeIdA, themeIdB, mergedName) {
+  const a = getTheme(themeIdA);
+  const b = getTheme(themeIdB);
+  if (!a || !b) return { success: false, reason: "not-found" };
+  if (a.language !== b.language) return { success: false, reason: "language-mismatch" };
+
+  const parentId = a.parentId || null;
+  const merged = addTheme(mergedName || `${a.name} + ${b.name}`, a.language, parentId);
+  updateTheme(merged.id, { order: a.order });
+
+  getWords(a.id).forEach((w) => {
+    const { id, createdAt, themeId, ...rest } = w;
+    addWord({ themeId: merged.id, ...rest });
+  });
+  getWords(b.id).forEach((w) => {
+    const { id, createdAt, themeId, ...rest } = w;
+    if (!isDuplicateWord(merged.id, rest)) addWord({ themeId: merged.id, ...rest });
+  });
+
+  softDeleteTheme(a.id, "merged");
+  softDeleteTheme(b.id, "merged");
+
+  return { success: true, theme: merged };
 }
 
 // ---- Words ----
@@ -1477,6 +1659,14 @@ const Storage = {
   isThemeDescendantOf,
   moveTheme,
   copyTheme,
+  updateTheme,
+  reorderThemes,
+  mergeThemes,
+  hardDeleteTheme,
+  softDeleteTheme,
+  getThemeTrash,
+  restoreThemeTrashEntry,
+  permanentlyDeleteThemeTrashEntry,
   renameTheme,
   deleteTheme,
   getWords,

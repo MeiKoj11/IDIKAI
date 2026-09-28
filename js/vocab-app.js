@@ -37,10 +37,41 @@ let pendingDetection = null;
 let editingWordId = null;
 // id of the word currently showing its inline move/copy panel, or null.
 let movingWordId = null;
-// Which folder (theme) currently has its Move/Copy picker open, in
-// either the top-level list (vocab.html) or a theme's sub-folder list
-// (theme.html) -- same single-open pattern as movingWordId above.
-let movingThemeId = null;
+// Which theme/folder card currently has its edit-icon (Rename/Delete/
+// Copy) popover open, in either the top-level list (vocab.html) or a
+// theme's sub-folder list (theme.html) -- only one open at a time.
+let editMenuOpenForId = null;
+// Whether Sort mode is active on this page -- makes the theme/folder
+// cards in #theme-list draggable and repositionable, the same way app
+// icons become movable on an iPhone home screen when you long-press
+// them. Off by default; toggled by the Sort button, which appears on
+// every one of these pages (top-level Vocab Bank and every folder
+// inside it) so the same drag-to-reorder/merge/group behaviour works
+// at any nesting depth.
+let sortModeActive = false;
+// Whether the "Recently removed" trash panel is currently shown.
+let trashPanelOpen = false;
+// Session-only undo stack for cheap, easily-reversed actions -- drag
+// reorder, rename, copy, and create-a-folder -- kept in memory only
+// (cleared on refresh/navigation), capped at UNDO_STACK_LIMIT entries.
+// Merge and Delete deliberately do NOT use this: they collapse or
+// discard real data, so they go through Storage's persistent ~30-day
+// "Recently removed" trash instead (see renderThemeTrashList), which
+// survives a refresh or a closed laptop.
+let undoStack = [];
+const UNDO_STACK_LIMIT = 15;
+// Mirrors storage.js's THEME_TRASH_MAX_AGE_MS for the "N days left"
+// display below -- that constant isn't exported, so it's just kept in
+// sync here (both are 30 days, a design constant, not user data).
+const THEME_TRASH_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+// Sort-mode drag state for the hold-to-merge-or-group interaction: the
+// theme being dragged, and (while hovering over a candidate drop
+// target) the pending timer that -- if the drag lingers long enough --
+// opens the Merge/Create-folder chooser instead of a plain reorder.
+let dragSourceThemeId = null;
+let dragHoverTargetId = null;
+let dragHoverTimer = null;
+const DRAG_HOLD_MS = 550;
 // Which folder's children #theme-list is currently showing: null at
 // the top level (vocab.html), or a theme's id when that list is a
 // theme.html page's sub-folder list -- set once in applyActiveThemeToUI.
@@ -150,10 +181,21 @@ function applyActiveThemeToUI() {
   const verbDrillLabel = document.getElementById("verb-drill-label");
   if (verbDrillLabel) verbDrillLabel.hidden = activeTheme.language !== "es";
 
-  // theme.html always routes back to the vocab list filtered to this
-  // theme's own language, regardless of how it was reached.
+  // A folder (created via Sort mode's drag-to-group) has no vocab of
+  // its own -- it only groups other themes/folders -- so it hides the
+  // Add/Test/View bubbles a real vocab theme shows.
+  const bubbles = document.getElementById("theme-vocab-bubbles");
+  if (bubbles) bubbles.hidden = activeTheme.type === "folder";
+
+  // "Back" always goes one level up -- to the folder you're actually
+  // inside of, never a jump straight back to the top of Vocab Bank from
+  // several folders deep.
   const themeBackLink = document.getElementById("theme-back-link");
-  if (themeBackLink) themeBackLink.href = `vocab.html?lang=${activeTheme.language}`;
+  if (themeBackLink) {
+    themeBackLink.href = activeTheme.parentId
+      ? `theme.html?id=${encodeURIComponent(activeTheme.parentId)}`
+      : `vocab.html?lang=${activeTheme.language}`;
+  }
 
   // Back links on quiz.html / add-vocab.html point back to this theme's hub.
   const quizBackLink = document.getElementById("quiz-back-link");
@@ -171,6 +213,65 @@ function applyActiveThemeToUI() {
   themeListParentId = activeTheme.id;
   renderThemeList();
   renderThemeBreadcrumb();
+  renderAddExistingThemeForm();
+  renderUndoButton();
+}
+
+// A folder's (or theme's) own page lets you add an EXISTING theme/
+// folder into it directly, alongside the drag-to-group way of doing
+// the same thing -- same language, not itself, and not one of its own
+// ancestors (which would create a cycle).
+function renderAddExistingThemeForm() {
+  const form = document.getElementById("add-existing-theme-form");
+  const select = document.getElementById("add-existing-theme-select");
+  if (!form || !select || !activeTheme) return;
+
+  const candidates = Storage.getThemes().filter(
+    (t) =>
+      t.language === activeTheme.language &&
+      t.id !== activeTheme.id &&
+      (t.parentId || null) !== activeTheme.id &&
+      !Storage.isThemeDescendantOf(activeTheme.id, t.id)
+  );
+
+  if (candidates.length === 0) {
+    form.hidden = true;
+    return;
+  }
+  form.hidden = false;
+  select.innerHTML = "";
+  candidates
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .forEach((t) => {
+      const opt = document.createElement("option");
+      opt.value = t.id;
+      opt.textContent = t.name;
+      select.appendChild(opt);
+    });
+}
+
+function handleAddExistingThemeSubmit(e) {
+  e.preventDefault();
+  if (!activeTheme) return;
+  const select = document.getElementById("add-existing-theme-select");
+  if (!select || !select.value) return;
+  const themeId = select.value;
+  const theme = Storage.getTheme(themeId);
+  if (!theme) return;
+  const previousParentId = theme.parentId || null;
+  const result = Storage.moveTheme(themeId, activeTheme.id);
+  if (!result.success) {
+    alert("Couldn't add that here.");
+    return;
+  }
+  pushUndo(`Added "${theme.name}" to "${activeTheme.name}"`, () => {
+    Storage.moveTheme(themeId, previousParentId);
+    renderThemeList();
+    renderAddExistingThemeForm();
+  });
+  renderThemeList();
+  renderAddExistingThemeForm();
 }
 
 function renderThemeBreadcrumb() {
@@ -219,50 +320,7 @@ function handleNewSubfolderSubmit(e) {
   renderThemeList();
 }
 
-// The current theme's own Move/Copy panel lives in a dedicated slot
-// below theme.html's header (as opposed to inline in a list row) --
-// moving/copying THIS folder, not one of its children.
-function toggleCurrentThemeMovePanel() {
-  const slot = document.getElementById("theme-move-panel-slot");
-  if (!slot || !activeTheme) return;
-  slot.innerHTML = "";
-  slot.hidden = false;
-  const panel = buildThemeMovePanel(activeTheme, {
-    // A successful Move changed this folder's own parent -- reload so
-    // the breadcrumb and back-link reflect its new location.
-    onMove: () => window.location.reload(),
-    onCopy: () => {
-      slot.hidden = true;
-      slot.innerHTML = "";
-    },
-    onCancel: () => {
-      slot.hidden = true;
-      slot.innerHTML = "";
-    },
-  });
-  slot.appendChild(panel);
-}
 
-function handleCurrentThemeDeleteClick() {
-  if (!activeTheme) return;
-  const wordCountNow = Storage.getWords(activeTheme.id).length;
-  const subfolderCountNow = Storage.getChildThemes(activeTheme.id).length;
-  let warning = `Delete "${activeTheme.name}"?`;
-  if (wordCountNow > 0 || subfolderCountNow > 0) {
-    const parts = [];
-    if (wordCountNow > 0) parts.push(`${wordCountNow} word${wordCountNow === 1 ? "" : "s"}`);
-    if (subfolderCountNow > 0)
-      parts.push(`${subfolderCountNow} sub-folder${subfolderCountNow === 1 ? "" : "s"} (and everything inside them)`);
-    warning += ` This will also delete ${parts.join(" and ")}.`;
-  }
-  warning += " This can't be undone.";
-  if (!confirm(warning)) return;
-
-  const parentId = activeTheme.parentId;
-  const lang = activeTheme.language;
-  Storage.deleteTheme(activeTheme.id);
-  window.location.href = parentId ? `theme.html?id=${encodeURIComponent(parentId)}` : `vocab.html?lang=${lang}`;
-}
 
 // Note: add-vocab.html used to have its own in-page, per-theme tab strip
 // here (switching tabs swapped the shared form in place, with in-memory
@@ -311,10 +369,12 @@ document.addEventListener("DOMContentLoaded", () => {
   on("word-list-sort-select", "change", handleWordListSortChange);
 
   on("new-theme-form", "submit", handleNewThemeSubmit);
-  on("theme-rename-btn", "click", handleRenameThemeClick);
   on("new-subfolder-form", "submit", handleNewSubfolderSubmit);
-  on("theme-move-btn", "click", toggleCurrentThemeMovePanel);
-  on("theme-delete-btn", "click", handleCurrentThemeDeleteClick);
+  on("add-existing-theme-form", "submit", handleAddExistingThemeSubmit);
+  on("theme-sort-btn", "click", handleSortToggle);
+  on("theme-undo-btn", "click", handleUndoClick);
+  on("theme-trash-btn", "click", handleTrashToggle);
+  initThemeHeaderEditMenu();
   on("add-word-form", "submit", handleAddWordSubmit);
   on("field-furigana", "input", handleFuriganaManualEdit);
 
@@ -364,6 +424,13 @@ document.addEventListener("DOMContentLoaded", () => {
   // (theme.html/quiz.html/add-vocab.html); otherwise falls back to
   // vocab.html's own ?lang= filter, or null if neither applies.
   initTopbar(activeTheme ? activeTheme.language : activeLangFilter);
+  // Vocab Bank pages are already scoped to one language by construction
+  // (a Japanese vocab page only ever holds Japanese vocab) -- the shared
+  // topbar's language label is just redundant chrome here, so blank it
+  // out on these pages specifically without touching the topbar script
+  // itself (still shown normally everywhere else in the app).
+  const topbarLangLabel = document.getElementById("topbar-lang-label");
+  if (topbarLangLabel) topbarLangLabel.textContent = "";
   if (typeof initHubTasks === "function") {
     initHubTasks(activeTheme ? activeTheme.language : activeLangFilter);
   }
@@ -382,30 +449,326 @@ document.addEventListener("DOMContentLoaded", () => {
   } else {
     initAppTabs(null);
   }
+
+  // Closes any open per-card edit-icon popover (and theme.html's own
+  // header edit menu) on a genuine outside click -- the popovers/menu
+  // themselves stop click propagation, so this only fires when the
+  // click actually lands elsewhere on the page.
+  document.addEventListener("click", () => {
+    if (editMenuOpenForId !== null) {
+      editMenuOpenForId = null;
+      renderThemeList();
+    }
+    const headerMenu = document.getElementById("theme-edit-menu");
+    if (headerMenu && !headerMenu.hidden) {
+      headerMenu.hidden = true;
+      headerMenu.innerHTML = "";
+    }
+  });
 });
 
 // ---------------------------------------------------------------------
 // Themes
 // ---------------------------------------------------------------------
 
-function handleRenameThemeClick() {
-  if (!activeTheme) return;
-  const newName = prompt("New name for this theme:", activeTheme.name);
-  if (!newName || !newName.trim() || newName.trim() === activeTheme.name) return;
+// ---- Shared Rename/Delete/Copy actions -- used by both a theme's own
+// per-card edit-icon popover (in a list) and theme.html's own header
+// edit-icon menu (acting on the theme you're currently standing
+// inside). `onDone` re-renders whatever list/UI called this; only the
+// header-menu case passes isCurrentTheme so Delete knows to navigate
+// away instead of just re-rendering a card that no longer exists.
 
-  const updated = Storage.renameTheme(activeTheme.id, newName.trim());
+function performThemeRename(theme, { onDone } = {}) {
+  const newName = prompt(
+    theme.type === "folder" ? "New name for this folder:" : "New name for this theme:",
+    theme.name
+  );
+  if (!newName || !newName.trim() || newName.trim() === theme.name) return;
+  const previousName = theme.name;
+  const updated = Storage.renameTheme(theme.id, newName.trim());
   if (!updated) return;
-  activeTheme = updated;
-  applyActiveThemeToUI();
-  // Keep the global app tab's label in sync too, on add-vocab.html.
-  if (document.getElementById("add-word-form")) {
-    initAppTabs({
-      section: "vocab",
-      language: activeTheme.language,
-      label: activeTheme.name,
-      href: `add-vocab.html?id=${encodeURIComponent(activeTheme.id)}`,
-    });
+
+  pushUndo(`Renamed "${newName.trim()}"`, () => {
+    Storage.renameTheme(theme.id, previousName);
+    if (theme.id === (activeTheme && activeTheme.id)) applyActiveThemeToUI();
+    if (onDone) onDone();
+  });
+
+  if (theme.id === (activeTheme && activeTheme.id)) {
+    activeTheme = updated;
+    applyActiveThemeToUI();
+    // Keep the global app tab's label in sync too, on add-vocab.html.
+    if (document.getElementById("add-word-form")) {
+      initAppTabs({
+        section: "vocab",
+        language: activeTheme.language,
+        label: activeTheme.name,
+        href: `add-vocab.html?id=${encodeURIComponent(activeTheme.id)}`,
+      });
+    }
   }
+  if (onDone) onDone();
+}
+
+// Delete goes through Storage's persistent Recently Removed trash
+// (softDeleteTheme under the hood), not the session undo stack -- it
+// can discard real data (a folder's whole contents), so it needs to
+// survive a refresh or a closed laptop, unlike a plain rename/move/copy.
+function performThemeDelete(theme, { onDone, isCurrentTheme } = {}) {
+  const wordCountNow = Storage.getWords(theme.id).length;
+  const subfolderCountNow = Storage.getChildThemes(theme.id).length;
+  let warning = `Remove "${theme.name}"?`;
+  if (wordCountNow > 0 || subfolderCountNow > 0) {
+    const parts = [];
+    if (wordCountNow > 0) parts.push(`${wordCountNow} word${wordCountNow === 1 ? "" : "s"}`);
+    if (subfolderCountNow > 0)
+      parts.push(`${subfolderCountNow} sub-folder${subfolderCountNow === 1 ? "" : "s"} (and everything inside them)`);
+    warning += ` This will also remove ${parts.join(" and ")}.`;
+  }
+  warning += ' It stays in "Recently removed" for about 30 days before being purged for good.';
+  if (!confirm(warning)) return;
+
+  const parentId = theme.parentId || null;
+  const language = theme.language;
+  Storage.deleteTheme(theme.id);
+  renderQuizThemeCheckboxes();
+
+  if (isCurrentTheme) {
+    // The page you're standing on just removed itself out from under
+    // you -- go up one level, same direction the Back button goes.
+    window.location.href = parentId
+      ? `theme.html?id=${encodeURIComponent(parentId)}`
+      : `vocab.html?lang=${language}`;
+    return;
+  }
+  if (onDone) onDone();
+}
+
+// Copy places the duplicate right next to the original -- Storage's
+// copyTheme already nudges its order to sit immediately after the
+// source when they share a parent -- useful once folders/merging are
+// in play. It's a fresh, just-created theme, so undoing it is a plain
+// hard delete (no 30-day trash entry needed for something that only
+// existed a moment).
+function performThemeCopy(theme, { onDone } = {}) {
+  const result = Storage.copyTheme(theme.id, theme.parentId || null);
+  if (!result.success) {
+    alert("Couldn't copy that.");
+    return;
+  }
+  const newThemeId = result.theme.id;
+  pushUndo(`Copy of "${theme.name}"`, () => {
+    Storage.hardDeleteTheme(newThemeId);
+    renderQuizThemeCheckboxes();
+    if (onDone) onDone();
+  });
+  renderQuizThemeCheckboxes();
+  if (onDone) onDone();
+}
+
+// Fills an existing (or freshly created) .theme-edit-menu container
+// with the Rename/Copy/Delete buttons -- shared by the per-card popover
+// (buildThemeEditMenu, below) and theme.html's own header menu
+// (initThemeHeaderEditMenu), which reuses a single persistent element
+// already sitting in the page instead of creating a new one each time.
+function populateThemeEditMenuButtons(menu, theme, { onDone, isCurrentTheme } = {}) {
+  menu.innerHTML = "";
+
+  const renameBtn = document.createElement("button");
+  renameBtn.type = "button";
+  renameBtn.textContent = "Rename";
+  renameBtn.dataset.immersionKey = "renameButton";
+  renameBtn.addEventListener("click", () => performThemeRename(theme, { onDone }));
+  menu.appendChild(renameBtn);
+
+  const copyBtn = document.createElement("button");
+  copyBtn.type = "button";
+  copyBtn.textContent = "Copy";
+  copyBtn.dataset.immersionKey = "copyButton";
+  copyBtn.addEventListener("click", () => performThemeCopy(theme, { onDone }));
+  menu.appendChild(copyBtn);
+
+  const deleteBtn = document.createElement("button");
+  deleteBtn.type = "button";
+  deleteBtn.className = "danger-option";
+  deleteBtn.textContent = "Delete";
+  deleteBtn.dataset.immersionKey = "btnDelete";
+  deleteBtn.addEventListener("click", () => performThemeDelete(theme, { onDone, isCurrentTheme }));
+  menu.appendChild(deleteBtn);
+}
+
+// The per-card popover (theme.html's sub-folder list, vocab.html's
+// top-level list) -- a fresh little menu built and dropped next to
+// whichever card's edit icon was just clicked.
+function buildThemeEditMenu(theme, opts) {
+  const menu = document.createElement("div");
+  menu.className = "theme-edit-menu";
+  populateThemeEditMenuButtons(menu, theme, opts);
+  return menu;
+}
+
+// theme.html's own header ⋯ button -- same three actions, acting on
+// activeTheme (the folder/theme you're currently standing inside)
+// rather than a card in a list below it.
+function initThemeHeaderEditMenu() {
+  const btn = document.getElementById("theme-edit-btn");
+  const menu = document.getElementById("theme-edit-menu");
+  if (!btn || !menu) return;
+
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (!menu.hidden) {
+      menu.hidden = true;
+      menu.innerHTML = "";
+      return;
+    }
+    if (!activeTheme) return;
+    populateThemeEditMenuButtons(menu, activeTheme, {
+      isCurrentTheme: true,
+      onDone: () => {
+        menu.hidden = true;
+        menu.innerHTML = "";
+      },
+    });
+    menu.hidden = false;
+  });
+  menu.addEventListener("click", (e) => e.stopPropagation());
+}
+
+// ---- Session undo stack -- Move (drag-reorder), Rename, Copy, and
+// Create-a-folder only. Merge and Delete go through Storage's
+// persistent Recently Removed trash instead (see performThemeDelete
+// and the merge chooser below) since they collapse/discard data.
+
+function pushUndo(label, undoFn) {
+  undoStack.push({ label, undo: undoFn });
+  if (undoStack.length > UNDO_STACK_LIMIT) undoStack.shift();
+  renderUndoButton();
+}
+
+function renderUndoButton() {
+  const btn = document.getElementById("theme-undo-btn");
+  if (!btn) return;
+  if (undoStack.length === 0) {
+    btn.hidden = true;
+    return;
+  }
+  btn.hidden = false;
+  btn.textContent = `Undo (${undoStack.length})`;
+}
+
+function handleUndoClick() {
+  if (undoStack.length === 0) return;
+  const entry = undoStack.pop();
+  entry.undo();
+  renderUndoButton();
+}
+
+// ---- Sort mode + Recently removed panel ----
+
+function handleSortToggle() {
+  sortModeActive = !sortModeActive;
+  const btn = document.getElementById("theme-sort-btn");
+  if (btn) {
+    btn.textContent = sortModeActive ? "Done" : "Sort";
+    btn.classList.toggle("active", sortModeActive);
+  }
+  editMenuOpenForId = null;
+  renderThemeList();
+}
+
+function handleTrashToggle() {
+  trashPanelOpen = !trashPanelOpen;
+  const panel = document.getElementById("theme-trash-panel");
+  if (panel) panel.hidden = !trashPanelOpen;
+  const btn = document.getElementById("theme-trash-btn");
+  if (btn) btn.classList.toggle("active", trashPanelOpen);
+  if (trashPanelOpen) renderThemeTrashList();
+}
+
+// A merged-away or deleted theme's full snapshot (itself, everything
+// nested inside it, and its words) stays here for about 30 days before
+// being purged for good -- restorable to right where it was without
+// needing a full persistent undo system for every action.
+function renderThemeTrashList() {
+  const list = document.getElementById("theme-trash-list");
+  if (!list) return;
+  const effectiveLangFilter = activeTheme ? activeTheme.language : activeLangFilter;
+  const entries = Storage.getThemeTrash().filter((entry) => {
+    const top = entry.themes[0];
+    return top && (!effectiveLangFilter || top.language === effectiveLangFilter);
+  });
+  list.innerHTML = "";
+
+  if (entries.length === 0) {
+    const li = document.createElement("li");
+    li.className = "empty-hint";
+    li.textContent = "Nothing removed recently.";
+    list.appendChild(li);
+    return;
+  }
+
+  entries
+    .slice()
+    .sort((a, b) => b.removedAt - a.removedAt)
+    .forEach((entry) => {
+      const top = entry.themes[0];
+      const li = document.createElement("li");
+      li.className = "theme-item";
+
+      const nameEl = document.createElement("span");
+      nameEl.className = "theme-name";
+      nameEl.textContent = top.name;
+      li.appendChild(nameEl);
+
+      const meta = document.createElement("span");
+      meta.className = "theme-meta";
+      const reasonBadge = document.createElement("span");
+      reasonBadge.className = "word-count-badge";
+      reasonBadge.textContent = entry.reason === "merged" ? "merged away" : "deleted";
+      meta.appendChild(reasonBadge);
+      const daysLeft = Math.max(
+        1,
+        Math.ceil((THEME_TRASH_MAX_AGE_MS - (Date.now() - entry.removedAt)) / (24 * 60 * 60 * 1000))
+      );
+      const daysBadge = document.createElement("span");
+      daysBadge.className = "word-count-badge";
+      daysBadge.textContent = `${daysLeft} day${daysLeft === 1 ? "" : "s"} left`;
+      meta.appendChild(daysBadge);
+      li.appendChild(meta);
+
+      const actions = document.createElement("div");
+      actions.className = "theme-item-actions";
+
+      const restoreBtn = document.createElement("button");
+      restoreBtn.type = "button";
+      restoreBtn.textContent = "Restore";
+      restoreBtn.addEventListener("click", () => {
+        const result = Storage.restoreThemeTrashEntry(entry.id);
+        if (!result.success) {
+          alert("Couldn't restore that.");
+          return;
+        }
+        renderThemeTrashList();
+        renderThemeList();
+        renderQuizThemeCheckboxes();
+      });
+      actions.appendChild(restoreBtn);
+
+      const purgeBtn = document.createElement("button");
+      purgeBtn.type = "button";
+      purgeBtn.className = "secondary";
+      purgeBtn.textContent = "Delete forever";
+      purgeBtn.addEventListener("click", () => {
+        if (!confirm(`Permanently delete "${top.name}"? This can't be undone.`)) return;
+        Storage.permanentlyDeleteThemeTrashEntry(entry.id);
+        renderThemeTrashList();
+      });
+      actions.appendChild(purgeBtn);
+
+      li.appendChild(actions);
+      list.appendChild(li);
+    });
 }
 
 function handleNewThemeSubmit(e) {
@@ -447,14 +810,28 @@ function renderThemeList() {
   }
 
   themes.forEach((theme) => {
-    const wordCount = Storage.getWords(theme.id).length;
     const subfolderCount = Storage.getChildThemes(theme.id).length;
+    const isFolder = theme.type === "folder";
 
     const li = document.createElement("li");
-    li.className = `theme-item lang-${theme.language}`;
-    li.addEventListener("click", () => {
-      window.location.href = `theme.html?id=${encodeURIComponent(theme.id)}`;
-    });
+    li.className = `theme-item lang-${theme.language}${isFolder ? " theme-item-folder" : ""}${
+      sortModeActive ? " theme-item-sortable" : ""
+    }`;
+    li.dataset.themeId = theme.id;
+
+    if (!sortModeActive) {
+      li.addEventListener("click", () => {
+        window.location.href = `theme.html?id=${encodeURIComponent(theme.id)}`;
+      });
+    }
+
+    if (isFolder) {
+      const icon = document.createElement("span");
+      icon.className = "theme-folder-icon";
+      icon.setAttribute("aria-hidden", "true");
+      icon.textContent = "\ud83d\udcc1";
+      li.appendChild(icon);
+    }
 
     const nameEl = document.createElement("span");
     nameEl.className = "theme-name";
@@ -464,188 +841,254 @@ function renderThemeList() {
     const meta = document.createElement("span");
     meta.className = "theme-meta";
 
-    const langBadge = document.createElement("span");
-    langBadge.className = `lang-badge lang-badge-${theme.language}`;
-    langBadge.textContent = LANGUAGE_NAMES[theme.language];
-    meta.appendChild(langBadge);
+    if (!isFolder) {
+      const wordCount = Storage.getWords(theme.id).length;
+      const langBadge = document.createElement("span");
+      langBadge.className = `lang-badge lang-badge-${theme.language}`;
+      langBadge.textContent = LANGUAGE_NAMES[theme.language];
+      meta.appendChild(langBadge);
 
-    const countBadge = document.createElement("span");
-    countBadge.className = "word-count-badge";
-    countBadge.textContent = `${wordCount} word${wordCount === 1 ? "" : "s"}`;
-    meta.appendChild(countBadge);
+      const countBadge = document.createElement("span");
+      countBadge.className = "word-count-badge";
+      countBadge.textContent = `${wordCount} word${wordCount === 1 ? "" : "s"}`;
+      meta.appendChild(countBadge);
+    }
 
     if (subfolderCount > 0) {
       const subfolderBadge = document.createElement("span");
       subfolderBadge.className = "word-count-badge";
-      subfolderBadge.textContent = `${subfolderCount} sub-folder${subfolderCount === 1 ? "" : "s"}`;
+      subfolderBadge.textContent = `${subfolderCount} item${subfolderCount === 1 ? "" : "s"} inside`;
       meta.appendChild(subfolderBadge);
     }
 
     li.appendChild(meta);
 
-    if (movingThemeId === theme.id) {
-      const panel = buildThemeMovePanel(theme, {
-        onMove: () => renderThemeList(),
-        onCopy: () => renderThemeList(),
-        onCancel: () => renderThemeList(),
-      });
-      panel.addEventListener("click", (e) => e.stopPropagation());
-      li.appendChild(panel);
-    } else {
-      const actions = document.createElement("div");
-      actions.className = "theme-item-actions";
+    // Single edit icon -- opens Rename/Delete/Copy as a small popover
+    // (Copy duplicates placed right next to the original), replacing
+    // the old always-visible Rename/Move/Copy/Delete button row. Move
+    // is drag-only now (see attachThemeDragHandlers below), or via the
+    // "Add to this folder" picker for pulling in an existing theme.
+    const editWrap = document.createElement("div");
+    editWrap.className = "theme-edit-wrap";
 
-      const renameBtn = document.createElement("button");
-      renameBtn.type = "button";
-      renameBtn.className = "secondary rename-theme-btn";
-      renameBtn.textContent = "Rename";
-      renameBtn.dataset.immersionKey = "renameButton";
-      renameBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        const newName = prompt("New name for this folder:", theme.name);
-        if (!newName || !newName.trim() || newName.trim() === theme.name) return;
-        Storage.renameTheme(theme.id, newName.trim());
-        renderThemeList();
-      });
-      actions.appendChild(renameBtn);
+    const editBtn = document.createElement("button");
+    editBtn.type = "button";
+    editBtn.className = "secondary theme-edit-icon-btn";
+    editBtn.textContent = "\u22ef";
+    editBtn.setAttribute("aria-label", `Edit ${theme.name}`);
+    editBtn.setAttribute("aria-haspopup", "true");
+    editBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      editMenuOpenForId = editMenuOpenForId === theme.id ? null : theme.id;
+      renderThemeList();
+    });
+    editWrap.appendChild(editBtn);
 
-      const moveBtn = document.createElement("button");
-      moveBtn.type = "button";
-      moveBtn.className = "secondary move-theme-btn";
-      moveBtn.textContent = "Move / Copy";
-      moveBtn.dataset.immersionKey = "moveCopyButton";
-      moveBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        movingThemeId = theme.id;
-        renderThemeList();
-      });
-      actions.appendChild(moveBtn);
-
-      const deleteBtn = document.createElement("button");
-      deleteBtn.type = "button";
-      deleteBtn.className = "secondary delete-theme-btn";
-      deleteBtn.textContent = "Delete";
-      deleteBtn.dataset.immersionKey = "btnDelete";
-      deleteBtn.addEventListener("click", (e) => {
-        // The whole card is a click-to-open link — without this the click
-        // would both delete the theme AND navigate into the page for a
-        // theme that no longer exists.
-        e.stopPropagation();
-        const wordCountNow = Storage.getWords(theme.id).length;
-        const subfolderCountNow = Storage.getChildThemes(theme.id).length;
-        let warning = `Delete "${theme.name}"?`;
-        if (wordCountNow > 0 || subfolderCountNow > 0) {
-          const parts = [];
-          if (wordCountNow > 0) parts.push(`${wordCountNow} word${wordCountNow === 1 ? "" : "s"}`);
-          if (subfolderCountNow > 0)
-            parts.push(`${subfolderCountNow} sub-folder${subfolderCountNow === 1 ? "" : "s"} (and everything inside them)`);
-          warning += ` This will also delete ${parts.join(" and ")}.`;
-        }
-        warning += " This can't be undone.";
-        if (!confirm(warning)) return;
-        Storage.deleteTheme(theme.id);
-        renderThemeList();
-        renderQuizThemeCheckboxes();
-      });
-      actions.appendChild(deleteBtn);
-
-      li.appendChild(actions);
+    if (editMenuOpenForId === theme.id) {
+      const menu = buildThemeEditMenu(theme, { onDone: () => renderThemeList() });
+      menu.addEventListener("click", (e) => e.stopPropagation());
+      editWrap.appendChild(menu);
     }
+    editWrap.addEventListener("click", (e) => e.stopPropagation());
+    li.appendChild(editWrap);
+
+    if (sortModeActive) attachThemeDragHandlers(li, theme);
 
     list.appendChild(li);
   });
 }
 
-// ---- Folder (theme) move/copy -- shared by the top-level list
-// (vocab.html) and a theme's sub-folder list (theme.html) ----
+// ---- Sort mode: drag-to-reorder, and (holding a drag over another
+// card) drag-to-merge-or-group -- the same way app icons become
+// movable on an iPhone home screen when you long-press them. Present
+// on every one of these pages, including inside a folder, so the same
+// behaviour builds folders-inside-folders to any depth.
 
-function renderThemeFolderMoveOptions(select, excludeThemeId, language) {
-  select.innerHTML = "";
-  const rootOpt = document.createElement("option");
-  rootOpt.value = "";
-  rootOpt.textContent = "— Top level —";
-  rootOpt.dataset.immersionKey = "topLevelOption";
-  select.appendChild(rootOpt);
+function clearDragHoverTimer() {
+  if (dragHoverTimer) {
+    clearTimeout(dragHoverTimer);
+    dragHoverTimer = null;
+  }
+}
 
-  const candidates = Storage.getThemes()
-    .filter(
-      (t) => t.language === language && t.id !== excludeThemeId && !Storage.isThemeDescendantOf(t.id, excludeThemeId)
-    )
-    .sort((a, b) => a.name.localeCompare(b.name));
+function attachThemeDragHandlers(li, theme) {
+  li.draggable = true;
 
-  candidates.forEach((t) => {
-    const depth = Storage.getThemeAncestors(t.id).length;
-    const opt = document.createElement("option");
-    opt.value = t.id;
-    opt.textContent = `${"— ".repeat(depth)}${t.name}`;
-    select.appendChild(opt);
+  li.addEventListener("dragstart", (e) => {
+    dragSourceThemeId = theme.id;
+    li.classList.add("dragging");
+    e.dataTransfer.effectAllowed = "move";
+    try {
+      e.dataTransfer.setData("text/plain", theme.id);
+    } catch (err) {
+      /* some browsers are picky about setData -- dragSourceThemeId already tracks it */
+    }
+  });
+
+  li.addEventListener("dragend", () => {
+    li.classList.remove("dragging");
+    clearDragHoverTimer();
+    document.querySelectorAll(".drag-merge-target").forEach((el) => el.classList.remove("drag-merge-target"));
+    dragSourceThemeId = null;
+    dragHoverTargetId = null;
+  });
+
+  li.addEventListener("dragover", (e) => {
+    if (!dragSourceThemeId || dragSourceThemeId === theme.id) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (dragHoverTargetId === theme.id) return;
+    clearDragHoverTimer();
+    document.querySelectorAll(".drag-merge-target").forEach((el) => el.classList.remove("drag-merge-target"));
+    dragHoverTargetId = theme.id;
+    li.classList.add("drag-merge-target");
+    dragHoverTimer = setTimeout(() => {
+      const sourceId = dragSourceThemeId;
+      const targetId = theme.id;
+      clearDragHoverTimer();
+      li.classList.remove("drag-merge-target");
+      dragSourceThemeId = null; // the chooser modal takes over from here
+      dragHoverTargetId = null;
+      openMergeChooser(sourceId, targetId);
+    }, DRAG_HOLD_MS);
+  });
+
+  li.addEventListener("dragleave", () => {
+    if (dragHoverTargetId !== theme.id) return;
+    li.classList.remove("drag-merge-target");
+    clearDragHoverTimer();
+    dragHoverTargetId = null;
+  });
+
+  li.addEventListener("drop", (e) => {
+    e.preventDefault();
+    li.classList.remove("drag-merge-target");
+    clearDragHoverTimer();
+    dragHoverTargetId = null;
+    const sourceId = dragSourceThemeId;
+    dragSourceThemeId = null;
+    if (!sourceId || sourceId === theme.id) return;
+    // A drop that lands before the hold timer fires (above) is a plain
+    // quick reorder, same as dropping an iPhone icon between two others.
+    handleThemeReorderDrop(sourceId, theme.id);
   });
 }
 
-// theme: the folder being moved/copied. callbacks: { onMove, onCopy,
-// onCancel } -- each called after that action succeeds (or is
-// canceled), so the caller decides what "done" means (re-render a
-// list in place, or navigate/reload when it's the folder you're
-// currently standing inside).
-function buildThemeMovePanel(theme, callbacks) {
-  const wrapper = document.createElement("div");
-  wrapper.className = "word-move-panel";
+// Reorders sourceId to sit right where it was dropped, relative to
+// targetId, within the SAME parent's sibling list -- dragging across
+// into a different folder is what "Add to this folder" / the merge
+// chooser's "Create a folder" option are for instead.
+function handleThemeReorderDrop(sourceId, targetId) {
+  const source = Storage.getTheme(sourceId);
+  const target = Storage.getTheme(targetId);
+  if (!source || !target) return;
+  if ((source.parentId || null) !== (target.parentId || null)) return;
 
-  const select = document.createElement("select");
-  select.className = "word-move-select";
-  renderThemeFolderMoveOptions(select, theme.id, theme.language);
-  wrapper.appendChild(select);
+  const parentId = target.parentId || null;
+  const effectiveLangFilter = activeTheme ? activeTheme.language : activeLangFilter;
+  const siblings = Storage.getChildThemes(parentId, effectiveLangFilter);
+  const previousOrder = siblings.map((t) => t.id);
 
-  const moveBtn = document.createElement("button");
-  moveBtn.type = "button";
-  moveBtn.textContent = "Move";
-  moveBtn.dataset.immersionKey = "moveButton";
-  moveBtn.addEventListener("click", () => {
-    const targetParentId = select.value || null;
-    const result = Storage.moveTheme(theme.id, targetParentId);
+  const ids = previousOrder.filter((id) => id !== sourceId);
+  const targetIndex = ids.indexOf(targetId);
+  ids.splice(targetIndex, 0, sourceId);
+
+  Storage.reorderThemes(parentId, ids);
+  pushUndo(`Moved "${source.name}"`, () => {
+    Storage.reorderThemes(parentId, previousOrder);
+    renderThemeList();
+  });
+  renderThemeList();
+}
+
+// The "hold a dragged theme over another" chooser: Merge combines both
+// into one brand-new theme (with the option to rename it, duplicate
+// words skipped automatically); Create a folder keeps both themes as
+// they are, but groups them under a new folder you can name -- shown
+// as a tile with a folder icon and its name underneath, opening to a
+// page listing what's inside plus an "add" option for more.
+function openMergeChooser(sourceId, targetId) {
+  const modal = document.getElementById("theme-merge-modal");
+  const source = Storage.getTheme(sourceId);
+  const target = Storage.getTheme(targetId);
+  if (!modal || !source || !target) return;
+
+  modal.innerHTML = "";
+  modal.hidden = false;
+
+  const box = document.createElement("div");
+  box.className = "theme-merge-modal-box";
+
+  const heading = document.createElement("h2");
+  heading.textContent = `"${target.name}" and "${source.name}"`;
+  box.appendChild(heading);
+
+  const hint = document.createElement("p");
+  hint.className = "hint";
+  hint.textContent = "What would you like to do with these two?";
+  box.appendChild(hint);
+
+  const mergeBtn = document.createElement("button");
+  mergeBtn.type = "button";
+  mergeBtn.textContent = "Merge into one theme";
+  mergeBtn.addEventListener("click", () => {
+    const name = prompt("Name for the merged theme:", `${target.name} + ${source.name}`);
+    closeMergeChooser();
+    if (!name || !name.trim()) return;
+    const result = Storage.mergeThemes(target.id, source.id, name.trim());
     if (!result.success) {
-      alert(
-        result.reason === "into-own-descendant"
-          ? "Can't move a folder into itself or one of its own sub-folders."
-          : "Couldn't move that folder."
-      );
+      alert("Couldn't merge those.");
       return;
     }
-    movingThemeId = null;
-    callbacks.onMove();
+    // Merge collapses two themes' data into one -- it goes through
+    // Recently Removed (both originals are soft-deleted, individually
+    // restorable), not the session undo stack.
+    renderThemeList();
+    renderQuizThemeCheckboxes();
   });
-  wrapper.appendChild(moveBtn);
+  box.appendChild(mergeBtn);
 
-  const copyBtn = document.createElement("button");
-  copyBtn.type = "button";
-  copyBtn.className = "secondary";
-  copyBtn.textContent = "Copy";
-  copyBtn.dataset.immersionKey = "copyButton";
-  copyBtn.addEventListener("click", () => {
-    const targetParentId = select.value || null;
-    const result = Storage.copyTheme(theme.id, targetParentId);
-    if (!result.success) {
-      alert("Couldn't copy that folder.");
-      return;
-    }
-    movingThemeId = null;
-    callbacks.onCopy();
-    alert(`Copied "${theme.name}" (and everything inside it).`);
+  const folderBtn = document.createElement("button");
+  folderBtn.type = "button";
+  folderBtn.textContent = "Group into a new folder";
+  folderBtn.addEventListener("click", () => {
+    const name = prompt("Name for the new folder:", "New folder");
+    closeMergeChooser();
+    if (!name || !name.trim()) return;
+    const parentId = target.parentId || null;
+    const targetPrevParent = target.parentId || null;
+    const sourcePrevParent = source.parentId || null;
+    const folder = Storage.addTheme(name.trim(), target.language, parentId, "folder");
+    Storage.updateTheme(folder.id, { order: target.order });
+    Storage.moveTheme(target.id, folder.id);
+    Storage.moveTheme(source.id, folder.id);
+    pushUndo(`Grouped "${target.name}" and "${source.name}"`, () => {
+      Storage.moveTheme(target.id, targetPrevParent);
+      Storage.moveTheme(source.id, sourcePrevParent);
+      Storage.hardDeleteTheme(folder.id);
+      renderThemeList();
+    });
+    renderThemeList();
+    renderQuizThemeCheckboxes();
   });
-  wrapper.appendChild(copyBtn);
+  box.appendChild(folderBtn);
 
   const cancelBtn = document.createElement("button");
   cancelBtn.type = "button";
   cancelBtn.className = "secondary";
   cancelBtn.textContent = "Cancel";
   cancelBtn.dataset.immersionKey = "btnCancel";
-  cancelBtn.addEventListener("click", () => {
-    movingThemeId = null;
-    callbacks.onCancel();
-  });
-  wrapper.appendChild(cancelBtn);
+  cancelBtn.addEventListener("click", closeMergeChooser);
+  box.appendChild(cancelBtn);
 
-  return wrapper;
+  modal.appendChild(box);
+}
+
+function closeMergeChooser() {
+  const modal = document.getElementById("theme-merge-modal");
+  if (!modal) return;
+  modal.hidden = true;
+  modal.innerHTML = "";
 }
 
 // ---------------------------------------------------------------------

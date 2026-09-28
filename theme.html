@@ -81,18 +81,36 @@
     </div>
   </div>
   <header class="app-header">
-    <a href="vocab.html" class="back-link" id="theme-back-link" data-immersion-key="backToThemes">&larr; Back to Themes</a>
+    <a href="vocab.html" class="back-link" id="theme-back-link" data-immersion-key="backOneLevel">&larr; Back</a>
     <nav id="theme-breadcrumb" class="breadcrumb-trail" aria-label="Folder path"></nav>
     <h1 id="theme-hub-heading">Theme</h1>
     <div class="theme-header-actions">
-      <button type="button" id="theme-rename-btn" class="secondary theme-rename-btn" data-immersion-key="renameButton">Rename</button>
-      <button type="button" id="theme-move-btn" class="secondary" data-immersion-key="moveCopyButton">Move / Copy</button>
-      <button type="button" id="theme-delete-btn" class="secondary" data-immersion-key="btnDelete">Delete</button>
+      <button type="button" id="theme-undo-btn" class="secondary" hidden>Undo</button>
+      <button type="button" id="theme-sort-btn" class="secondary">Sort</button>
+      <button type="button" id="theme-trash-btn" class="secondary" data-immersion-key="recentlyRemovedButton">Recently removed</button>
+      <div class="theme-edit-wrap">
+        <button
+          type="button"
+          id="theme-edit-btn"
+          class="secondary theme-edit-icon-btn"
+          aria-label="Edit this theme"
+          aria-haspopup="true"
+        >
+          ⋯
+        </button>
+        <div id="theme-edit-menu" class="theme-edit-menu" hidden></div>
+      </div>
     </div>
-    <div id="theme-move-panel-slot" hidden></div>
   </header>
+  <div id="theme-trash-panel" class="theme-trash-panel" hidden>
+    <div class="theme-trash-panel-head">
+      <h2 data-immersion-key="recentlyRemovedHeading">Recently removed</h2>
+      <p class="hint" data-immersion-key="recentlyRemovedHint">Merged or deleted themes stay here for about 30 days before being purged for good.</p>
+    </div>
+    <ul id="theme-trash-list" class="theme-list"></ul>
+  </div>
   <main>
-    <div class="bubble-grid">
+    <div class="bubble-grid" id="theme-vocab-bubbles">
       <a class="bubble" id="theme-hub-add-link" href="#">
         <span class="bubble-title" data-immersion-key="addNewVocabTitle">Add New Vocab</span>
         <span class="bubble-sub" data-immersion-key="addNewVocabSub">Add words, and see everything saved in this theme</span>
@@ -108,7 +126,7 @@
     </div>
 
     <section class="subfolder-section">
-      <h2 class="subfolder-heading" data-immersion-key="subfoldersHeading">Sub-folders</h2>
+      <h2 class="subfolder-heading" id="subfolder-heading" data-immersion-key="subfoldersHeading">Sub-folders</h2>
       <form id="new-subfolder-form" class="inline-form">
         <input
           type="text"
@@ -119,9 +137,14 @@
         />
         <button type="submit" data-immersion-key="createFolderButton">Create folder</button>
       </form>
+      <form id="add-existing-theme-form" class="inline-form" hidden>
+        <select id="add-existing-theme-select"></select>
+        <button type="submit" data-immersion-key="addExistingThemeButton">Add to this folder</button>
+      </form>
       <ul id="theme-list" class="theme-list"></ul>
     </section>
   </main>
+  <div id="theme-merge-modal" class="theme-merge-modal" hidden></div>
   <script src="js/topbar.js"></script>
   <script src="js/immersion.js"></script>
   <script src="js/app-tabs.js"></script>
