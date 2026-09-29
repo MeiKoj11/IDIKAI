@@ -57,6 +57,19 @@ section — `.wrap-focus`, `.focus-card`, `.select-pill`, `.source-row`,
 `.judge`, `.lookup-strip`, `.theme-chip`, `.loading-main`/`.spinner` — ported
 from a `test-mockup.css` covering conjugation-test/sentence-test screens.
 
+**Vocab Bank theme/folder tile style** (from a `VOCAB2909.html` mockup,
+2026-09-29): parchment card (`var(--card)` bg, `#7A5A45` border,
+`border-radius: 14px`), red Fahkwang title (`var(--red)`, weight 600,
+1.35rem), muted meta text (`rgba(34,23,18,0.6)`), lift + `3px 3px 0
+#7A5A45` shadow on hover/focus. Lives entirely in `idikai-refresh.css`
+under the `#theme-list > li.theme-item` rules (search that file for
+"parchment-card style") — no JS changes, since `js/vocab-app.js`'s
+`renderThemeList()` already puts the same `.theme-item`/`.theme-name`/
+`.theme-meta` classes on every tile it builds, on vocab.html and on a
+folder's own theme.html page alike, at any nesting depth. Reuse this
+same rule set for any future theme/folder tile work instead of
+re-deriving a style — just restyle those selectors.
+
 ### The recurring CSS bug — READ THIS BEFORE ADDING A NEW BUTTON-BASED CLASS
 
 `style.css` has a **global `button { background: #221712; color: #ECE6D3; }`
