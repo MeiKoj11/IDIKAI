@@ -77,6 +77,15 @@ let dragSourceThemeId = null;
 let dragHoverTargetId = null;
 let dragHoverTimer = null;
 const DRAG_HOLD_MS = 550;
+// Whether the current hover has been held past DRAG_HOLD_MS -- read by
+// the `drop` handler (which fires only once the native drag has fully
+// concluded) to decide between a plain reorder and opening the
+// merge/folder chooser. Deciding this in `drop` instead of mid-drag
+// (the old code opened the chooser straight from the dragover timer)
+// is what fixes a bug where opening a modal while the browser still
+// thought a drag was in progress could lose track of one of the two
+// themes involved.
+let dragHeld = false;
 // Which folder's children #theme-list is currently showing: null at
 // the top level (vocab.html), or a theme's id when that list is a
 // theme.html page's sub-folder list -- set once in applyActiveThemeToUI.
@@ -192,6 +201,34 @@ function applyActiveThemeToUI() {
   const bubbles = document.getElementById("theme-vocab-bubbles");
   if (bubbles) bubbles.hidden = activeTheme.type === "folder";
 
+  // A folder's own page should look exactly like the top-level Vocab
+  // Bank "Themes" panel -- same heading/hint/Add-theme row -- instead
+  // of the bespoke "Sub-folders" panel a regular vocab-holding theme
+  // shows alongside its Add/Test/View bubbles. Since it's the same
+  // page design, the same drag-to-merge/-group behaviour just works
+  // recursively at any folder depth for free.
+  const isFolder = activeTheme.type === "folder";
+  const subfolderHeadingBlock = document.getElementById("subfolder-heading-block");
+  const folderHeadingBlock = document.getElementById("folder-heading-block");
+  const newSubfolderForm = document.getElementById("new-subfolder-form");
+  const themeSublistPanel = document.getElementById("theme-sublist-panel");
+  const folderNewThemeForm = document.getElementById("new-theme-form");
+  if (subfolderHeadingBlock) subfolderHeadingBlock.hidden = isFolder;
+  if (folderHeadingBlock) folderHeadingBlock.hidden = !isFolder;
+  if (newSubfolderForm) newSubfolderForm.hidden = isFolder;
+  if (themeSublistPanel) themeSublistPanel.classList.toggle("panel", isFolder);
+  if (folderNewThemeForm) folderNewThemeForm.hidden = !isFolder;
+  if (isFolder) {
+    const folderLangSelect = document.getElementById("new-theme-language");
+    if (folderLangSelect) folderLangSelect.value = activeTheme.language;
+  }
+
+  // theme.html's header doesn't have its own "Add random vocab" link
+  // in the markup the way vocab.html does -- point the shared one at
+  // this theme's language so it shows up here too, folder or not.
+  const themeAddRandomVocabLink = document.getElementById("theme-add-random-vocab-link");
+  if (themeAddRandomVocabLink) themeAddRandomVocabLink.href = `add-random-vocab.html?lang=${activeTheme.language}`;
+
   // "Back" always goes one level up -- to the folder you're actually
   // inside of, never a jump straight back to the top of Vocab Bank from
   // several folders deep.
@@ -230,6 +267,15 @@ function renderAddExistingThemeForm() {
   const form = document.getElementById("add-existing-theme-form");
   const select = document.getElementById("add-existing-theme-select");
   if (!form || !select || !activeTheme) return;
+
+  // A folder's own page mirrors the top-level Vocab Bank page exactly
+  // -- Add theme only, no separate "add existing" picker. Pulling an
+  // existing theme in is done from the PARENT view instead, by
+  // dragging it onto the folder's tile (see attachThemeDragHandlers).
+  if (activeTheme.type === "folder") {
+    form.hidden = true;
+    return;
+  }
 
   const candidates = Storage.getThemes().filter(
     (t) =>
@@ -576,6 +622,33 @@ function performThemeCopy(theme, { onDone } = {}) {
 // (buildThemeEditMenu, below) and theme.html's own header menu
 // (initThemeHeaderEditMenu), which reuses a single persistent element
 // already sitting in the page instead of creating a new one each time.
+// Releases a folder's contents up exactly one level, into whatever
+// folder or page is the folder's own immediate parent -- never
+// straight to the top-level Vocab Bank page unless that parent
+// actually IS the top level (parentId already being null covers that
+// case for free, since moveTheme(..., null) is exactly "top level").
+function performThemeEmptyFolder(theme, { onDone, isCurrentTheme } = {}) {
+  const children = Storage.getChildThemes(theme.id);
+  if (children.length === 0) {
+    alert("This folder is already empty.");
+    return;
+  }
+  if (!confirm(`Move everything inside "${theme.name}" out to its parent?`)) return;
+
+  const releaseToParentId = theme.parentId || null;
+  const previousParents = children.map((child) => ({ id: child.id, parentId: child.parentId || null }));
+  children.forEach((child) => Storage.moveTheme(child.id, releaseToParentId));
+
+  pushUndo(`Emptied "${theme.name}"`, () => {
+    previousParents.forEach(({ id, parentId }) => Storage.moveTheme(id, parentId));
+    renderThemeList();
+  });
+
+  renderThemeList();
+  renderQuizThemeCheckboxes();
+  if (onDone) onDone();
+}
+
 function populateThemeEditMenuButtons(menu, theme, { onDone, isCurrentTheme } = {}) {
   menu.innerHTML = "";
 
@@ -592,6 +665,14 @@ function populateThemeEditMenuButtons(menu, theme, { onDone, isCurrentTheme } = 
   copyBtn.dataset.immersionKey = "copyButton";
   copyBtn.addEventListener("click", () => performThemeCopy(theme, { onDone }));
   menu.appendChild(copyBtn);
+
+  if (theme.type === "folder") {
+    const emptyBtn = document.createElement("button");
+    emptyBtn.type = "button";
+    emptyBtn.textContent = "Empty folder";
+    emptyBtn.addEventListener("click", () => performThemeEmptyFolder(theme, { onDone, isCurrentTheme }));
+    menu.appendChild(emptyBtn);
+  }
 
   const deleteBtn = document.createElement("button");
   deleteBtn.type = "button";
@@ -783,7 +864,10 @@ function handleNewThemeSubmit(e) {
   const name = nameInput.value.trim();
   if (!name) return;
 
-  Storage.addTheme(name, langSelect.value);
+  // On vocab.html activeTheme is always null (top level, unchanged
+  // behaviour); on a folder's own theme.html page this is the same
+  // "Add theme" row, just scoped to add the new theme inside it.
+  Storage.addTheme(name, langSelect.value, activeTheme ? activeTheme.id : null);
   nameInput.value = "";
   renderThemeList();
   renderQuizThemeCheckboxes();
@@ -933,9 +1017,12 @@ function attachThemeDragHandlers(li, theme) {
   li.addEventListener("dragend", () => {
     li.classList.remove("dragging");
     clearDragHoverTimer();
-    document.querySelectorAll(".drag-merge-target").forEach((el) => el.classList.remove("drag-merge-target"));
+    document.querySelectorAll(".drag-merge-target, .drag-hold-ready").forEach((el) =>
+      el.classList.remove("drag-merge-target", "drag-hold-ready")
+    );
     dragSourceThemeId = null;
     dragHoverTargetId = null;
+    dragHeld = false;
   });
 
   li.addEventListener("dragover", (e) => {
@@ -944,38 +1031,49 @@ function attachThemeDragHandlers(li, theme) {
     e.dataTransfer.dropEffect = "move";
     if (dragHoverTargetId === theme.id) return;
     clearDragHoverTimer();
-    document.querySelectorAll(".drag-merge-target").forEach((el) => el.classList.remove("drag-merge-target"));
+    document.querySelectorAll(".drag-merge-target, .drag-hold-ready").forEach((el) =>
+      el.classList.remove("drag-merge-target", "drag-hold-ready")
+    );
     dragHoverTargetId = theme.id;
+    dragHeld = false;
     li.classList.add("drag-merge-target");
     dragHoverTimer = setTimeout(() => {
-      const sourceId = dragSourceThemeId;
-      const targetId = theme.id;
-      clearDragHoverTimer();
-      li.classList.remove("drag-merge-target");
-      dragSourceThemeId = null; // the chooser modal takes over from here
-      dragHoverTargetId = null;
-      openMergeChooser(sourceId, targetId);
+      // Only mark the hold as reached and show it visually -- deciding
+      // what to DO about it (and opening any modal/prompt) waits for
+      // `drop`, once the native drag operation has actually finished.
+      dragHeld = true;
+      li.classList.add("drag-hold-ready");
     }, DRAG_HOLD_MS);
   });
 
   li.addEventListener("dragleave", () => {
     if (dragHoverTargetId !== theme.id) return;
-    li.classList.remove("drag-merge-target");
+    li.classList.remove("drag-merge-target", "drag-hold-ready");
     clearDragHoverTimer();
     dragHoverTargetId = null;
+    dragHeld = false;
   });
 
   li.addEventListener("drop", (e) => {
     e.preventDefault();
-    li.classList.remove("drag-merge-target");
-    clearDragHoverTimer();
-    dragHoverTargetId = null;
     const sourceId = dragSourceThemeId;
+    const targetId = theme.id;
+    const held = dragHeld;
+    li.classList.remove("drag-merge-target", "drag-hold-ready");
+    clearDragHoverTimer();
     dragSourceThemeId = null;
-    if (!sourceId || sourceId === theme.id) return;
-    // A drop that lands before the hold timer fires (above) is a plain
-    // quick reorder, same as dropping an iPhone icon between two others.
-    handleThemeReorderDrop(sourceId, theme.id);
+    dragHoverTargetId = null;
+    dragHeld = false;
+    if (!sourceId || sourceId === targetId) return;
+    if (held) {
+      // Held past the threshold -- open the merge/folder chooser now
+      // that the native drag has fully concluded, instead of from
+      // mid-drag (see the comment on the dragHeld declaration above).
+      openThemeDragChooser(sourceId, targetId);
+    } else {
+      // A quick drop, same as dropping an iPhone icon between two others.
+      handleThemeReorderDrop(sourceId, targetId);
+    }
   });
 }
 
@@ -1012,7 +1110,59 @@ function handleThemeReorderDrop(sourceId, targetId) {
 // they are, but groups them under a new folder you can name -- shown
 // as a tile with a folder icon and its name underneath, opening to a
 // page listing what's inside plus an "add" option for more.
-function openMergeChooser(sourceId, targetId) {
+// Moves both target and source under a brand-new folder, leaving each
+// one's own existing contents completely untouched -- shared by the
+// two-plain-themes chooser's "Group into a new folder" button and the
+// two-folders chooser's "Group folders" button below, since creating a
+// new parent folder and moving two existing themes into it is the same
+// operation either way (Storage.moveTheme doesn't care whether the
+// theme being moved is a folder or a vocab-holding theme).
+function performGroupIntoFolder(target, source, defaultName) {
+  const name = prompt("Name for the new folder:", defaultName);
+  closeMergeChooser();
+  if (!name || !name.trim()) return;
+  const parentId = target.parentId || null;
+  const targetPrevParent = target.parentId || null;
+  const sourcePrevParent = source.parentId || null;
+  const folder = Storage.addTheme(name.trim(), target.language, parentId, "folder");
+  Storage.updateTheme(folder.id, { order: target.order });
+  Storage.moveTheme(target.id, folder.id);
+  Storage.moveTheme(source.id, folder.id);
+  pushUndo(`Grouped "${target.name}" and "${source.name}"`, () => {
+    Storage.moveTheme(target.id, targetPrevParent);
+    Storage.moveTheme(source.id, sourcePrevParent);
+    Storage.hardDeleteTheme(folder.id);
+    renderThemeList();
+  });
+  renderThemeList();
+  renderQuizThemeCheckboxes();
+}
+
+// Moves plainTheme straight into folderTheme -- the default action
+// when one side of a drag is already a folder, so there's no need to
+// ask about creating a new one.
+function performAddToFolder(folderTheme, plainTheme) {
+  closeMergeChooser();
+  const prevParent = plainTheme.parentId || null;
+  const result = Storage.moveTheme(plainTheme.id, folderTheme.id);
+  if (!result.success) {
+    alert("Couldn't add that to the folder.");
+    return;
+  }
+  pushUndo(`Added "${plainTheme.name}" to "${folderTheme.name}"`, () => {
+    Storage.moveTheme(plainTheme.id, prevParent);
+    renderThemeList();
+  });
+  renderThemeList();
+  renderQuizThemeCheckboxes();
+}
+
+// The "hold a dragged theme over another" chooser. What it offers
+// depends on what's actually being dragged onto what: two plain
+// themes get the original Merge-or-Create-folder choice; dragging onto
+// (or with) an existing folder skips straight to the folder action,
+// since there's no ambiguity about intent once a folder's involved.
+function openThemeDragChooser(sourceId, targetId) {
   const modal = document.getElementById("theme-merge-modal");
   const source = Storage.getTheme(sourceId);
   const target = Storage.getTheme(targetId);
@@ -1030,53 +1180,74 @@ function openMergeChooser(sourceId, targetId) {
 
   const hint = document.createElement("p");
   hint.className = "hint";
-  hint.textContent = "What would you like to do with these two?";
-  box.appendChild(hint);
 
-  const mergeBtn = document.createElement("button");
-  mergeBtn.type = "button";
-  mergeBtn.textContent = "Merge into one theme";
-  mergeBtn.addEventListener("click", () => {
-    const name = prompt("Name for the merged theme:", `${target.name} + ${source.name}`);
-    closeMergeChooser();
-    if (!name || !name.trim()) return;
-    const result = Storage.mergeThemes(target.id, source.id, name.trim());
-    if (!result.success) {
-      alert("Couldn't merge those.");
-      return;
-    }
-    // Merge collapses two themes' data into one -- it goes through
-    // Recently Removed (both originals are soft-deleted, individually
-    // restorable), not the session undo stack.
-    renderThemeList();
-    renderQuizThemeCheckboxes();
-  });
-  box.appendChild(mergeBtn);
+  const targetIsFolder = target.type === "folder";
+  const sourceIsFolder = source.type === "folder";
 
-  const folderBtn = document.createElement("button");
-  folderBtn.type = "button";
-  folderBtn.textContent = "Group into a new folder";
-  folderBtn.addEventListener("click", () => {
-    const name = prompt("Name for the new folder:", "New folder");
-    closeMergeChooser();
-    if (!name || !name.trim()) return;
-    const parentId = target.parentId || null;
-    const targetPrevParent = target.parentId || null;
-    const sourcePrevParent = source.parentId || null;
-    const folder = Storage.addTheme(name.trim(), target.language, parentId, "folder");
-    Storage.updateTheme(folder.id, { order: target.order });
-    Storage.moveTheme(target.id, folder.id);
-    Storage.moveTheme(source.id, folder.id);
-    pushUndo(`Grouped "${target.name}" and "${source.name}"`, () => {
-      Storage.moveTheme(target.id, targetPrevParent);
-      Storage.moveTheme(source.id, sourcePrevParent);
-      Storage.hardDeleteTheme(folder.id);
-      renderThemeList();
+  if (targetIsFolder && sourceIsFolder) {
+    // Both sides are already folders -- group them under a brand-new
+    // parent folder. Deliberately not called "merge": merge already
+    // means something destructive (combining two themes' words into
+    // one), and grouping two folders together does nothing destructive
+    // at all -- each keeps its own contents, completely untouched.
+    hint.textContent = "Both of these are already folders.";
+    box.appendChild(hint);
+
+    const groupBtn = document.createElement("button");
+    groupBtn.type = "button";
+    groupBtn.textContent = "Group folders";
+    groupBtn.addEventListener("click", () => {
+      performGroupIntoFolder(target, source, `${target.name} + ${source.name}`);
     });
-    renderThemeList();
-    renderQuizThemeCheckboxes();
-  });
-  box.appendChild(folderBtn);
+    box.appendChild(groupBtn);
+  } else if (targetIsFolder || sourceIsFolder) {
+    // One side is already a folder -- that's the obvious default
+    // action, no need to ask about creating a new one.
+    const folderTheme = targetIsFolder ? target : source;
+    const plainTheme = targetIsFolder ? source : target;
+    hint.textContent = `Add "${plainTheme.name}" to the "${folderTheme.name}" folder?`;
+    box.appendChild(hint);
+
+    const addBtn = document.createElement("button");
+    addBtn.type = "button";
+    addBtn.textContent = "Add to folder";
+    addBtn.addEventListener("click", () => {
+      performAddToFolder(folderTheme, plainTheme);
+    });
+    box.appendChild(addBtn);
+  } else {
+    // Two plain themes -- the original merge-or-create-folder choice.
+    hint.textContent = "What would you like to do with these two?";
+    box.appendChild(hint);
+
+    const mergeBtn = document.createElement("button");
+    mergeBtn.type = "button";
+    mergeBtn.textContent = "Merge into one theme";
+    mergeBtn.addEventListener("click", () => {
+      const name = prompt("Name for the merged theme:", `${target.name} + ${source.name}`);
+      closeMergeChooser();
+      if (!name || !name.trim()) return;
+      const result = Storage.mergeThemes(target.id, source.id, name.trim());
+      if (!result.success) {
+        alert("Couldn't merge those.");
+        return;
+      }
+      // Merge collapses two themes' data into one -- it goes through
+      // Recently Removed (both originals are soft-deleted, individually
+      // restorable), not the session undo stack.
+      renderThemeList();
+      renderQuizThemeCheckboxes();
+    });
+    box.appendChild(mergeBtn);
+
+    const folderBtn = document.createElement("button");
+    folderBtn.type = "button";
+    folderBtn.textContent = "Group into a new folder";
+    folderBtn.addEventListener("click", () => {
+      performGroupIntoFolder(target, source, "New folder");
+    });
+    box.appendChild(folderBtn);
+  }
 
   const cancelBtn = document.createElement("button");
   cancelBtn.type = "button";

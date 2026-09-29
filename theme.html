@@ -88,6 +88,7 @@
       <button type="button" id="theme-undo-btn" class="secondary" hidden>Undo</button>
       <button type="button" id="theme-sort-btn" class="secondary">Sort</button>
       <button type="button" id="theme-trash-btn" class="secondary" data-immersion-key="recentlyRemovedButton">Recently removed</button>
+      <a href="#" id="theme-add-random-vocab-link" class="secondary" data-immersion-key="addRandomVocabButton">+ Add random vocab</a>
       <div class="theme-edit-wrap">
         <button
           type="button"
@@ -125,8 +126,14 @@
       </a>
     </div>
 
-    <section class="subfolder-section">
-      <h2 class="subfolder-heading" id="subfolder-heading" data-immersion-key="subfoldersHeading">Sub-folders</h2>
+    <section class="subfolder-section" id="theme-sublist-panel">
+      <div id="subfolder-heading-block">
+        <h2 class="subfolder-heading" id="subfolder-heading" data-immersion-key="subfoldersHeading">Sub-folders</h2>
+      </div>
+      <div id="folder-heading-block" hidden>
+        <h2 data-immersion-key="themesHeading">Themes</h2>
+        <p class="hint" data-immersion-key="themesHint">Themes are your folders — e.g. "School", "Verbs", "Food". Click a theme to open it.</p>
+      </div>
       <form id="new-subfolder-form" class="inline-form">
         <input
           type="text"
@@ -140,6 +147,15 @@
       <form id="add-existing-theme-form" class="inline-form" hidden>
         <select id="add-existing-theme-select"></select>
         <button type="submit" data-immersion-key="addExistingThemeButton">Add to this folder</button>
+      </form>
+      <form id="new-theme-form" class="inline-form" hidden>
+        <input type="text" id="new-theme-name" placeholder="Theme name" required data-immersion-key="themeNamePlaceholder" />
+        <select id="new-theme-language">
+          <option value="es" data-immersion-key="langNameEs">Spanish</option>
+          <option value="ja" data-immersion-key="langNameJa">Japanese</option>
+          <option value="fr" data-immersion-key="langNameFr">French</option>
+        </select>
+        <button type="submit" data-immersion-key="addThemeButton">Add theme</button>
       </form>
       <ul id="theme-list" class="theme-list"></ul>
     </section>

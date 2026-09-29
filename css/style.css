@@ -1098,6 +1098,14 @@ a.secondary:hover {
   outline-offset: 2px;
 }
 
+/* Hovering long enough that releasing now will open the merge/folder
+   chooser (drag-merge-target alone just means "this is the current
+   hover target, still building up the hold"). */
+.theme-item.drag-hold-ready {
+  outline: 3px solid #E8B84B;
+  outline-offset: 2px;
+}
+
 #theme-sort-btn.active,
 #theme-trash-btn.active {
   background: #8B3435;
