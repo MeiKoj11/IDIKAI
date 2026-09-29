@@ -914,14 +914,10 @@ function renderThemeList() {
       });
     }
 
-    if (isFolder) {
-      const icon = document.createElement("span");
-      icon.className = "theme-folder-icon";
-      icon.setAttribute("aria-hidden", "true");
-      icon.textContent = "\ud83d\udcc1";
-      li.appendChild(icon);
-    }
-
+    // No folder-icon glyph and no separate language chip on the tile
+    // itself, per the VOCAB2909 mockup -- just the name, and a single
+    // plain-text count line underneath (no pill/badge styling; see
+    // idikai-refresh.css's "#theme-list .theme-meta" rule).
     const nameEl = document.createElement("span");
     nameEl.className = "theme-name";
     nameEl.textContent = theme.name;
@@ -930,25 +926,15 @@ function renderThemeList() {
     const meta = document.createElement("span");
     meta.className = "theme-meta";
 
+    const metaParts = [];
     if (!isFolder) {
       const wordCount = Storage.getWords(theme.id).length;
-      const langBadge = document.createElement("span");
-      langBadge.className = `lang-badge lang-badge-${theme.language}`;
-      langBadge.textContent = LANGUAGE_NAMES[theme.language];
-      meta.appendChild(langBadge);
-
-      const countBadge = document.createElement("span");
-      countBadge.className = "word-count-badge";
-      countBadge.textContent = `${wordCount} word${wordCount === 1 ? "" : "s"}`;
-      meta.appendChild(countBadge);
+      metaParts.push(`${wordCount} word${wordCount === 1 ? "" : "s"}`);
     }
-
     if (subfolderCount > 0) {
-      const subfolderBadge = document.createElement("span");
-      subfolderBadge.className = "word-count-badge";
-      subfolderBadge.textContent = `${subfolderCount} item${subfolderCount === 1 ? "" : "s"} inside`;
-      meta.appendChild(subfolderBadge);
+      metaParts.push(`${subfolderCount} item${subfolderCount === 1 ? "" : "s"} inside`);
     }
+    meta.textContent = metaParts.join(" \u00b7 ");
 
     li.appendChild(meta);
 
