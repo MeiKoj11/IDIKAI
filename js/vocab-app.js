@@ -60,10 +60,15 @@ let trashPanelOpen = false;
 // survives a refresh or a closed laptop.
 let undoStack = [];
 const UNDO_STACK_LIMIT = 15;
-// Mirrors storage.js's THEME_TRASH_MAX_AGE_MS for the "N days left"
-// display below -- that constant isn't exported, so it's just kept in
-// sync here (both are 30 days, a design constant, not user data).
-const THEME_TRASH_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+// Mirrors storage.js's own THEME_TRASH_MAX_AGE_MS for the "N days
+// left" display below -- that constant isn't exported, so it's just
+// kept in sync here (both are 30 days, a design constant, not user
+// data). Named differently from storage.js's copy on purpose: classic
+// (non-module) <script> tags share one global scope, so two files each
+// declaring a top-level `const` of the same name is a SyntaxError that
+// silently breaks the whole page (this exact bug once shipped for real
+// and blanked every theme list -- never reuse this exact name again).
+const VOCAB_APP_THEME_TRASH_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 // Sort-mode drag state for the hold-to-merge-or-group interaction: the
 // theme being dragged, and (while hovering over a candidate drop
 // target) the pending timer that -- if the drag lingers long enough --
@@ -729,7 +734,7 @@ function renderThemeTrashList() {
       meta.appendChild(reasonBadge);
       const daysLeft = Math.max(
         1,
-        Math.ceil((THEME_TRASH_MAX_AGE_MS - (Date.now() - entry.removedAt)) / (24 * 60 * 60 * 1000))
+        Math.ceil((VOCAB_APP_THEME_TRASH_MAX_AGE_MS - (Date.now() - entry.removedAt)) / (24 * 60 * 60 * 1000))
       );
       const daysBadge = document.createElement("span");
       daysBadge.className = "word-count-badge";
