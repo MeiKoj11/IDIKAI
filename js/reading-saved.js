@@ -45,6 +45,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const langParam = getReadingSavedQueryParam("lang");
   readingSavedLang = SUPPORTED_LANGUAGES.includes(langParam) ? langParam : null;
 
+  // Optional deep link: ?folder=<id> preselects that folder's filter on
+  // load (used by the Class Notebook's "link to a Reading folder"
+  // feature). Purely additive -- with no folder param the page behaves
+  // exactly as it always has.
+  const folderParam = getReadingSavedQueryParam("folder");
+  if (folderParam) readingSavedFolderFilter = folderParam;
+
   const backLink = document.getElementById("reading-saved-back-link");
   if (backLink && readingSavedLang) backLink.href = `reading.html?lang=${readingSavedLang}`;
 
@@ -75,6 +82,8 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   renderReadingSavedFolderFilter();
+  const filterSelectEl = document.getElementById("passage-folder-filter");
+  if (filterSelectEl && readingSavedFolderFilter) filterSelectEl.value = readingSavedFolderFilter;
   renderReadingSavedList();
 });
 

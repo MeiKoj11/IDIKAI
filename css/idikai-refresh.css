@@ -2107,6 +2107,182 @@ body.howto-open { overflow: hidden; }
   color: rgba(34, 23, 18, 0.4);
 }
 
+/* ---------- Class Notebook: inline links to other sections -------------- */
+.notebook-toolbar-btn.active {
+  background: var(--red);
+  color: var(--paper);
+  border-color: var(--red);
+}
+.notebook-book.link-armed .notebook-page-editable {
+  cursor: crosshair;
+}
+.notebook-link-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin: 0 2px;
+  border-radius: 999px;
+  background: var(--card);
+  border: 2px solid var(--red);
+  color: var(--red);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  vertical-align: middle;
+}
+.notebook-link-icon:hover {
+  background: var(--red);
+  color: var(--paper);
+}
+.notebook-link-icon.notebook-link-broken {
+  border-style: dashed;
+  border-color: rgba(34, 23, 18, 0.4);
+  color: rgba(34, 23, 18, 0.4);
+  background: transparent;
+}
+.notebook-link-icon.notebook-link-broken:hover {
+  background: rgba(34, 23, 18, 0.08);
+  color: rgba(34, 23, 18, 0.6);
+}
+.notebook-link-popover {
+  position: fixed;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  min-width: 140px;
+  padding: 5px;
+  gap: 2px;
+  background: var(--card);
+  border: 2px solid #7A5A45;
+  border-radius: 10px;
+  box-shadow: 3px 3px 0 #7A5A45;
+}
+.notebook-link-popover button {
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-family: "Nunito", sans-serif;
+  font-size: 0.9rem;
+  color: var(--ink);
+  cursor: pointer;
+}
+.notebook-link-popover button:hover { background: #E4DCC4; }
+.notebook-link-popover button.danger-option { color: var(--red); }
+.notebook-link-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 210;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(34, 23, 18, 0.55);
+  padding: 1rem;
+}
+.notebook-link-modal-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  width: 100%;
+  max-width: 420px;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 1.3rem;
+  background: var(--card);
+  border: 2px solid #7A5A45;
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+}
+.notebook-link-modal-box h2 {
+  margin: 0;
+  font-family: "Fahkwang", serif;
+  font-weight: 500;
+  font-size: 1.3rem;
+  color: var(--ink);
+}
+.notebook-link-modal-box .hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: rgba(34, 23, 18, 0.6);
+}
+.notebook-link-modal-box button.link-option {
+  width: 100%;
+  text-align: left;
+  background: var(--paper);
+  color: var(--ink);
+  border: 2px solid #7A5A45;
+  border-radius: 9px;
+  padding: 10px 14px;
+  font-family: "Nunito", sans-serif;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+.notebook-link-modal-box button.link-option:hover {
+  border-color: var(--red);
+  background: #E4DCC4;
+}
+.notebook-link-modal-box button.link-option.link-option-primary {
+  background: var(--red);
+  color: var(--paper);
+  border-color: var(--red);
+  font-weight: 700;
+}
+.notebook-link-modal-box button.link-option.link-option-primary:hover {
+  opacity: 0.9;
+}
+.notebook-link-modal-box .link-option-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.notebook-link-modal-box input[type="text"] {
+  font-family: "Nunito", sans-serif;
+  font-size: 0.95rem;
+  color: var(--ink);
+  background: var(--paper);
+  border: 2px solid #7A5A45;
+  border-radius: 9px;
+  padding: 10px 12px;
+}
+.notebook-link-modal-box .link-modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.notebook-link-modal-box .link-modal-actions button {
+  font-family: "Nunito", sans-serif;
+  font-weight: 700;
+  border-radius: 9px;
+  padding: 9px 16px;
+  cursor: pointer;
+}
+.notebook-link-modal-box .link-modal-actions .secondary {
+  background: transparent;
+  border: 2px solid var(--ink);
+  color: var(--ink);
+}
+.notebook-link-modal-box .link-modal-actions .primary {
+  background: var(--red);
+  border: 2px solid var(--red);
+  color: var(--paper);
+}
+.notebook-link-back-btn {
+  align-self: flex-start;
+  background: transparent;
+  border: none;
+  color: rgba(34, 23, 18, 0.6);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0;
+}
+.notebook-link-back-btn:hover { color: var(--red); }
+
 /* ---------- Reading: image dropzone (fills with header red) -------------- */
 .image-dropzone {
   background: var(--red);
